@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  image     String?
+  plan      String   @default("free")
+  predictionsUsed Int @default(0)
+  predictionsLimit Int @default(5)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  analyses ContentAnalysis[]
+}
+
+model ContentAnalysis {
+  id          String   @id @default(cuid())
+  userId      String?
+  title       String
+  platform    String
+  contentType String
+  contentText String
+  ideaText    String?
+  audience    String?
+
+  overallScore    Int
+  confidence      String
+  classification  String
+
+  hookScore       Int
+  engagementScore Int
+  shareabilityScore Int
+  retentionScore  Int
+  originalityScore Int
+  audienceFitScore Int
+  emotionalImpactScore Int
+  contentQualityScore Int
+  trendAlignmentScore Int
+  platformFitScores String
+
+  strengths    String
+  weaknesses   String
+  recommendations String
+  optimizedHook   String?
+  optimizedCaption String?
+  optimizedTitle  String?
+  variations  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
