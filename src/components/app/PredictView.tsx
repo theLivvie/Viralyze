@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, Check, Timer } from 'lucide-react';
+import { Sparkles, Loader2, Check, Timer, Film, Image, FileText, Play, Video, BookOpen, LayoutGrid, MessageSquare, Camera } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,25 +19,24 @@ import {
 import { useAppStore } from '@/lib/store';
 import PlatformSelector from '@/components/shared/PlatformSelector';
 import type { ContentType } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const contentTypes: { value: ContentType; label: string }[] = [
-  { value: 'reel', label: 'Reel' },
-  { value: 'video', label: 'Video' },
-  { value: 'short', label: 'Short' },
-  { value: 'carousel', label: 'Carousel' },
-  { value: 'post', label: 'Post' },
-  { value: 'thread', label: 'Thread' },
-  { value: 'article', label: 'Article' },
-  { value: 'story', label: 'Story' },
+const contentTypes: { value: ContentType; label: string; icon: React.ElementType }[] = [
+  { value: 'reel', label: 'Reel', icon: Film },
+  { value: 'video', label: 'Video', icon: Video },
+  { value: 'short', label: 'Short', icon: Play },
+  { value: 'carousel', label: 'Carousel', icon: LayoutGrid },
+  { value: 'post', label: 'Post', icon: Image },
+  { value: 'thread', label: 'Thread', icon: MessageSquare },
+  { value: 'article', label: 'Article', icon: FileText },
+  { value: 'story', label: 'Story', icon: Camera },
 ];
 
-const loadingSteps = [
-  'Extracting features...',
-  'Analyzing hook strength...',
-  'Evaluating engagement potential...',
-  'Generating recommendations...',
-  'Complete',
+const enhancedLoadingSteps = [
+  'Analyzing Content...',
+  'Scoring Dimensions...',
+  'Generating Recommendations...',
 ];
 
 export default function PredictView() {
@@ -54,6 +53,7 @@ export default function PredictView() {
     user,
     prefilledIdea,
     setPrefilledIdea,
+    savedAnalyses,
   } = useAppStore();
 
   const [ideaText, setIdeaText] = useState('');
@@ -78,6 +78,35 @@ export default function PredictView() {
   const setMainText = isIdea ? setIdeaText : setContentText;
   const textareaRows = isIdea ? 4 : 6;
 
+  const recentPredictions = savedAnalyses.slice(0, 3);
+
+  const charCountColor = charCount >= 500
+    ? 'text-viralyze-danger'
+    : charCount >= 200
+      ? 'text-viralyze-warning'
+      : 'text-viralyze-muted/30';
+
+  const handleRecentClick = (analysis: typeof savedAnalyses[0]) => {
+    setCurrentAnalysis({
+      overallScore: analysis.overallScore,
+      confidence: analysis.confidence,
+      classification: analysis.classification,
+      scores: analysis.scores || { hook: 0, engagement: 0, shareability: 0, retention: 0, originality: 0, audienceFit: 0, emotionalImpact: 0, contentQuality: 0, trendAlignment: 0 },
+      platformFit: analysis.platformFit || [],
+      strengths: analysis.strengths || [],
+      weaknesses: analysis.weaknesses || [],
+      improvements: analysis.improvements || [],
+      optimizedHook: analysis.optimizedHook,
+      optimizedCaption: analysis.optimizedCaption,
+      optimizedTitle: analysis.optimizedTitle,
+      variations: analysis.variations,
+      emotionalBreakdown: analysis.emotionalBreakdown,
+      predictedEngagement: analysis.predictedEngagement,
+      id: analysis.id,
+    });
+    setCurrentView('analysis');
+  };
+
   const handleSubmit = async () => {
     if (!mainText.trim()) {
       toast.error(isIdea ? 'Please describe your content idea' : 'Please paste your content');
@@ -91,7 +120,7 @@ export default function PredictView() {
     // Animate through loading steps
     const stepInterval = setInterval(() => {
       setLoadingStep((prev) => {
-        if (prev < loadingSteps.length - 1) return prev + 1;
+        if (prev < enhancedLoadingSteps.length - 1) return prev + 1;
         clearInterval(stepInterval);
         return prev;
       });
@@ -115,7 +144,7 @@ export default function PredictView() {
       });
 
       clearInterval(stepInterval);
-      setLoadingStep(loadingSteps.length - 1);
+      setLoadingStep(enhancedLoadingSteps.length - 1);
 
       const data = await res.json();
 
@@ -147,6 +176,39 @@ export default function PredictView() {
       {/* Gradient mesh background — 2 blurred circles */}
       <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-wine-accent/[0.08] blur-[100px] pointer-events-none" aria-hidden="true" />
       <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-wine/[0.1] blur-[80px] pointer-events-none" aria-hidden="true" />
+
+      {/* Recent Predictions Pills */}
+      <AnimatePresence>
+        {recentPredictions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex flex-col gap-2"
+          >
+            <span className="text-[11px] text-viralyze-muted/60 uppercase tracking-wider font-medium">Recent</span>
+            <div className="flex flex-wrap gap-2">
+              {recentPredictions.map((analysis) => (
+                <motion.button
+                  key={analysis.id}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleRecentClick(analysis)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-wine-accent/30 hover:bg-wine-accent/10 transition-all duration-200 text-xs text-viralyze-muted hover:text-viralyze-white max-w-[200px]"
+                >
+                  <span className={cn(
+                    'h-1.5 w-1.5 rounded-full shrink-0',
+                    analysis.overallScore >= 70 ? 'bg-viralyze-success' : analysis.overallScore >= 45 ? 'bg-viralyze-warning' : 'bg-viralyze-danger'
+                  )} />
+                  <span className="truncate">{analysis.title}</span>
+                  <span className="text-viralyze-muted/40 tabular-nums shrink-0">{analysis.overallScore}</span>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Mode Tabs */}
       <Tabs
         value={predictMode}
@@ -171,7 +233,7 @@ export default function PredictView() {
       {/* Form with gradient border */}
       <div className="gradient-border rounded-xl">
         <Card className="glass rounded-xl relative z-0">
-          <CardContent className="p-6 flex flex-col gap-5">
+          <CardContent className="p-4 sm:p-6 flex flex-col gap-5">
             {/* Main textarea with focus glow and typing indicator */}
             <div className="flex flex-col gap-2 focus-glow-wine rounded-lg transition-all duration-300">
               <div className="flex items-center justify-between">
@@ -196,7 +258,7 @@ export default function PredictView() {
                 rows={textareaRows}
                 value={mainText}
                 onChange={(e) => { setMainText(e.target.value); setCharCount(e.target.value.length); }}
-                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent resize-none rounded-lg"
+                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent resize-none rounded-lg min-h-[120px]"
               />
               <motion.div
                 className="flex items-center justify-end"
@@ -204,7 +266,14 @@ export default function PredictView() {
                 animate={{ opacity: charCount > 0 ? 1 : 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <span className="text-[10px] tabular-nums text-viralyze-muted/30">{charCount}</span>
+                <motion.span
+                  key={charCountColor}
+                  initial={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  className={cn('text-[10px] tabular-nums', charCountColor)}
+                >
+                  {charCount}
+                </motion.span>
               </motion.div>
             </div>
 
@@ -219,7 +288,7 @@ export default function PredictView() {
               </div>
             </div>
 
-            {/* Content Type */}
+            {/* Content Type with icons */}
             <div className="flex flex-col gap-2">
               <Label className="text-viralyze-muted text-sm">Content Type</Label>
               <Select
@@ -230,15 +299,21 @@ export default function PredictView() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
-                  {contentTypes.map((ct) => (
-                    <SelectItem
-                      key={ct.value}
-                      value={ct.value}
-                      className="text-viralyze-white focus:bg-wine-accent/20 focus:text-wine-accent"
-                    >
-                      {ct.label}
-                    </SelectItem>
-                  ))}
+                  {contentTypes.map((ct) => {
+                    const Icon = ct.icon;
+                    return (
+                      <SelectItem
+                        key={ct.value}
+                        value={ct.value}
+                        className="text-viralyze-white focus:bg-wine-accent/20 focus:text-wine-accent"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5 text-viralyze-muted" />
+                          {ct.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -294,7 +369,7 @@ export default function PredictView() {
               {loading ? 'Analyzing your content...' : 'Analyze Content'}
             </Button>
 
-            {/* Loading Steps */}
+            {/* Enhanced Loading Steps with pulsing wine ring */}
             <AnimatePresence>
               {loading && (
                 <motion.div
@@ -303,33 +378,91 @@ export default function PredictView() {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex flex-col gap-2 mt-2">
-                    {loadingSteps.map((step, i) => (
-                      <motion.div
-                        key={step}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: i <= loadingStep ? 1 : 0.3, x: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        {i < loadingStep ? (
-                          <Check className="h-4 w-4 text-green-400" />
-                        ) : i === loadingStep ? (
-                          <Loader2 className="h-4 w-4 text-wine-accent animate-spin" />
-                        ) : (
-                          <div className="h-4 w-4 rounded-full border border-white/10" />
-                        )}
-                        <span
-                          className={
-                            i <= loadingStep
-                              ? 'text-viralyze-white'
-                              : 'text-viralyze-muted'
-                          }
+                  <div className="relative flex flex-col items-center gap-4 mt-4 py-4">
+                    {/* Pulsing wine-accent ring */}
+                    <motion.div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-wine-accent/30 pointer-events-none"
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0.3, 0.6, 0.3],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                    <motion.div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-wine-accent/15 pointer-events-none"
+                      animate={{
+                        scale: [1.2, 1.8, 1.2],
+                        opacity: [0.15, 0.3, 0.15],
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: 0.3,
+                      }}
+                    />
+
+                    {/* 3-step progress indicator */}
+                    <div className="flex items-center gap-3 relative z-10">
+                      {enhancedLoadingSteps.map((step, i) => (
+                        <motion.div
+                          key={step}
+                          className="flex flex-col items-center gap-1.5"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.15 }}
                         >
-                          {step}
-                        </span>
-                      </motion.div>
-                    ))}
+                          {/* Step circle */}
+                          <motion.div
+                            className={cn(
+                              'flex items-center justify-center h-8 w-8 rounded-full border transition-colors duration-300',
+                              i < loadingStep
+                                ? 'bg-wine-accent border-wine-accent'
+                                : i === loadingStep
+                                  ? 'border-wine-accent/60 bg-wine-accent/10'
+                                  : 'border-white/10 bg-white/[0.03]'
+                            )}
+                            animate={i === loadingStep ? { scale: [1, 1.1, 1] } : {}}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                          >
+                            {i < loadingStep ? (
+                              <Check className="h-4 w-4 text-white" />
+                            ) : i === loadingStep ? (
+                              <Loader2 className="h-4 w-4 text-wine-accent animate-spin" />
+                            ) : (
+                              <div className="h-2 w-2 rounded-full bg-white/20" />
+                            )}
+                          </motion.div>
+                          {/* Step label */}
+                          <motion.span
+                            className={cn(
+                              'text-[10px] text-center leading-tight max-w-[80px]',
+                              i <= loadingStep ? 'text-viralyze-white' : 'text-viralyze-muted/50'
+                            )}
+                          >
+                            {step}
+                          </motion.span>
+                          {/* Connector line between steps */}
+                          {i < enhancedLoadingSteps.length - 1 && (
+                            <motion.div
+                              className="absolute top-4 left-[calc(50%+20px)] h-[2px] w-[calc(100%-40px)] -translate-x-1/2 rounded-full"
+                              style={{
+                                background: i < loadingStep
+                                  ? 'linear-gradient(90deg, #B8325A, rgba(184,50,90,0.3))'
+                                  : 'rgba(255,255,255,0.06)',
+                              }}
+                              initial={{ scaleX: 0 }}
+                              animate={{ scaleX: 1 }}
+                              transition={{ delay: i * 0.2 + 0.3, duration: 0.4 }}
+                            />
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}

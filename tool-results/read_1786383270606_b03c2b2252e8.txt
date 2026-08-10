@@ -1,0 +1,724 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { motion } from 'framer-motion';
+     5→import {
+     6→  ArrowLeft,
+     7→  Copy,
+     8→  Check,
+     9→  TrendingUp,
+    10→  Heart,
+    11→  MessageCircle,
+    12→  Share2,
+    13→  BookmarkIcon,
+    14→  Zap,
+    15→  Target,
+    16→  Sparkles,
+    17→  CheckCircle2,
+    18→  Download,
+    19→  RefreshCw,
+    20→  ClipboardCopy,
+    21→  Plus,
+    22→  FileText,
+    23→} from 'lucide-react';
+    24→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    25→import { Button } from '@/components/ui/button';
+    26→import { useAppStore } from '@/lib/store';
+    27→import ScoreRing from '@/components/shared/ScoreRing';
+    28→import ScoreBar from '@/components/shared/ScoreBar';
+    29→import { toast } from 'sonner';
+    30→
+    31→const platformIcons: Record<string, string> = {
+    32→  instagram: '📸',
+    33→  youtube: '▶️',
+    34→  tiktok: '🎵',
+    35→  x: '✖️',
+    36→  linkedin: '💼',
+    37→};
+    38→
+    39→const container = {
+    40→  hidden: { opacity: 0 },
+    41→  show: {
+    42→    opacity: 1,
+    43→    transition: { staggerChildren: 0.08 },
+    44→  },
+    45→};
+    46→
+    47→const item = {
+    48→  hidden: { opacity: 0, y: 16 },
+    49→  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    50→};
+    51→
+    52→export default function AnalysisView() {
+    53→  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses } = useAppStore();
+    54→  const [copiedField, setCopiedField] = useState<string | null>(null);
+    55→
+    56→  if (!currentAnalysis) {
+    57→    return (
+    58→      <motion.div
+    59→        initial={{ opacity: 0 }}
+    60→        animate={{ opacity: 1 }}
+    61→        className="flex flex-col items-center justify-center py-24 gap-4"
+    62→      >
+    63→        <div className="w-16 h-16 rounded-full bg-white/[0.05] flex items-center justify-center">
+    64→          <Sparkles className="w-8 h-8 text-viralyze-muted" />
+    65→        </div>
+    66→        <p className="text-viralyze-muted text-lg">No analysis to display</p>
+    67→        <Button
+    68→          variant="outline"
+    69→          onClick={() => setCurrentView('predict')}
+    70→          className="border-wine-accent/30 text-wine-accent hover:bg-wine-accent/10"
+    71→        >
+    72→          <Sparkles className="mr-2 h-4 w-4" />
+    73→          Analyze Content
+    74→        </Button>
+    75→      </motion.div>
+    76→    );
+    77→  }
+    78→
+    79→  const {
+    80→    overallScore,
+    81→    confidence,
+    82→    classification,
+    83→    scores,
+    84→    platformFit,
+    85→    strengths = [],
+    86→    weaknesses = [],
+    87→    improvements = [],
+    88→    optimizedHook,
+    89→    optimizedCaption,
+    90→    optimizedTitle,
+    91→    variations = [],
+    92→    emotionalBreakdown,
+    93→    predictedEngagement,
+    94→  } = currentAnalysis;
+    95→
+    96→  // Find original content from saved analyses
+    97→  const savedItem = savedAnalyses.find((a) => a.id === currentAnalysis.id);
+    98→  const originalContent = savedItem?.contentText || savedItem?.ideaText || '';
+    99→
+   100→  const copyToClipboard = async (text: string, field: string) => {
+   101→    try {
+   102→      await navigator.clipboard.writeText(text);
+   103→      setCopiedField(field);
+   104→      toast.success('Copied to clipboard!');
+   105→      setTimeout(() => setCopiedField(null), 2000);
+   106→    } catch {
+   107→      toast.error('Failed to copy');
+   108→    }
+   109→  };
+   110→
+   111→  const handleShare = async () => {
+   112→    const text = `My content scored ${overallScore}/100 on Viralyze! ${classification === 'viral' ? '🔥' : classification === 'high' ? '✨' : '📊'}`;
+   113→    try {
+   114→      await navigator.clipboard.writeText(text);
+   115→      toast.success('Summary copied to clipboard!');
+   116→    } catch {
+   117→      toast.error('Failed to copy');
+   118→    }
+   119→  };
+   120→
+   121→  const handleReanalyze = async () => {
+   122→    if (currentAnalysis?.id) {
+   123→      try {
+   124→        const res = await fetch(`/api/library?id=${currentAnalysis.id}`);
+   125→        if (res.ok) {
+   126→          const data = await res.json();
+   127→          const content = data.contentText || data.ideaText || '';
+   128→          if (content) {
+   129→            setPrefilledIdea(content);
+   130→            setCurrentView('predict');
+   131→            toast.success('Content loaded for re-analysis');
+   132→            return;
+   133→          }
+   134→        }
+   135→      } catch {
+   136→        // fall through to default behavior
+   137→      }
+   138→    }
+   139→    setCurrentView('predict');
+   140→    toast.success('Navigate to predict to start a new analysis');
+   141→  };
+   142→
+   143→  const handleCopyAll = async () => {
+   144→    const parts = [optimizedTitle, optimizedHook, optimizedCaption].filter(Boolean);
+   145→    if (parts.length === 0) {
+   146→      toast.error('No optimized content to copy');
+   147→      return;
+   148→    }
+   149→    try {
+   150→      await navigator.clipboard.writeText(parts.join('\n\n'));
+   151→      toast.success('All optimized content copied!');
+   152→    } catch {
+   153→      toast.error('Failed to copy');
+   154→    }
+   155→  };
+   156→
+   157→  const handleExport = () => {
+   158→    const report = {
+   159→      'Viralyze Analysis Report': '',
+   160→      'Overall Score': `${overallScore}/100`,
+   161→      'Classification': classification,
+   162→      'Confidence': confidence,
+   163→      'Category Scores': scores,
+   164→      'Platform Fit': platformFit,
+   165→      'Strengths': strengths,
+   166→      'Weaknesses': weaknesses,
+   167→      'Improvements': improvements,
+   168→      'Optimized Title': optimizedTitle || 'N/A',
+   169→      'Optimized Hook': optimizedHook || 'N/A',
+   170→      'Optimized Caption': optimizedCaption || 'N/A',
+   171→      'Variations': variations.map((v) => ({ label: v.label, score: v.score, content: v.content })),
+   172→      'Predicted Engagement': predictedEngagement,
+   173→      'Emotional Breakdown': emotionalBreakdown,
+   174→    };
+   175→    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+   176→    const url = URL.createObjectURL(blob);
+   177→    const a = document.createElement('a');
+   178→    a.href = url;
+   179→    a.download = `viralyze-analysis-${overallScore}-${Date.now()}.json`;
+   180→    a.click();
+   181→    URL.revokeObjectURL(url);
+   182→    toast.success('Analysis exported!');
+   183→  };
+   184→
+   185→  const categoryLabels: Record<string, string> = {
+   186→    hook: 'Hook Strength',
+   187→    engagement: 'Engagement Potential',
+   188→    shareability: 'Shareability',
+   189→    retention: 'Content Retention',
+   190→    originality: 'Originality',
+   191→    audienceFit: 'Audience Fit',
+   192→    emotionalImpact: 'Emotional Impact',
+   193→    contentQuality: 'Content Quality',
+   194→    trendAlignment: 'Trend Alignment',
+   195→  };
+   196→
+   197→  const scoreEntries = scores
+   198→    ? Object.entries(scores).filter(([, v]) => typeof v === 'number')
+   199→    : [];
+   200→
+   201→  return (
+   202→    <motion.div
+   203→      variants={container}
+   204→      initial="hidden"
+   205→      animate="show"
+   206→      className="flex flex-col gap-6 max-w-4xl mx-auto relative"
+   207→    >
+   208→      {/* Floating Action Button — New Analysis */}
+   209→      <motion.button
+   210→        onClick={() => setCurrentView('predict')}
+   211→        title="New Analysis"
+   212→        className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-full bg-gradient-wine btn-shine flex items-center justify-center text-white shadow-lg glow-wine-sm hover:scale-110 transition-transform duration-200"
+   213→        whileHover={{ scale: 1.1 }}
+   214→        whileTap={{ scale: 0.95 }}
+   215→      >
+   216→        <Plus className="h-6 w-6" />
+   217→      </motion.button>
+   218→
+   219→      {/* Top bar: Back + Actions */}
+   220→      <motion.div variants={item} className="flex items-center justify-between">
+   221→        <Button
+   222→          variant="ghost"
+   223→          onClick={() => setCurrentView('predict')}
+   224→          className="text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   225→        >
+   226→          <ArrowLeft className="mr-2 h-4 w-4" />
+   227→          New Analysis
+   228→        </Button>
+   229→        <div className="flex items-center gap-3">
+   230→          <div className="flex items-center gap-1.5 text-sm text-green-400/80">
+   231→            <CheckCircle2 className="h-4 w-4" />
+   232→            <span className="hidden sm:inline">Saved</span>
+   233→          </div>
+   234→          <Button
+   235→            variant="outline"
+   236→            size="sm"
+   237→            onClick={handleShare}
+   238→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5"
+   239→          >
+   240→            <Share2 className="h-3.5 w-3.5" />
+   241→            Share
+   242→          </Button>
+   243→          <Button
+   244→            variant="outline"
+   245→            size="sm"
+   246→            onClick={handleReanalyze}
+   247→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   248→          >
+   249→            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+   250→            Re-analyze
+   251→          </Button>
+   252→          <Button
+   253→            variant="outline"
+   254→            size="sm"
+   255→            onClick={handleExport}
+   256→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   257→          >
+   258→            <Download className="mr-2 h-3.5 w-3.5" />
+   259→            Export
+   260→          </Button>
+   261→        </div>
+   262→      </motion.div>
+   263→
+   264→      {/* Content Preview Card (original content) */}
+   265→      {originalContent && (
+   266→        <motion.div variants={item}>
+   267→          <Card className="glass overflow-hidden relative">
+   268→            <CardHeader className="pb-2">
+   269→              <div className="flex items-center justify-between">
+   270→                <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   271→                  <FileText className="h-4 w-4 text-wine-accent" />
+   272→                  Original Content
+   273→                </CardTitle>
+   274→                <Button
+   275→                  variant="ghost"
+   276→                  size="sm"
+   277→                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+   278→                  onClick={() => copyToClipboard(originalContent, 'original')}
+   279→                >
+   280→                  {copiedField === 'original' ? (
+   281→                    <Check className="h-3.5 w-3.5 text-green-400" />
+   282→                  ) : (
+   283→                    <Copy className="h-3.5 w-3.5" />
+   284→                  )}
+   285→                  Copy
+   286→                </Button>
+   287→              </div>
+   288→            </CardHeader>
+   289→            <CardContent className="pt-0">
+   290→              <p className="text-sm text-viralyze-white/80 leading-relaxed bg-white/[0.02] rounded-lg p-4 border border-white/[0.06] max-h-40 overflow-y-auto scrollbar-thin whitespace-pre-wrap">
+   291→                {originalContent}
+   292→              </p>
+   293→            </CardContent>
+   294→          </Card>
+   295→        </motion.div>
+   296→      )}
+   297→
+   298→      {/* Score Header */}
+   299→      <motion.div variants={item}>
+   300→        <Card className="glass overflow-hidden relative">
+   301→          <div className="scan-line-animated" />
+   302→          <CardContent className="p-6 md:p-8">
+   303→            <div className="flex flex-col md:flex-row items-center gap-8">
+   304→              {/* Score Ring with floating dots + tooltip on segments */}
+   305→              <div className="relative flex-shrink-0">
+   306→                <div className="absolute -top-3 -left-3 w-2 h-2 rounded-full bg-wine-accent animate-pulse" />
+   307→                <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-wine-accent/60 animate-pulse [animation-delay:0.5s]" />
+   308→                <div className="absolute top-1/2 -right-4 w-1 h-1 rounded-full bg-wine-accent/40 animate-pulse [animation-delay:1s]" />
+   309→                <div title={scoreEntries.map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}>
+   310→                  <ScoreRing
+   311→                    score={overallScore}
+   312→                    size={200}
+   313→                    classification={classification}
+   314→                    confidence={confidence}
+   315→                  />
+   316→                </div>
+   317→                {/* Category score tooltips around the ring */}
+   318→                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[260px]">
+   319→                  <p className="text-[10px] text-viralyze-muted/50 text-center leading-relaxed">
+   320→                    {scoreEntries.slice(0, 3).map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}
+   321→                  </p>
+   322→                </div>
+   323→              </div>
+   324→
+   325→              {/* Right side info */}
+   326→              <div className="flex-1 flex flex-col gap-4 w-full">
+   327→                <div>
+   328→                  <h2 className="text-xl font-semibold text-viralyze-white mb-1">
+   329→                    Viral Potential Analysis
+   330→                  </h2>
+   331→                  <p className="text-viralyze-muted text-sm">
+   332→                    AI-powered analysis with <span className="text-wine-accent font-medium">{confidence}</span> confidence
+   333→                  </p>
+   334→                </div>
+   335→
+   336→                {/* Predicted Engagement */}
+   337→                {predictedEngagement && (
+   338→                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   339→                    {[
+   340→                      { icon: Heart, label: 'Likes', value: predictedEngagement.likes, color: 'text-red-400' },
+   341→                      { icon: MessageCircle, label: 'Comments', value: predictedEngagement.comments, color: 'text-blue-400' },
+   342→                      { icon: Share2, label: 'Shares', value: predictedEngagement.shares, color: 'text-green-400' },
+   343→                      { icon: BookmarkIcon, label: 'Saves', value: predictedEngagement.saves, color: 'text-amber-400' },
+   344→                    ].map((stat) => (
+   345→                      <div
+   346→                        key={stat.label}
+   347→                        className="glass rounded-lg p-3 flex flex-col items-center gap-1 hover:glow-wine-sm transition-all duration-300"
+   348→                      >
+   349→                        <stat.icon className={`h-4 w-4 ${stat.color}`} />
+   350→                        <span className="text-lg font-bold text-viralyze-white tabular-nums">
+   351→                          {stat.value}
+   352→                        </span>
+   353→                        <span className="text-xs text-viralyze-muted">{stat.label}</span>
+   354→                      </div>
+   355→                    ))}
+   356→                  </div>
+   357→                )}
+   358→
+   359→                {/* Emotional Breakdown */}
+   360→                {emotionalBreakdown && Object.keys(emotionalBreakdown).length > 0 && (
+   361→                  <div>
+   362→                    <h3 className="text-sm font-medium text-viralyze-muted mb-2">Emotional Breakdown</h3>
+   363→                    <div className="flex flex-wrap gap-2">
+   364→                      {Object.entries(emotionalBreakdown)
+   365→                        .sort(([, a], [, b]) => (b as number) - (a as number))
+   366→                        .slice(0, 6)
+   367→                        .map(([emotion, pct]) => (
+   368→                          <span
+   369→                            key={emotion}
+   370→                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/[0.05] border border-white/[0.08] text-viralyze-white hover:border-wine-accent/30 transition-colors"
+   371→                            title={`${emotion}: ${pct}%`}
+   372→                          >
+   373→                            {emotion}
+   374→                            <span className="text-wine-accent font-bold tabular-nums">{pct}%</span>
+   375→                          </span>
+   376→                        ))}
+   377→                    </div>
+   378→                  </div>
+   379→                )}
+   380→              </div>
+   381→            </div>
+   382→          </CardContent>
+   383→        </Card>
+   384→      </motion.div>
+   385→
+   386→      {/* Category Scores with tooltips on hover */}
+   387→      {scoreEntries.length > 0 && (
+   388→        <motion.div variants={item}>
+   389→          <Card className="glass">
+   390→            <CardHeader className="pb-3">
+   391→              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   392→                <Target className="h-4 w-4 text-wine-accent" />
+   393→                Category Breakdown
+   394→              </CardTitle>
+   395→            </CardHeader>
+   396→            <CardContent className="flex flex-col gap-3">
+   397→              {scoreEntries.map(([key, value], i) => (
+   398→                <div key={key} title={`${categoryLabels[key] || key}: ${value}/100`}>
+   399→                  <ScoreBar
+   400→                    label={categoryLabels[key] || key}
+   401→                    score={value as number}
+   402→                    delay={i * 0.08}
+   403→                  />
+   404→                </div>
+   405→              ))}
+   406→            </CardContent>
+   407→          </Card>
+   408→        </motion.div>
+   409→      )}
+   410→
+   411→      {/* Platform Fit */}
+   412→      {platformFit && platformFit.length > 0 && (
+   413→        <motion.div variants={item}>
+   414→          <Card className="glass">
+   415→            <CardHeader className="pb-3">
+   416→              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   417→                <TrendingUp className="h-4 w-4 text-wine-accent" />
+   418→                Platform Fit
+   419→              </CardTitle>
+   420→            </CardHeader>
+   421→            <CardContent>
+   422→              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+   423→                {platformFit.map((pf, i) => (
+   424→                  <motion.div
+   425→                    key={pf.platform}
+   426→                    initial={{ opacity: 0, scale: 0.9 }}
+   427→                    animate={{ opacity: 1, scale: 1 }}
+   428→                    transition={{ delay: i * 0.1 }}
+   429→                    className="glass rounded-lg p-3 flex flex-col items-center gap-2 hover:glow-wine-sm transition-all duration-300 cursor-default"
+   430→                    title={`${pf.platform}: ${pf.score}/100`}
+   431→                  >
+   432→                    <span className="text-2xl">{platformIcons[pf.platform] || '📱'}</span>
+   433→                    <span className="text-xs text-viralyze-muted capitalize">
+   434→                      {pf.platform}
+   435→                    </span>
+   436→                    <span
+   437→                      className={`text-lg font-bold tabular-nums ${
+   438→                        pf.score >= 80
+   439→                          ? 'text-green-400'
+   440→                          : pf.score >= 60
+   441→                          ? 'text-amber-400'
+   442→                          : 'text-red-400'
+   443→                      }`}
+   444→                    >
+   445→                      {pf.score}
+   446→                    </span>
+   447→                  </motion.div>
+   448→                ))}
+   449→              </div>
+   450→            </CardContent>
+   451→          </Card>
+   452→        </motion.div>
+   453→      )}
+   454→
+   455→      {/* Strengths, Weaknesses, Improvements */}
+   456→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   457→        {strengths.length > 0 && (
+   458→          <motion.div variants={item}>
+   459→            <Card className="glass h-full">
+   460→              <div className="h-1 rounded-t-xl bg-gradient-to-r from-green-500 to-green-400" />
+   461→              <CardHeader className="pb-2">
+   462→                <CardTitle className="text-sm font-medium text-green-400 flex items-center gap-2">
+   463→                  <Zap className="h-4 w-4" />
+   464→                  Strengths
+   465→                </CardTitle>
+   466→              </CardHeader>
+   467→              <CardContent className="flex flex-col gap-2">
+   468→                {strengths.map((s, i) => (
+   469→                  <motion.div
+   470→                    key={i}
+   471→                    initial={{ opacity: 0, x: -10 }}
+   472→                    animate={{ opacity: 1, x: 0 }}
+   473→                    transition={{ delay: i * 0.06 }}
+   474→                    className="flex items-start gap-2 text-sm text-viralyze-white/80"
+   475→                  >
+   476→                    <span className="text-green-400 mt-0.5 shrink-0">+</span>
+   477→                    <span>{s}</span>
+   478→                  </motion.div>
+   479→                ))}
+   480→              </CardContent>
+   481→            </Card>
+   482→          </motion.div>
+   483→        )}
+   484→
+   485→        {weaknesses.length > 0 && (
+   486→          <motion.div variants={item}>
+   487→            <Card className="glass h-full">
+   488→              <div className="h-1 rounded-t-xl bg-gradient-to-r from-amber-500 to-amber-400" />
+   489→              <CardHeader className="pb-2">
+   490→                <CardTitle className="text-sm font-medium text-amber-400 flex items-center gap-2">
+   491→                  <Target className="h-4 w-4" />
+   492→                  Weaknesses
+   493→                </CardTitle>
+   494→              </CardHeader>
+   495→              <CardContent className="flex flex-col gap-2">
+   496→                {weaknesses.map((w, i) => (
+   497→                  <motion.div
+   498→                    key={i}
+   499→                    initial={{ opacity: 0, x: -10 }}
+   500→                    animate={{ opacity: 1, x: 0 }}
+   501→                    transition={{ delay: i * 0.06 }}
+   502→                    className="flex items-start gap-2 text-sm text-viralyze-white/80"
+   503→                  >
+   504→                    <span className="text-amber-400 mt-0.5 shrink-0">!</span>
+   505→                    <span>{w}</span>
+   506→                  </motion.div>
+   507→                ))}
+   508→              </CardContent>
+   509→            </Card>
+   510→          </motion.div>
+   511→        )}
+   512→
+   513→        {improvements.length > 0 && (
+   514→          <motion.div variants={item}>
+   515→            <Card className="glass h-full">
+   516→              <div className="h-1 rounded-t-xl bg-gradient-to-r from-wine-accent to-wine" />
+   517→              <CardHeader className="pb-2">
+   518→                <CardTitle className="text-sm font-medium text-wine-accent flex items-center gap-2">
+   519→                  <Sparkles className="h-4 w-4" />
+   520→                  Improvements
+   521→                </CardTitle>
+   522→              </CardHeader>
+   523→              <CardContent className="flex flex-col gap-2">
+   524→                {improvements.map((imp, i) => (
+   525→                  <motion.div
+   526→                    key={i}
+   527→                    initial={{ opacity: 0, x: -10 }}
+   528→                    animate={{ opacity: 1, x: 0 }}
+   529→                    transition={{ delay: i * 0.06 }}
+   530→                    className="flex items-start gap-2 text-sm text-viralyze-white/80"
+   531→                  >
+   532→                    <span className="text-wine-accent mt-0.5 shrink-0">→</span>
+   533→                    <span>{imp}</span>
+   534→                  </motion.div>
+   535→                ))}
+   536→              </CardContent>
+   537→            </Card>
+   538→          </motion.div>
+   539→        )}
+   540→      </div>
+   541→
+   542→      {/* Optimized Content */}
+   543→      {(optimizedHook || optimizedCaption || optimizedTitle) && (
+   544→        <motion.div variants={item}>
+   545→          <Card className="glass overflow-hidden relative">
+   546→            <div className="glow-line w-full bg-gradient-to-r from-transparent via-wine-accent to-transparent" />
+   547→            <CardHeader className="pb-3">
+   548→              <div className="flex items-center justify-between">
+   549→                <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   550→                  <Sparkles className="h-4 w-4 text-wine-accent" />
+   551→                  AI-Optimized Content
+   552→                </CardTitle>
+   553→                <Button
+   554→                  variant="ghost"
+   555→                  size="sm"
+   556→                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+   557→                  onClick={handleCopyAll}
+   558→                >
+   559→                  <ClipboardCopy className="h-3.5 w-3.5" />
+   560→                  Copy All
+   561→                </Button>
+   562→              </div>
+   563→            </CardHeader>
+   564→            <CardContent className="flex flex-col gap-4">
+   565→              {optimizedTitle && (
+   566→                <div className="flex flex-col gap-1.5">
+   567→                  <div className="flex items-center justify-between">
+   568→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   569→                      Optimized Title
+   570→                    </span>
+   571→                    <Button
+   572→                      variant="ghost"
+   573→                      size="sm"
+   574→                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   575→                      onClick={() => copyToClipboard(optimizedTitle, 'title')}
+   576→                    >
+   577→                      {copiedField === 'title' ? (
+   578→                        <Check className="h-3 w-3 text-green-400" />
+   579→                      ) : (
+   580→                        <Copy className="h-3 w-3" />
+   581→                      )}
+   582→                    </Button>
+   583→                  </div>
+   584→                  <p className="text-sm text-viralyze-white bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
+   585→                    {optimizedTitle}
+   586→                  </p>
+   587→                </div>
+   588→              )}
+   589→
+   590→              {optimizedHook && (
+   591→                <div className="flex flex-col gap-1.5">
+   592→                  <div className="flex items-center justify-between">
+   593→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   594→                      Optimized Hook
+   595→                    </span>
+   596→                    <Button
+   597→                      variant="ghost"
+   598→                      size="sm"
+   599→                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   600→                      onClick={() => copyToClipboard(optimizedHook, 'hook')}
+   601→                    >
+   602→                      {copiedField === 'hook' ? (
+   603→                        <Check className="h-3 w-3 text-green-400" />
+   604→                      ) : (
+   605→                        <Copy className="h-3 w-3" />
+   606→                      )}
+   607→                    </Button>
+   608→                  </div>
+   609→                  <p className="text-sm text-viralyze-white bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
+   610→                    {optimizedHook}
+   611→                  </p>
+   612→                </div>
+   613→              )}
+   614→
+   615→              {optimizedCaption && (
+   616→                <div className="flex flex-col gap-1.5">
+   617→                  <div className="flex items-center justify-between">
+   618→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   619→                      Optimized Caption
+   620→                    </span>
+   621→                    <Button
+   622→                      variant="ghost"
+   623→                      size="sm"
+   624→                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   625→                      onClick={() => copyToClipboard(optimizedCaption, 'caption')}
+   626→                    >
+   627→                      {copiedField === 'caption' ? (
+   628→                        <Check className="h-3 w-3 text-green-400" />
+   629→                      ) : (
+   630→                        <Copy className="h-3 w-3" />
+   631→                      )}
+   632→                    </Button>
+   633→                  </div>
+   634→                  <p className="text-sm text-viralyze-white bg-white/[0.03] rounded-lg p-3 border border-white/[0.06] whitespace-pre-wrap">
+   635→                    {optimizedCaption}
+   636→                  </p>
+   637→                </div>
+   638→              )}
+   639→            </CardContent>
+   640→          </Card>
+   641→        </motion.div>
+   642→      )}
+   643→
+   644→      {/* Content Variations */}
+   645→      {variations.length > 0 && (
+   646→        <motion.div variants={item}>
+   647→          <Card className="glass">
+   648→            <CardHeader className="pb-3">
+   649→              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   650→                <Zap className="h-4 w-4 text-wine-accent" />
+   651→                Content Variations
+   652→              </CardTitle>
+   653→              <p className="text-xs text-viralyze-muted mt-1">
+   654→                Alternative versions optimized for different engagement strategies
+   655→              </p>
+   656→            </CardHeader>
+   657→            <CardContent className="flex flex-col gap-4">
+   658→              {variations.map((v, i) => (
+   659→                <motion.div
+   660→                  key={i}
+   661→                  initial={{ opacity: 0, y: 10 }}
+   662→                  animate={{ opacity: 1, y: 0 }}
+   663→                  transition={{ delay: i * 0.1 }}
+   664→                  className="glass-strong rounded-lg p-4 flex flex-col gap-2 hover:glow-wine-sm transition-all duration-300"
+   665→                >
+   666→                  <div className="flex items-center justify-between">
+   667→                    <div className="flex items-center gap-2">
+   668→                      <span className="text-xs font-medium text-wine-accent uppercase tracking-wider">
+   669→                        {v.label}
+   670→                      </span>
+   671→                      <span className="text-xs text-viralyze-muted px-2 py-0.5 rounded-full bg-white/[0.05]">
+   672→                        {v.style}
+   673→                      </span>
+   674→                    </div>
+   675→                    <div className="flex items-center gap-2">
+   676→                      <span
+   677→                        className={`text-sm font-bold tabular-nums ${
+   678→                          v.score >= 80
+   679→                            ? 'text-green-400'
+   680→                            : v.score >= 60
+   681→                            ? 'text-amber-400'
+   682→                            : 'text-red-400'
+   683→                        }`}
+   684→                      >
+   685→                        {v.score}/100
+   686→                      </span>
+   687→                      <Button
+   688→                        size="sm"
+   689→                        className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine"
+   690→                        onClick={() => {
+   691→                          setPrefilledIdea(v.content);
+   692→                          setPredictMode('idea');
+   693→                          setCurrentView('predict');
+   694→                          toast.success('Variation loaded for re-analysis');
+   695→                        }}
+   696→                      >
+   697→                        <Sparkles className="h-3 w-3" />
+   698→                      </Button>
+   699→                      <Button
+   700→                        variant="ghost"
+   701→                        size="sm"
+   702→                        className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   703→                        onClick={() => copyToClipboard(v.content, `var-${i}`)}
+   704→                      >
+   705→                        {copiedField === `var-${i}` ? (
+   706→                          <Check className="h-3 w-3 text-green-400" />
+   707→                        ) : (
+   708→                          <Copy className="h-3 w-3" />
+   709→                        )}
+   710→                      </Button>
+   711→                    </div>
+   712→                  </div>
+   713→                  <p className="text-sm text-viralyze-white/80 leading-relaxed">
+   714→                    {v.content}
+   715→                  </p>
+   716→                </motion.div>
+   717→              ))}
+   718→            </CardContent>
+   719→          </Card>
+   720→        </motion.div>
+   721→      )}
+   722→    </motion.div>
+   723→  );
+   724→}

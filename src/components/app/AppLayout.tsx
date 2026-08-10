@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
 import AppSidebar from './AppSidebar';
+import NotificationCenter from './NotificationCenter';
 import type { AppView } from '@/lib/types';
 
 const viewTitles: Record<AppView, string> = {
@@ -85,6 +86,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-2.5">
+              {/* Notification Center */}
+              <NotificationCenter />
               {/* Usage counter badge */}
               <Badge
                 variant="outline"

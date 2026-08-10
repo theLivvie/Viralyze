@@ -930,3 +930,157 @@ Stage Summary:
 11. Sound/haptic feedback on interactions
 12. Email notifications for scheduled calendar content
 13. Onboarding persistence (currently localStorage, should sync to DB)
+
+---
+Task ID: 8-a
+Agent: frontend-styling-expert (subagent)
+Task: Styling polish — PredictView, IdeasView, CalendarView, mobile responsiveness
+
+Work Log:
+- **PredictView.tsx** — Replaced 5-step loading with 3-step progress indicator (Analyzing Content → Scoring Dimensions → Generating Recommendations) with animated step circles, pulsing wine-accent rings, and connector lines. Added 'Recent' predictions pills section above form showing last 3 saved analyses as clickable pills with score color dots. Added content type icons (Film, Video, Play, LayoutGrid, Image, MessageSquare, FileText, Camera) next to each SelectItem. Character count now changes color: white (<200), amber (200+), red (500+). Form card uses p-4 sm:p-6, textarea has min-h-[120px].
+- **IdeasView.tsx** — Replaced simple empty state with rich empty state: large wine-tinted Lightbulb icon with floating animation (y: 0→-8→0) and pulsing glow backdrop, motivational heading 'What should go viral next?', 3 suggestion chips (AI & Tech, Health & Wellness, Business Growth) that fill topic input on click. Added fire emoji viral potential badges (High/Medium/Low) with color coding to each idea card, plus platform suggestion badges. Generate Ideas button shows a pulsing wine ring animation when topic input has text. Idea cards use stagger animation (delay: i * 0.05s). Verified single-column grid on mobile, full-width generate button.
+- **CalendarView.tsx** — Added week overview stats bar showing 'X/7 days with content' with animated mini progress bar. Added content type selector to inline form and contentType field to CalendarSlot interface. Content type color coding via left border (reel/video/short=wine-accent, post/image/thread=emerald, story=amber, article=blue, carousel=purple). Added cursor-grab and hover:-translate-y-[1px] + shadow for drag visual feedback on slots with content. Empty slot '+' button has wine-accent glow on hover via Framer Motion whileHover. Added StickyNote icon (bottom-right, opacity-0→hover) on empty slots that opens a Dialog for quick content reminders/notes. Mobile: 3-day view with left/right navigation arrows, 1-column layout below md. Added data migration for old slots missing contentType.
+- **AppSidebar.tsx** — Changed SidebarFooter padding from pb-4 to pb-6 for mobile home indicator clearance. Added gradient fade overlay (md:hidden, absolute bottom-0, bg-viralyze-black→transparent) to mobile sheet.
+
+Stage Summary:
+- All 4 components significantly polished with Framer Motion animations
+- Wine/maroon palette consistently maintained
+- Mobile responsiveness improved across all views
+- No new CSS classes added — all using existing globals.css utilities
+- All existing functionality preserved intact
+
+---
+Task ID: 8-b
+Agent: Main
+Task: Implement 4 new features — CSV Export, A/B Compare, Score Insights, Notification Center
+
+Work Log:
+- **Feature 1: CSV Export for Analytics (AnalyticsView.tsx)**
+  - Enhanced `handleExportCSV` to build comprehensive CSV from all analytics sections: overview stats (total analyses, avg score, best score, prediction accuracy), score distribution, platform performance, weekly trend, and top content
+  - Changed download filename to `viralyze-analytics.csv`
+  - Replaced Download icon with FileSpreadsheet icon on the CSV export button
+  - Added FileSpreadsheet to lucide-react imports
+
+- **Feature 2: A/B Variation Comparison (AnalysisView.tsx)**
+  - Added `compareMode` state toggle
+  - Added 'Compare View' / 'Grid View' toggle button (visible when 2+ variations) using GitCompareArrows and LayoutGrid icons
+  - Compare view shows sorted comparison table/grid: variation label, truncated content, score badge, score difference from best (-X in red, +0 in muted), action button
+  - Winning variation highlighted with wine-accent border, bg tint, and Trophy '🏆 Best' badge
+  - AnimatePresence for smooth transitions between card and table views
+  - Added AnimatePresence import, Badge import, cn import, and new icons (LayoutGrid, GitCompareArrows, Trophy, ArrowUpRight, ShieldCheck, AlertTriangle)
+
+- **Feature 3: Score Insights Panel (AnalysisView.tsx)**
+  - New 'Score Insights' section added after Category Breakdown
+  - Top 3 Strengths: green-accented cards showing highest-scoring categories with scores and AI-derived explanations from strengths array
+  - Top 3 Improvement Areas: amber-accented cards showing lowest-scoring categories with recommendations derived from improvements/weaknesses arrays
+  - Score vs Platform Average: comparison bars (user's score in wine-accent gradient, platform average at 65 in white/20), both animated with Framer Motion
+  - Staggered entry animations on all insight cards
+  - Wrapped in glass card with ShieldCheck heading icon
+
+- **Feature 4: Notification Center (NotificationCenter.tsx + AppLayout.tsx)**
+  - Created new NotificationCenter.tsx component with Popover triggered by Bell icon button
+  - Generates notifications from savedAnalyses: per-analysis score notifications ('scored X/100 on [platform]'), weekly count summary, average score summary
+  - Each notification has: colored icon based on score, descriptive text, relative time, 'View' button navigating to relevant view
+  - Unread count badge on Bell icon (spring animation on mount)
+  - 'Mark all as read' button clears badge
+  - Empty state with muted BellOff icon
+  - Max 10 notifications shown with scroll overflow
+  - Framer Motion staggered entry animations
+  - Integrated into AppLayout.tsx header (before usage badge, after Bell icon trigger)
+
+Stage Summary:
+- 4 features implemented across 3 files (AnalyticsView.tsx, AnalysisView.tsx, NotificationCenter.tsx) + 1 integration (AppLayout.tsx)
+- 1 new component created (NotificationCenter.tsx)
+- All animations use Framer Motion (AnimatePresence, motion, staggered delays)
+- No new CSS classes added — all using existing globals.css utilities
+- Wine/maroon theme consistently maintained throughout
+- All existing functionality preserved intact
+---
+Task ID: 8
+Agent: Main (orchestrator)
+Task: QA assessment, bug fixes, styling polish (round 5), new features (round 5), handover documentation
+
+Work Log:
+- Reviewed worklog.md (900+ lines) — project at Round 4 complete, 11 views working
+- Dev server confirmed running (localhost:3000, 200 response, clean compile)
+- Lint: zero errors on initial check
+- QA via agent-browser:
+  - Landing page: all 10 sections render, no console errors, scroll-tested full page
+  - All 8 app views (dashboard, predict, library, ideas, templates, trends, analytics, calendar, settings): zero errors on navigation
+  - Mobile viewport: responsive layout with hamburger menu, proper rendering
+  - Screenshot evidence saved in /home/z/my-project/download/qa-r5-*.png
+- Bug fixes:
+  1. CalendarView.tsx: Removed unused eslint-disable directive (react-hooks/exhaustive-deps)
+  2. CalendarView.tsx: Replaced useEffect(setMobilePage) with direct handler calls (avoided cascading render)
+  3. CalendarView.tsx: Moved contentType migration from render-time effect into loadSlots() function (fixed react-hooks/set-state-in-effect and react-hooks/refs errors)
+- Zero lint errors after all fixes
+- Dev server compiles cleanly, 200 responses
+
+Styling Enhancements (Task 8-a):
+- PredictView.tsx: 3-step loading animation (Analyzing→Scoring→Recommendations), recent predictions pills, content type icons in dropdown, color-shifting character count
+- IdeasView.tsx: Rich empty state with floating Lightbulb + suggestion chips, engagement indicators (fire emoji + viral potential + platform badge), generate button pulse, stagger animation on results
+- CalendarView.tsx: Week overview stats bar, content type color-coded left borders, drag visual feedback (cursor-grab + hover lift), note dialog on empty slots, mobile 3-day paginated view
+- AppSidebar.tsx: Mobile sheet bottom padding (pb-6) + gradient fade overlay at bottom
+
+New Features (Task 8-b):
+- AnalyticsView.tsx: CSV export button (FileSpreadsheet icon), builds full analytics CSV with overview/distribution/platform/trend/top content sections
+- AnalysisView.tsx: A/B Compare toggle for variations (sorted comparison table with Best badge + score diffs), Score Insights panel (top 3 strengths green, top 3 improvements amber, score vs 65 average dual bar)
+- NotificationCenter.tsx (new): Popover-based notification center from Bell icon in header, auto-generated notifications from savedAnalyses, mark-all-read, empty state, spring-animated badge
+- AppLayout.tsx: Integrated NotificationCenter in header
+
+Stage Summary:
+- 3 bug fixes (all React strict mode compliance)
+- 4 files styled (PredictView, IdeasView, CalendarView, AppSidebar)
+- 4 features implemented (CSV export, A/B compare, Score Insights, Notification Center)
+- 1 new file created (NotificationCenter.tsx)
+- Zero lint errors
+- Dev server compiles cleanly
+- All views QA verified via agent-browser
+
+## Current Project Status
+- **Phase**: Post-MVP Enhancement (Round 5 — Styling Polish Round 2, Features Round 3)
+- **Total Views**: 11 (Dashboard, Predict, Analysis, Library, Ideas, Templates, Trends, Analytics, Calendar, Settings + Landing)
+- **Working Features**:
+  - Landing page (10 sections, all with enhanced animations: mouse spotlight, parallax, marquee, toggle, particles, dot grids)
+  - Auth (login/signup modal, demo mode)
+  - Dashboard (activity feed, score history, platform distribution, CTA cards, quick stats)
+  - Predict (3-step loading animation, recent predictions pills, content type icons, color-shifting char count, gradient mesh, pre-fill from Ideas/Templates)
+  - Analysis (full breakdown, export JSON+CSV, copy-to-clipboard, share button, FAB, content preview, A/B variation compare, Score Insights panel)
+  - Library (search/filter/sort, delete, compare mode with inline panel + modal, QuickScoreWidget cards, score category sparklines)
+  - Ideas (rich empty state with suggestion chips, AI generation, engagement indicators, viral potential badges, platform suggestions, stagger animation, →Predict pre-fill)
+  - Templates (10 curated templates, 6 categories, search, Use Template → Predict, QuickScoreWidget)
+  - Trends (AI refresh, search, category filters, bookmark, Hot/Rising badges, pulse animation)
+  - Analytics (real DB data, live clock, JSON+CSV export, refresh, animated counters, loading/empty/error states)
+  - Calendar (week stats bar, content type color borders, note dialog, mobile 3-day view, drag feedback, time-of-day gradients, hover lift, today pill)
+  - Settings (profile editing, notification toggles, plan comparison, danger zone, avatar upload zone)
+  - Notification Center (Popover from Bell icon, auto-generated from analyses, mark-all-read, empty state)
+  - Onboarding overlay (3-step first-time tour)
+  - Keyboard shortcuts (Ctrl+K/L/I/\/, floating ? button)
+  - Page transitions (AnimatePresence fade+slide)
+  - Breadcrumb navigation in app header
+
+## Completed Modifications This Round
+- **Bug Fixes** (3): CalendarView React strict mode compliance
+- **Styling** (4 files): PredictView, IdeasView, CalendarView, AppSidebar
+- **Features** (4): CSV export, A/B variation compare, Score Insights, Notification Center
+
+## Verification Results
+- `bun run lint`: zero errors, zero warnings
+- Dev server: compiles cleanly, 200 responses
+- agent-browser QA: all 11 views render, no console errors
+- Screenshot evidence: /home/z/my-project/download/qa-r5-*.png
+
+## Unresolved / Next Steps (Priority Order)
+1. Predicted vs actual performance tracking (post-publish feedback loop)
+2. Google OAuth integration (replace demo auth)
+3. Rate limiting on API routes
+4. Calendar slots linked to actual predictions (currently localStorage only)
+5. A/B testing between content variations (UI exists, need backend)
+6. Real-time collaboration features
+7. Accessibility audit (ARIA labels, keyboard navigation, screen reader testing)
+8. Mobile responsive polish (sheet transitions, touch targets 44px+)
+9. Performance optimization (code splitting, lazy loading, image optimization)
+10. Sound/haptic feedback on interactions
+11. Email notifications for scheduled calendar content
+12. Onboarding persistence (currently localStorage, should sync to DB)
+13. Internationalization (i18n) support

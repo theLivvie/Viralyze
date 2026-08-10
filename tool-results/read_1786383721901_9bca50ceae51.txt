@@ -1,0 +1,777 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useCallback, useEffect, useRef } from 'react';
+     4→     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→     5→import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays, Bookmark, StickyNote } from 'lucide-react';
+     6→     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→     7→import { Button } from '@/components/ui/button';
+     8→     8→import { Input } from '@/components/ui/input';
+     9→     9→import { Textarea } from '@/components/ui/textarea';
+    10→    10→import { Label } from '@/components/ui/label';
+    11→    11→import {
+    12→    12→  Dialog,
+    13→    13→  DialogContent,
+    14→    14→  DialogHeader,
+    15→    15→  DialogTitle,
+    16→    16→  DialogDescription,
+    17→    17→  DialogFooter,
+    18→    18→} from '@/components/ui/dialog';
+    19→    19→import {
+    20→    20→  Select,
+    21→    21→  SelectContent,
+    22→    22→  SelectItem,
+    23→    23→  SelectTrigger,
+    24→    24→  SelectValue,
+    25→    25→} from '@/components/ui/select';
+    26→    26→import type { Platform, ContentType } from '@/lib/types';
+    27→    27→import { cn } from '@/lib/utils';
+    28→    28→import { useAppStore } from '@/lib/store';
+    29→    29→import { toast } from 'sonner';
+    30→    30→
+    31→    31→const platformIcons: Record<Platform, React.ElementType> = {
+    32→    32→  instagram: Instagram,
+    33→    33→  youtube: Youtube,
+    34→    34→  tiktok: Tv,
+    35→    35→  x: Twitter,
+    36→    36→  linkedin: Linkedin,
+    37→    37→};
+    38→    38→
+    39→    39→interface CalendarSlot {
+    40→    40→  id: string;
+    41→    41→  title: string;
+    42→    42→  platform: Platform;
+    43→    43→  time: string;
+    44→    44→  contentType: ContentType;
+    45→    45→  note?: string;
+    46→    46→}
+    47→    47→
+    48→    48→type WeekSlots = Record<string, CalendarSlot[]>;
+    49→    49→
+    50→    50→const STORAGE_KEY = 'viralyze-calendar-slots';
+    51→    51→const SLOT_LIMIT = 3;
+    52→    52→
+    53→    53→const contentTypeColors: Record<string, string> = {
+    54→    54→  reel: 'border-l-wine-accent',
+    55→    55→  video: 'border-l-wine-accent',
+    56→    56→  short: 'border-l-wine-accent',
+    57→    57→  post: 'border-l-emerald-500',
+    58→    58→  image: 'border-l-emerald-500',
+    59→    59→  thread: 'border-l-emerald-500',
+    60→    60→  story: 'border-l-amber-500',
+    61→    61→  article: 'border-l-blue-500',
+    62→    62→  carousel: 'border-l-purple-500',
+    63→    63→};
+    64→    64→
+    65→    65→function getWeekDays(weekOffset: number): Date[] {
+    66→    66→  const now = new Date();
+    67→    67→  const currentDay = now.getDay();
+    68→    68→  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    69→    69→  const monday = new Date(now);
+    70→    70→  monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
+    71→    71→  monday.setHours(0, 0, 0, 0);
+    72→    72→
+    73→    73→  const days: Date[] = [];
+    74→    74→  for (let i = 0; i < 7; i++) {
+    75→    75→    const d = new Date(monday);
+    76→    76→    d.setDate(monday.getDate() + i);
+    77→    77→    days.push(d);
+    78→    78→  }
+    79→    79→  return days;
+    80→    80→}
+    81→    81→
+    82→    82→function dateKey(d: Date): string {
+    83→    83→  return d.toISOString().split('T')[0];
+    84→    84→}
+    85→    85→
+    86→    86→function formatDayLabel(d: Date): string {
+    87→    87→  const today = new Date();
+    88→    88→  today.setHours(0, 0, 0, 0);
+    89→    89→  const target = new Date(d);
+    90→    90→  target.setHours(0, 0, 0, 0);
+    91→    91→  const diff = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    92→    92→  if (diff === 0) return 'Today';
+    93→    93→  if (diff === 1) return 'Tomorrow';
+    94→    94→  if (diff === -1) return 'Yesterday';
+    95→    95→  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    96→    96→}
+    97→    97→
+    98→    98→const dayHeaderGradients = [
+    99→    99→  'from-amber-900/20 to-transparent',
+   100→   100→  'from-orange-900/15 to-transparent',
+   101→   101→  'from-viralyze-muted/10 to-transparent',
+   102→   102→  'from-viralyze-muted/10 to-transparent',
+   103→   103→  'from-wine-accent/20 to-transparent',
+   104→   104→  'from-wine-deep/25 to-transparent',
+   105→   105→  'from-wine/30 to-transparent',
+   106→   106→];
+   107→   107→
+   108→   108→function isToday(d: Date): boolean {
+   109→   109→  const today = new Date();
+   110→   110→  return d.getDate() === today.getDate() &&
+   111→   111→    d.getMonth() === today.getMonth() &&
+   112→   112→    d.getFullYear() === today.getFullYear();
+   113→   113→}
+   114→   114→
+   115→   115→function loadSlots(): WeekSlots {
+   116→   116→  if (typeof window === 'undefined') return {};
+   117→   117→  try {
+   118→   118→    const raw = localStorage.getItem(STORAGE_KEY);
+   119→   119→    return raw ? JSON.parse(raw) : {};
+   120→   120→  } catch {
+   121→   121→    return {};
+   122→   122→  }
+   123→   123→}
+   124→   124→
+   125→   125→function saveSlots(slots: WeekSlots) {
+   126→   126→  if (typeof window === 'undefined') return;
+   127→   127→  localStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
+   128→   128→}
+   129→   129→
+   130→   130→const container = {
+   131→   131→  hidden: { opacity: 0 },
+   132→   132→  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+   133→   133→};
+   134→   134→
+   135→   135→const item = {
+   136→   136→  hidden: { opacity: 0, y: 12 },
+   137→   137→  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+   138→   138→};
+   139→   139→
+   140→   140→export default function CalendarView() {
+   141→   141→  const [weekOffset, setWeekOffset] = useState(0);
+   142→   142→  const [slots, setSlots] = useState<WeekSlots>(() => loadSlots());
+   143→   143→  const [activeDay, setActiveDay] = useState<string | null>(null);
+   144→   144→  const [newTitle, setNewTitle] = useState('');
+   145→   145→  const [newPlatform, setNewPlatform] = useState<Platform>('instagram');
+   146→   146→  const [newTime, setNewTime] = useState('09:00');
+   147→   147→  const [newContentType, setNewContentType] = useState<ContentType>('reel');
+   148→   148→  const [libraryDropdownOpen, setLibraryDropdownOpen] = useState(false);
+   149→   149→
+   150→   150→  // Mobile 3-day page
+   151→   151→  const [mobilePage, setMobilePage] = useState(0);
+   152→   152→
+   153→   153→  // Note dialog state
+   154→   154→  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+   155→   155→  const [noteDialogDay, setNoteDialogDay] = useState<string | null>(null);
+   156→   156→  const [noteText, setNoteText] = useState('');
+   157→   157→
+   158→   158→  const savedAnalyses = useAppStore((s) => s.savedAnalyses);
+   159→   159→  const recentAnalyses = savedAnalyses.slice(0, 5);
+   160→   160→
+   161→   161→  const days = getWeekDays(weekOffset);
+   162→   162→
+   163→   163→  // Derive mobilePage reset: when weekOffset changes, mobilePage should be 0
+   164→   164→  // We handle this in the click handlers instead of an effect to avoid cascading renders
+   165→   165→
+   166→   166→  // Migrate old slots that may not have contentType (runs once via ref)
+   167→   167→  const migratedRef = useRef(false);
+   168→   168→  if (!migratedRef.current && typeof window !== 'undefined') {
+   169→   169→    migratedRef.current = true;
+   170→   170→    const saved = loadSlots();
+   171→   171→    let needsSave = false;
+   172→   172→    const migrated = { ...saved };
+   173→   173→    for (const dk of Object.keys(migrated)) {
+   174→   174→      const updated = migrated[dk].map((slot) => {
+   175→   175→        if (!slot.contentType) { needsSave = true; return { ...slot, contentType: 'post' as ContentType }; }
+   176→   176→        return slot;
+   177→   177→      });
+   178→   178→      migrated[dk] = updated;
+   179→   179→    }
+   180→   180→    if (needsSave) { setSlots(migrated); saveSlots(migrated); }
+   181→   181→  }
+   182→   182→
+   183→   183→  const persistSlots = useCallback((updated: WeekSlots) => {
+   184→   184→    setSlots(updated);
+   185→   185→    saveSlots(updated);
+   186→   186→  }, []);
+   187→   187→
+   188→   188→  const addSlot = useCallback(() => {
+   189→   189→    if (!activeDay || !newTitle.trim()) return;
+   190→   190→    const daySlots = slots[activeDay] || [];
+   191→   191→    if (daySlots.length >= SLOT_LIMIT) return;
+   192→   192→    const slot: CalendarSlot = {
+   193→   193→      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+   194→   194→      title: newTitle.trim(),
+   195→   195→      platform: newPlatform,
+   196→   196→      time: newTime,
+   197→   197→      contentType: newContentType,
+   198→   198→    };
+   199→   199→    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
+   200→   200→    persistSlots(updated);
+   201→   201→    setNewTitle('');
+   202→   202→    setNewTime('09:00');
+   203→   203→    setNewPlatform('instagram');
+   204→   204→    setNewContentType('reel');
+   205→   205→  }, [activeDay, newTitle, newPlatform, newTime, newContentType, slots, persistSlots]);
+   206→   206→
+   207→   207→  const addSlotFromAnalysis = useCallback((analysis: { title: string; platform: Platform }) => {
+   208→   208→    if (!activeDay) return;
+   209→   209→    const daySlots = slots[activeDay] || [];
+   210→   210→    if (daySlots.length >= SLOT_LIMIT) return;
+   211→   211→    const slot: CalendarSlot = {
+   212→   212→      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+   213→   213→      title: analysis.title,
+   214→   214→      platform: analysis.platform,
+   215→   215→      time: newTime,
+   216→   216→      contentType: newContentType,
+   217→   217→    };
+   218→   218→    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
+   219→   219→    persistSlots(updated);
+   220→   220→    setLibraryDropdownOpen(false);
+   221→   221→    setActiveDay(null);
+   222→   222→  }, [activeDay, newTime, newContentType, slots, persistSlots]);
+   223→   223→
+   224→   224→  const removeSlot = useCallback((dayKey: string, slotId: string) => {
+   225→   225→    const daySlots = (slots[dayKey] || []).filter((s) => s.id !== slotId);
+   226→   226→    const updated = { ...slots, [dayKey]: daySlots };
+   227→   227→    if (daySlots.length === 0) delete updated[dayKey];
+   228→   228→    persistSlots(updated);
+   229→   229→  }, [slots, persistSlots]);
+   230→   230→
+   231→   231→  const openNoteDialog = useCallback((dayKey: string) => {
+   232→   232→    setNoteDialogDay(dayKey);
+   233→   233→    const daySlots = slots[dayKey];
+   234→   234→    if (daySlots && daySlots.length > 0 && daySlots[0].note) {
+   235→   235→      setNoteText(daySlots[0].note);
+   236→   236→    } else {
+   237→   237→      setNoteText('');
+   238→   238→    }
+   239→   239→    setNoteDialogOpen(true);
+   240→   240→  }, [slots]);
+   241→   241→
+   242→   242→  const saveNote = useCallback(() => {
+   243→   243→    if (!noteDialogDay) return;
+   244→   244→    if (!noteText.trim()) { setNoteDialogOpen(false); return; }
+   245→   245→    const daySlots = slots[noteDialogDay] || [];
+   246→   246→    const noteSlot: CalendarSlot = {
+   247→   247→      id: `note-${Date.now()}`,
+   248→   248→      title: noteText.trim(),
+   249→   249→      platform: 'instagram',
+   250→   250→      time: '00:00',
+   251→   251→      contentType: 'post',
+   252→   252→      note: noteText.trim(),
+   253→   253→    };
+   254→   254→    const updated = { ...slots, [noteDialogDay]: [...daySlots, noteSlot] };
+   255→   255→    persistSlots(updated);
+   256→   256→    setNoteDialogOpen(false);
+   257→   257→    setNoteText('');
+   258→   258→    toast.success('Reminder added');
+   259→   259→  }, [noteDialogDay, noteText, slots, persistSlots]);
+   260→   260→
+   261→   261→  const weekLabel = `${days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+   262→   262→
+   263→   263→  const totalSlots = Object.values(slots).reduce((s, arr) => s + arr.length, 0);
+   264→   264→
+   265→   265→  const daysWithContent = days.filter((d) => {
+   266→   266→    const key = dateKey(d);
+   267→   267→    return slots[key] && slots[key].length > 0;
+   268→   268→  }).length;
+   269→   269→  const weekFillPercent = (daysWithContent / 7) * 100;
+   270→   270→
+   271→   271→  // Mobile: show 3 days at a time
+   272→   272→  const mobileDayStart = mobilePage * 3;
+   273→   273→  const mobileDays = days.slice(mobileDayStart, mobileDayStart + 3);
+   274→   274→  const hasMorePages = mobileDayStart + 3 < 7;
+   275→   275→  const hasPrevPages = mobilePage > 0;
+   276→   276→
+   277→   277→  const displayDays = mobileDays; // Will be overridden for desktop below
+   278→   278→
+   279→   279→  return (
+   280→   280→    <motion.div
+   281→   281→      variants={container}
+   282→   282→      initial="hidden"
+   283→   283→      animate="show"
+   284→   284→      className="flex flex-col gap-6 max-w-5xl mx-auto"
+   285→   285→    >
+   286→   286→      {/* Header */}
+   287→   287→      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   288→   288→        <div className="flex flex-col">
+   289→   289→          <div className="flex items-center gap-2.5">
+   290→   290→            <CalendarDays className="h-6 w-6 text-wine-accent/40" />
+   291→   291→            <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   292→   292→              Content Calendar
+   293→   293→            </h2>
+   294→   294→            {totalSlots > 0 && (
+   295→   295→              <span className="text-xs font-medium tabular-nums px-2 py-0.5 rounded-full bg-wine-accent/10 text-wine-accent border border-wine-accent/30">
+   296→   296→                {totalSlots} scheduled
+   297→   297→              </span>
+   298→   298→            )}
+   299→   299→          </div>
+   300→   300→          <p className="text-viralyze-muted mt-1">
+   301→   301→            Plan your content across the week
+   302→   302→          </p>
+   303→   303→        </div>
+   304→   304→
+   305→   305→        {/* Week Navigation */}
+   306→   306→        <div className="flex items-center gap-2">
+   307→   307→          <Button
+   308→   308→            variant="outline"
+   309→   309→            size="icon"
+   310→   310→            onClick={() => { setWeekOffset((w) => w - 1); setMobilePage(0); }}
+   311→   311→            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:scale-105 transition-transform"
+   312→   312→          >
+   313→   313→            <ChevronLeft className="h-4 w-4" />
+   314→   314→          </Button>
+   315→   315→          <span className="text-sm text-viralyze-white font-medium min-w-[180px] text-center">
+   316→   316→            {weekLabel}
+   317→   317→          </span>
+   318→   318→          <Button
+   319→   319→            variant="outline"
+   320→   320→            size="icon"
+   321→   321→            onClick={() => { setWeekOffset((w) => w + 1); setMobilePage(0); }}
+   322→   322→            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:scale-105 transition-transform"
+   323→   323→          >
+   324→   324→            <ChevronRight className="h-4 w-4" />
+   325→   325→          </Button>
+   326→   326→          {weekOffset === 0 ? (
+   327→   327→            <motion.span
+   328→   328→              initial={{ opacity: 0, scale: 0.8 }}
+   329→   329→              animate={{ opacity: 1, scale: 1 }}
+   330→   330→              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25 text-wine-accent text-xs font-medium"
+   331→   331→            >
+   332→   332→              <CalendarDays className="h-3 w-3" />
+   333→   333→              Today
+   334→   334→            </motion.span>
+   335→   335→          ) : (
+   336→   336→            <motion.div
+   337→   337→              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25"
+   338→   338→              animate={{ opacity: weekOffset !== 0 ? 1 : 0, scale: weekOffset !== 0 ? 1 : 0.8 }}
+   339→   339→              transition={{ duration: 0.3 }}
+   340→   340→            >
+   341→   341→              <CalendarDays className="h-3 w-3 text-wine-accent" />
+   342→   342→              <Button
+   343→   343→                variant="ghost"
+   344→   344→                size="sm"
+   345→   345→                onClick={() => { setWeekOffset(0); setMobilePage(0); }}
+   346→   346→                className="text-wine-accent hover:text-wine-accent hover:bg-wine-accent/10 text-xs h-auto p-0"
+   347→   347→              >
+   348→   348→                Today
+   349→   349→              </Button>
+   350→   350→            </motion.div>
+   351→   351→          )}
+   352→   352→        </div>
+   353→   353→      </motion.div>
+   354→   354→
+   355→   355→      {/* Week Overview Stats Bar */}
+   356→   356→      <motion.div variants={item}>
+   357→   357→        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+   358→   358→          <div className="flex items-center gap-2">
+   359→   359→            <div className="h-2 w-2 rounded-full bg-wine-accent/60" />
+   360→   360→            <span className="text-xs text-viralyze-muted">
+   361→   361→              <span className="text-viralyze-white font-medium tabular-nums">{daysWithContent}</span>/7 days with content
+   362→   362→            </span>
+   363→   363→          </div>
+   364→   364→          <div className="flex items-center gap-2 flex-1 max-w-[160px]">
+   365→   365→            <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+   366→   366→              <motion.div
+   367→   367→                className="h-full rounded-full bg-gradient-wine"
+   368→   368→                initial={{ width: 0 }}
+   369→   369→                animate={{ width: `${weekFillPercent}%` }}
+   370→   370→                transition={{ duration: 0.6, ease: 'easeOut' }}
+   371→   371→              />
+   372→   372→            </div>
+   373→   373→            <span className="text-[10px] text-viralyze-muted/60 tabular-nums w-7 text-right">
+   374→   374→              {Math.round(weekFillPercent)}%
+   375→   375→            </span>
+   376→   376→          </div>
+   377→   377→        </div>
+   378→   378→      </motion.div>
+   379→   379→
+   380→   380→      {/* Glow-line separator */}
+   381→   381→      <div className="glow-line" />
+   382→   382→
+   383→   383→      {/* Gradient mesh background */}
+   384→   384→      <div className="relative">
+   385→   385→        <div className="pointer-events-none absolute -top-20 -right-20 h-[300px] w-[300px] rounded-full bg-wine-accent/[0.06] blur-[100px]" />
+   386→   386→        <div className="pointer-events-none absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-wine/[0.08] blur-[100px]" />
+   387→   387→
+   388→   388→        {/* Mobile: 3-day navigation arrows */}
+   389→   389→        <div className="flex md:hidden items-center justify-between mb-3">
+   390→   390→          <Button
+   391→   391→            variant="ghost"
+   392→   392→            size="icon"
+   393→   393→            onClick={() => setMobilePage((p) => Math.max(0, p - 1))}
+   394→   394→            disabled={!hasPrevPages}
+   395→   395→            className="h-7 w-7 text-viralyze-muted disabled:opacity-30 hover:bg-white/[0.05]"
+   396→   396→          >
+   397→   397→            <ChevronLeft className="h-4 w-4" />
+   398→   398→          </Button>
+   399→   399→          <span className="text-xs text-viralyze-muted">
+   400→   400→            {displayDays[0]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })} – {displayDays[displayDays.length - 1]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
+   401→   401→          </span>
+   402→   402→          <Button
+   403→   403→            variant="ghost"
+   404→   404→            size="icon"
+   405→   405→            onClick={() => setMobilePage((p) => Math.min(2, p + 1))}
+   406→   406→            disabled={!hasMorePages}
+   407→   407→            className="h-7 w-7 text-viralyze-muted disabled:opacity-30 hover:bg-white/[0.05]"
+   408→   408→          >
+   409→   409→            <ChevronRight className="h-4 w-4" />
+   410→   410→          </Button>
+   411→   411→        </div>
+   412→   412→
+   413→   413→        {/* Desktop: Full 7-day grid */}
+   414→   414→        <div className="hidden md:grid grid-cols-7 gap-3">
+   415→   415→          {days.map((day) => {
+   416→   416→            const key = dateKey(day);
+   417→   417→            const daySlots = slots[key] || [];
+   418→   418→            const isDayToday = isToday(day);
+   419→   419→            const isActive = activeDay === key;
+   420→   420→            return renderDayCard({
+   421→   421→              day, key, daySlots, isDayToday, isActive,
+   422→   422→              activeDay, setActiveDay, slots,
+   423→   423→              newTitle, setNewTitle, newPlatform, setNewPlatform,
+   424→   424→              newTime, setNewTime, newContentType, setNewContentType,
+   425→   425→              addSlot, addSlotFromAnalysis, removeSlot,
+   426→   426→              openNoteDialog, recentAnalyses,
+   427→   427→              libraryDropdownOpen, setLibraryDropdownOpen,
+   428→   428→            });
+   429→   429→          })}
+   430→   430→        </div>
+   431→   431→
+   432→   432→        {/* Mobile: 3-day grid (1 col) */}
+   433→   433→        <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-3">
+   434→   434→          {displayDays.map((day) => {
+   435→   435→            const key = dateKey(day);
+   436→   436→            const daySlots = slots[key] || [];
+   437→   437→            const isDayToday = isToday(day);
+   438→   438→            const isActive = activeDay === key;
+   439→   439→            return renderDayCard({
+   440→   440→              day, key, daySlots, isDayToday, isActive,
+   441→   441→              activeDay, setActiveDay, slots,
+   442→   442→              newTitle, setNewTitle, newPlatform, setNewPlatform,
+   443→   443→              newTime, setNewTime, newContentType, setNewContentType,
+   444→   444→              addSlot, addSlotFromAnalysis, removeSlot,
+   445→   445→              openNoteDialog, recentAnalyses,
+   446→   446→              libraryDropdownOpen, setLibraryDropdownOpen,
+   447→   447→            });
+   448→   448→          })}
+   449→   449→        </div>
+   450→   450→      </div>
+   451→   451→
+   452→   452→      {/* Note Dialog */}
+   453→   453→      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+   454→   454→        <DialogContent className="bg-viralyze-soft-black border-white/[0.1] max-w-sm">
+   455→   455→          <DialogHeader>
+   456→   456→            <DialogTitle className="text-viralyze-white flex items-center gap-2">
+   457→   457→              <StickyNote className="h-4 w-4 text-wine-accent" />
+   458→   458→              Content Reminder
+   459→   459→            </DialogTitle>
+   460→   460→            <DialogDescription className="text-viralyze-muted">
+   461→   461→              Add a quick note or reminder for this day
+   462→   462→            </DialogDescription>
+   463→   463→          </DialogHeader>
+   464→   464→          <Textarea
+   465→   465→            placeholder="e.g., Draft carousel for product launch, film behind-the-scenes reel..."
+   466→   466→            value={noteText}
+   467→   467→            onChange={(e) => setNoteText(e.target.value)}
+   468→   468→            className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent resize-none min-h-[80px]"
+   469→   469→            autoFocus
+   470→   470→          />
+   471→   471→          <DialogFooter>
+   472→   472→            <Button
+   473→   473→              variant="ghost"
+   474→   474→              onClick={() => setNoteDialogOpen(false)}
+   475→   475→              className="text-viralyze-muted hover:text-viralyze-white"
+   476→   476→            >
+   477→   477→              Cancel
+   478→   478→            </Button>
+   479→   479→            <Button
+   480→   480→              onClick={saveNote}
+   481→   481→              disabled={!noteText.trim()}
+   482→   482→              className="bg-gradient-wine hover:opacity-90 text-white"
+   483→   483→            >
+   484→   484→              Save Note
+   485→   485→            </Button>
+   486→   486→          </DialogFooter>
+   487→   487→        </DialogContent>
+   488→   488→      </Dialog>
+   489→   489→
+   490→   490→      {/* Empty state hint */}
+   491→   491→      {totalSlots === 0 && (
+   492→   492→        <motion.div variants={item} className="text-center pb-4">
+   493→   493→          <div className="flex flex-col items-center gap-2">
+   494→   494→            <Sparkles className="h-6 w-6 text-viralyze-muted/20" />
+   495→   495→            <p className="text-xs text-viralyze-muted/50">
+   496→   496→              Click on any day to schedule your first content idea
+   497→   497→            </p>
+   498→   498→          </div>
+   499→   499→        </motion.div>
+   500→   500→      )}
+   501→   501→    </motion.div>
+   502→   502→  );
+   503→   503→}
+   504→   504→
+   505→   505→// --- Render helpers (pure functions, no hooks) ---
+   506→   506→
+   507→   507→interface DayCardProps {
+   508→   508→  day: Date;
+   509→   509→  key: string;
+   510→   510→  daySlots: CalendarSlot[];
+   511→   511→  isDayToday: boolean;
+   512→   512→  isActive: boolean;
+   513→   513→  activeDay: string | null;
+   514→   514→  setActiveDay: (k: string | null) => void;
+   515→   515→  slots: WeekSlots;
+   516→   516→  newTitle: string;
+   517→   517→  setNewTitle: (v: string) => void;
+   518→   518→  newPlatform: Platform;
+   519→   519→  setNewPlatform: (p: Platform) => void;
+   520→   520→  newTime: string;
+   521→   521→  setNewTime: (v: string) => void;
+   522→   522→  newContentType: ContentType;
+   523→   523→  setNewContentType: (c: ContentType) => void;
+   524→   524→  addSlot: () => void;
+   525→   525→  addSlotFromAnalysis: (a: { title: string; platform: Platform }) => void;
+   526→   526→  removeSlot: (d: string, id: string) => void;
+   527→   527→  openNoteDialog: (d: string) => void;
+   528→   528→  recentAnalyses: { id: string; title: string; platform: Platform; overallScore: number }[];
+   529→   529→  libraryDropdownOpen: boolean;
+   530→   530→  setLibraryDropdownOpen: (o: boolean) => void;
+   531→   531→}
+   532→   532→
+   533→   533→function renderDayCard(props: DayCardProps) {
+   534→   534→  const {
+   535→   535→    day, key, daySlots, isDayToday, isActive,
+   536→   536→    setActiveDay,
+   537→   537→    newTitle, setNewTitle, newPlatform, setNewPlatform,
+   538→   538→    newTime, setNewTime, newContentType, setNewContentType,
+   539→   539→    addSlot, addSlotFromAnalysis, removeSlot,
+   540→   540→    openNoteDialog, recentAnalyses,
+   541→   541→    libraryDropdownOpen, setLibraryDropdownOpen,
+   542→   542→  } = props;
+   543→   543→
+   544→   544→  return (
+   545→   545→    <motion.div key={key} variants={item}>
+   546→   546→      <Card
+   547→   547→        className={cn(
+   548→   548→          'glass relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-wine-accent/[0.05]',
+   549→   549→          isDayToday && 'border-wine-accent/30',
+   550→   550→          isActive && 'border-wine-accent/50 glow-wine-sm',
+   551→   551→          daySlots.length > 0 && !isActive && 'hover:glow-wine-sm',
+   552→   552→        )}
+   553→   553→      >
+   554→   554→        <CardHeader className={cn('p-3 pb-2 bg-gradient-to-br rounded-t-xl', dayHeaderGradients[day.getDay() === 0 ? 6 : day.getDay() - 1])}>
+   555→   555→          <div className="flex items-center justify-between">
+   556→   556→            <CardTitle className="text-xs font-semibold text-viralyze-white">
+   557→   557→              {day.toLocaleDateString('en-US', { weekday: 'short' })}
+   558→   558→            </CardTitle>
+   559→   559→            {isDayToday && (
+   560→   560→              <span className="h-1.5 w-1.5 rounded-full bg-wine-accent" />
+   561→   561→            )}
+   562→   562→          </div>
+   563→   563→          <p className={cn(
+   564→   564→            'text-[11px] text-viralyze-muted',
+   565→   565→            isDayToday && 'text-wine-accent'
+   566→   566→          )}>
+   567→   567→            {formatDayLabel(day)}
+   568→   568→          </p>
+   569→   569→        </CardHeader>
+   570→   570→        <CardContent className="p-3 pt-0">
+   571→   571→          {/* Existing slots with content type color coding and drag feedback */}
+   572→   572→          <div className="flex flex-col gap-1.5 mb-2">
+   573→   573→            {daySlots.map((slot) => {
+   574→   574→              const PIcon = platformIcons[slot.platform];
+   575→   575→              const borderColor = contentTypeColors[slot.contentType] || 'border-l-wine-accent';
+   576→   576→              return (
+   577→   577→                <motion.div
+   578→   578→                  key={slot.id}
+   579→   579→                  initial={{ opacity: 0, scale: 0.95 }}
+   580→   580→                  animate={{ opacity: 1, scale: 1 }}
+   581→   581→                  exit={{ opacity: 0, scale: 0.95 }}
+   582→   582→                  className={cn(
+   583→   583→                    'flex items-start gap-1.5 p-1.5 rounded-md bg-white/[0.04] border border-white/[0.06] group relative border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-[1px] hover:shadow-md hover:shadow-black/20 transition-all duration-200',
+   584→   584→                    borderColor
+   585→   585→                  )}
+   586→   586→                >
+   587→   587→                  <PIcon className="h-3 w-3 text-viralyze-muted mt-0.5 shrink-0" />
+   588→   588→                  <div className="flex-1 min-w-0">
+   589→   589→                    <p className="text-[11px] font-medium text-viralyze-white leading-tight truncate">
+   590→   590→                      {slot.title}
+   591→   591→                    </p>
+   592→   592→                    <p className="text-[10px] text-viralyze-muted flex items-center gap-0.5">
+   593→   593→                      <Clock className="h-2.5 w-2.5" />
+   594→   594→                      {slot.note ? 'Reminder' : slot.time}
+   595→   595→                    </p>
+   596→   596→                  </div>
+   597→   597→                  <button
+   598→   598→                    onClick={(e) => { e.stopPropagation(); removeSlot(key, slot.id); }}
+   599→   599→                    className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-viralyze-black border border-white/10 items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:border-red-500/30 transition-all hidden sm:flex"
+   600→   600→                  >
+   601→   601→                    <X className="h-2.5 w-2.5 text-viralyze-muted" />
+   602→   602→                  </button>
+   603→   603→                </motion.div>
+   604→   604→              );
+   605→   605→            })}
+   606→   606→          </div>
+   607→   607→
+   608→   608→          {/* Add slot button or inline form */}
+   609→   609→          {daySlots.length < SLOT_LIMIT && (
+   610→   610→            <AnimatePresence mode="wait">
+   611→   611→              {isActive ? (
+   612→   612→                <motion.div
+   613→   613→                  key="form"
+   614→   614→                  initial={{ opacity: 0, height: 0 }}
+   615→   615→                  animate={{ opacity: 1, height: 'auto' }}
+   616→   616→                  exit={{ opacity: 0, height: 0 }}
+   617→   617→                  className="flex flex-col gap-1.5"
+   618→   618→                >
+   619→   619→                  <Input
+   620→   620→                    placeholder="Title..."
+   621→   621→                    value={newTitle}
+   622→   622→                    onChange={(e) => setNewTitle(e.target.value)}
+   623→   623→                    onKeyDown={(e) => { if (e.key === 'Enter') addSlot(); if (e.key === 'Escape') setActiveDay(null); }}
+   624→   624→                    className="h-7 text-[11px] bg-white/[0.04] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent focus-visible:ring-1 px-2"
+   625→   625→                    autoFocus
+   626→   626→                  />
+   627→   627→                  <div className="flex gap-1.5">
+   628→   628→                    <Select value={newPlatform} onValueChange={(v) => setNewPlatform(v as Platform)}>
+   629→   629→                      <SelectTrigger className="h-6 text-[10px] bg-white/[0.04] border-white/[0.08] text-viralyze-muted px-1.5 flex-1">
+   630→   630→                        <SelectValue />
+   631→   631→                      </SelectTrigger>
+   632→   632→                      <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   633→   633→                        {Object.entries(platformIcons).map(([pKey, PI]) => (
+   634→   634→                          <SelectItem key={pKey} value={pKey} className="text-viralyze-white text-xs">
+   635→   635→                            <div className="flex items-center gap-1.5"><PI className="h-3 w-3" />{pKey}</div>
+   636→   636→                          </SelectItem>
+   637→   637→                        ))}
+   638→   638→                      </SelectContent>
+   639→   639→                    </Select>
+   640→   640→                    <Select value={newContentType} onValueChange={(v) => setNewContentType(v as ContentType)}>
+   641→   641→                      <SelectTrigger className="h-6 text-[10px] bg-white/[0.04] border-white/[0.08] text-viralyze-muted px-1.5 w-[68px]">
+   642→   642→                        <SelectValue />
+   643→   643→                      </SelectTrigger>
+   644→   644→                      <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   645→   645→                        {(['reel','post','story','article','carousel','video','short','thread'] as ContentType[]).map((ct) => (
+   646→   646→                          <SelectItem key={ct} value={ct} className="text-viralyze-white text-xs capitalize">
+   647→   647→                            {ct}
+   648→   648→                          </SelectItem>
+   649→   649→                        ))}
+   650→   650→                      </SelectContent>
+   651→   651→                    </Select>
+   652→   652→                    <Input
+   653→   653→                      type="time"
+   654→   654→                      value={newTime}
+   655→   655→                      onChange={(e) => setNewTime(e.target.value)}
+   656→   656→                      className="h-6 text-[10px] bg-white/[0.04] border-white/[0.08] text-viralyze-muted px-1.5 w-[68px]"
+   657→   657→                    />
+   658→   658→                  </div>
+   659→   659→                  <div className="flex gap-1">
+   660→   660→                    <Button
+   661→   661→                      size="sm"
+   662→   662→                      onClick={addSlot}
+   663→   663→                      disabled={!newTitle.trim()}
+   664→   664→                      className="h-6 text-[10px] bg-wine-accent hover:bg-wine-accent/80 text-white px-2 flex-1"
+   665→   665→                    >
+   666→   666→                      Add
+   667→   667→                    </Button>
+   668→   668→                    <Button
+   669→   669→                      size="sm"
+   670→   670→                      variant="ghost"
+   671→   671→                      onClick={() => setActiveDay(null)}
+   672→   672→                      className="h-6 text-[10px] text-viralyze-muted hover:text-viralyze-white px-2"
+   673→   673→                    >
+   674→   674→                      Cancel
+   675→   675→                    </Button>
+   676→   676→                  </div>
+   677→   677→                  {/* Link from Library */}
+   678→   678→                  {recentAnalyses.length > 0 && (
+   679→   679→                    <div className="relative mt-1">
+   680→   680→                      <Button
+   681→   681→                        type="button"
+   682→   682→                        size="sm"
+   683→   683→                        variant="outline"
+   684→   684→                        onClick={() => setLibraryDropdownOpen(!libraryDropdownOpen)}
+   685→   685→                        className="h-6 text-[10px] border-dashed text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] w-full"
+   686→   686→                      >
+   687→   687→                        <Bookmark className="h-3 w-3 mr-1" />
+   688→   688→                        Link from Library
+   689→   689→                      </Button>
+   690→   690→                      {libraryDropdownOpen && (
+   691→   691→                        <motion.div
+   692→   692→                          initial={{ opacity: 0, y: -4 }}
+   693→   693→                          animate={{ opacity: 1, y: 0 }}
+   694→   694→                          exit={{ opacity: 0, y: -4 }}
+   695→   695→                          className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-viralyze-soft-black border border-white/[0.1] shadow-xl overflow-hidden"
+   696→   696→                        >
+   697→   697→                          <div className="max-h-48 overflow-y-auto flex flex-col divide-y divide-white/[0.06]">
+   698→   698→                            {recentAnalyses.map((analysis) => {
+   699→   699→                              const PI = platformIcons[analysis.platform];
+   700→   700→                              return (
+   701→   701→                                <button
+   702→   702→                                  key={analysis.id}
+   703→   703→                                  onClick={() => addSlotFromAnalysis({ title: analysis.title, platform: analysis.platform })}
+   704→   704→                                  className="flex items-center gap-2 px-2.5 py-2 hover:bg-white/[0.05] transition-colors text-left w-full"
+   705→   705→                                >
+   706→   706→                                  <PI className="h-3 w-3 text-viralyze-muted shrink-0" />
+   707→   707→                                  <span className="text-[11px] text-viralyze-white truncate flex-1">
+   708→   708→                                    {analysis.title}
+   709→   709→                                  </span>
+   710→   710→                                  <span className={cn(
+   711→   711→                                    'text-[9px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full shrink-0',
+   712→   712→                                    analysis.overallScore >= 70
+   713→   713→                                      ? 'bg-green-500/15 text-green-400'
+   714→   714→                                      : analysis.overallScore >= 45
+   715→   715→                                        ? 'bg-amber-500/15 text-amber-400'
+   716→   716→                                        : 'bg-red-500/15 text-red-400'
+   717→   717→                                  )}>
+   718→   718→                                    {analysis.overallScore}
+   719→   719→                                  </span>
+   720→   720→                                </button>
+   721→   721→                              );
+   722→   722→                            })}
+   723→   723→                          </div>
+   724→   724→                        </motion.div>
+   725→   725→                      )}
+   726→   726→                    </div>
+   727→   727→                  )}
+   728→   728→                </motion.div>
+   729→   729→              ) : (
+   730→   730→                <motion.button
+   731→   731→                  key="btn"
+   732→   732→                  initial={{ opacity: 0 }}
+   733→   733→                  animate={{ opacity: 1 }}
+   734→   734→                  exit={{ opacity: 0 }}
+   735→   735→                  onClick={() => setActiveDay(key)}
+   736→   736→                  className={cn(
+   737→   737→                    'relative flex items-center justify-center gap-1 py-1.5 rounded-md border text-viralyze-muted/60 hover:text-wine-accent transition-all text-[11px] group/empty',
+   738→   738→                    daySlots.length === 0
+   739→   739→                      ? 'border-dashed border-wine-accent/25'
+   740→   740→                      : 'border-dashed border-white/[0.08] hover:border-wine-accent/30'
+   741→   741→                  )}
+   742→   742→                >
+   743→   743→                  <Plus className="h-3 w-3" />
+   744→   744→                  {daySlots.length === 0 ? 'Add content' : 'Add more'}
+   745→   745→                  {/* Hover glow + icon for empty slots */}
+   746→   746→                  {daySlots.length === 0 && (
+   747→   747→                    <motion.div
+   748→   748→                      className="absolute inset-0 rounded-md pointer-events-none"
+   749→   749→                      initial={{ boxShadow: '0 0 0px rgba(184,50,90,0)' }}
+   750→   750→                      whileHover={{ boxShadow: '0 0 16px rgba(184,50,90,0.2), 0 0 32px rgba(127,29,58,0.1)' }}
+   751→   751→                    />
+   752→   752→                  )}
+   753→   753→                </motion.button>
+   754→   754→              )}
+   755→   755→            </AnimatePresence>
+   756→   756→          )}
+   757→   757→
+   758→   758→          {/* Note button for empty slots — appears with hover */}
+   759→   759→          {!isActive && daySlots.length < SLOT_LIMIT && (
+   760→   760→            <motion.button
+   761→   761→              onClick={(e) => { e.stopPropagation(); openNoteDialog(key); }}
+   762→   762→              className="absolute bottom-3 right-3 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity text-viralyze-muted/30 hover:text-wine-accent"
+   763→   763→              title="Add a quick reminder"
+   764→   764→            >
+   765→   765→              <StickyNote className="h-3.5 w-3.5" />
+   766→   766→            </motion.button>
+   767→   767→          )}
+   768→   768→
+   769→   769→          {daySlots.length >= SLOT_LIMIT && (
+   770→   770→            <p className="text-[10px] text-viralyze-muted/40 text-center py-1">3/3 slots filled</p>
+   771→   771→          )}
+   772→   772→        </CardContent>
+   773→   773→      </Card>
+   774→   774→    </motion.div>
+   775→   775→  );
+   776→   776→}
+   777→   777→

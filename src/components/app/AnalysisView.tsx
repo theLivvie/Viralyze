@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Copy,
@@ -20,13 +20,21 @@ import {
   ClipboardCopy,
   Plus,
   FileText,
+  LayoutGrid,
+  GitCompareArrows,
+  Trophy,
+  ArrowUpRight,
+  ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
 import ScoreRing from '@/components/shared/ScoreRing';
 import ScoreBar from '@/components/shared/ScoreBar';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const platformIcons: Record<string, string> = {
   instagram: '📸',
@@ -52,6 +60,7 @@ const item = {
 export default function AnalysisView() {
   const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses } = useAppStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
 
   if (!currentAnalysis) {
     return (
@@ -408,6 +417,119 @@ export default function AnalysisView() {
         </motion.div>
       )}
 
+      {/* Score Insights Panel */}
+      {scoreEntries.length > 0 && (
+        <motion.div variants={item}>
+          <Card className="glass overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-wine-accent" />
+                Score Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              {/* Top 3 Strengths */}
+              <div>
+                <h3 className="text-sm font-medium text-green-400 flex items-center gap-1.5 mb-3">
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  Top 3 Strengths
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {scoreEntries
+                    .sort(([, a], [, b]) => (b as number) - (a as number))
+                    .slice(0, 3)
+                    .map(([key, value], i) => (
+                      <motion.div
+                        key={key}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1, duration: 0.35 }}
+                        className="rounded-lg p-3 border border-green-500/20 bg-green-500/[0.05]"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-viralyze-muted">{categoryLabels[key] || key}</span>
+                          <span className="text-sm font-bold tabular-nums text-green-400">{value as number}</span>
+                        </div>
+                        <p className="text-xs text-viralyze-white/60 leading-relaxed">
+                          {strengths[i] || `${categoryLabels[key] || key} is a key strength of this content.`}
+                        </p>
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Top 3 Improvement Areas */}
+              <div>
+                <h3 className="text-sm font-medium text-amber-400 flex items-center gap-1.5 mb-3">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Top 3 Improvement Areas
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {scoreEntries
+                    .sort(([, a], [, b]) => (a as number) - (b as number))
+                    .slice(0, 3)
+                    .map(([key, value], i) => (
+                      <motion.div
+                        key={key}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 + 0.3, duration: 0.35 }}
+                        className="rounded-lg p-3 border border-amber-500/20 bg-amber-500/[0.05]"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-viralyze-muted">{categoryLabels[key] || key}</span>
+                          <span className="text-sm font-bold tabular-nums text-amber-400">{value as number}</span>
+                        </div>
+                        <p className="text-xs text-viralyze-white/60 leading-relaxed">
+                          {improvements[i] || weaknesses[i] || `Consider improving ${categoryLabels[key] || key.toLowerCase()} to boost viral potential.`}
+                        </p>
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Score vs Average Comparison */}
+              <div>
+                <h3 className="text-sm font-medium text-viralyze-white flex items-center gap-1.5 mb-3">
+                  <Target className="h-3.5 w-3.5 text-wine-accent" />
+                  Score vs Platform Average
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-viralyze-white">Your Score</span>
+                      <span className="text-xs font-bold tabular-nums text-wine-accent">{overallScore}/100</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${overallScore}%` }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                        className="h-full rounded-full bg-gradient-to-r from-wine-accent to-wine"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-viralyze-muted">Platform Average</span>
+                      <span className="text-xs font-bold tabular-nums text-viralyze-muted">65/100</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: '65%' }}
+                        transition={{ duration: 0.8, delay: 0.35, ease: 'easeOut' }}
+                        className="h-full rounded-full bg-white/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Platform Fit */}
       {platformFit && platformFit.length > 0 && (
         <motion.div variants={item}>
@@ -646,75 +768,186 @@ export default function AnalysisView() {
         <motion.div variants={item}>
           <Card className="glass">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
-                <Zap className="h-4 w-4 text-wine-accent" />
-                Content Variations
-              </CardTitle>
-              <p className="text-xs text-viralyze-muted mt-1">
-                Alternative versions optimized for different engagement strategies
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-wine-accent" />
+                    Content Variations
+                  </CardTitle>
+                  <p className="text-xs text-viralyze-muted mt-1">
+                    Alternative versions optimized for different engagement strategies
+                  </p>
+                </div>
+                {variations.length >= 2 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCompareMode(!compareMode)}
+                    className={cn(
+                      'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5',
+                      compareMode && 'border-wine-accent/40 text-wine-accent bg-wine-accent/10'
+                    )}
+                  >
+                    {compareMode ? <LayoutGrid className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+                    {compareMode ? 'Grid View' : 'Compare View'}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {variations.map((v, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="glass-strong rounded-lg p-4 flex flex-col gap-2 hover:glow-wine-sm transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-wine-accent uppercase tracking-wider">
-                        {v.label}
-                      </span>
-                      <span className="text-xs text-viralyze-muted px-2 py-0.5 rounded-full bg-white/[0.05]">
-                        {v.style}
-                      </span>
+              <AnimatePresence mode="wait">
+                {!compareMode ? (
+                  <motion.div
+                    key="grid"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col gap-4"
+                  >
+                    {variations.map((v, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="glass-strong rounded-lg p-4 flex flex-col gap-2 hover:glow-wine-sm transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-wine-accent uppercase tracking-wider">
+                              {v.label}
+                            </span>
+                            <span className="text-xs text-viralyze-muted px-2 py-0.5 rounded-full bg-white/[0.05]">
+                              {v.style}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-sm font-bold tabular-nums ${
+                                v.score >= 80
+                                  ? 'text-green-400'
+                                  : v.score >= 60
+                                  ? 'text-amber-400'
+                                  : 'text-red-400'
+                              }`}
+                            >
+                              {v.score}/100
+                            </span>
+                            <Button
+                              size="sm"
+                              className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine"
+                              onClick={() => {
+                                setPrefilledIdea(v.content);
+                                setPredictMode('idea');
+                                setCurrentView('predict');
+                                toast.success('Variation loaded for re-analysis');
+                              }}
+                            >
+                              <Sparkles className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+                              onClick={() => copyToClipboard(v.content, `var-${i}`)}
+                            >
+                              {copiedField === `var-${i}` ? (
+                                <Check className="h-3 w-3 text-green-400" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-viralyze-white/80 leading-relaxed">
+                          {v.content}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="compare"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col gap-0"
+                  >
+                    {/* Table header */}
+                    <div className="grid grid-cols-[1fr_80px_80px_80px] sm:grid-cols-[1fr_100px_100px_100px] gap-3 px-4 py-2 border-b border-white/[0.08]">
+                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Variation</span>
+                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-center">Score</span>
+                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-center">Diff</span>
+                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-right">Action</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm font-bold tabular-nums ${
-                          v.score >= 80
-                            ? 'text-green-400'
-                            : v.score >= 60
-                            ? 'text-amber-400'
-                            : 'text-red-400'
-                        }`}
-                      >
-                        {v.score}/100
-                      </span>
-                      <Button
-                        size="sm"
-                        className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine"
-                        onClick={() => {
-                          setPrefilledIdea(v.content);
-                          setPredictMode('idea');
-                          setCurrentView('predict');
-                          toast.success('Variation loaded for re-analysis');
-                        }}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
-                        onClick={() => copyToClipboard(v.content, `var-${i}`)}
-                      >
-                        {copiedField === `var-${i}` ? (
-                          <Check className="h-3 w-3 text-green-400" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-viralyze-white/80 leading-relaxed">
-                    {v.content}
-                  </p>
-                </motion.div>
-              ))}
+                    {/* Rows */}
+                    {[...variations]
+                      .sort((a, b) => b.score - a.score)
+                      .map((v, i) => {
+                        const isBest = i === 0;
+                        const bestScore = variations.reduce((max, x) => Math.max(max, x.score), 0);
+                        const diff = bestScore - v.score;
+                        const truncated = v.content.length > 80 ? v.content.slice(0, 80) + '...' : v.content;
+                        return (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.08 }}
+                            className={cn(
+                              'grid grid-cols-[1fr_80px_80px_80px] sm:grid-cols-[1fr_100px_100px_100px] gap-3 px-4 py-3 border-b border-white/[0.04] items-center',
+                              isBest && 'border border-wine-accent/30 rounded-lg bg-wine-accent/[0.05] mb-2'
+                            )}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isBest && (
+                                <Badge className="bg-wine-accent/20 text-wine-accent text-[10px] font-bold border-0 px-1.5 py-0 shrink-0">
+                                  <Trophy className="h-3 w-3 mr-0.5" /> Best
+                                </Badge>
+                              )}
+                              <div className="min-w-0">
+                                <span className="text-xs font-medium text-wine-accent uppercase tracking-wider">{v.label}</span>
+                                <p className="text-sm text-viralyze-white/70 truncate">{truncated}</p>
+                              </div>
+                            </div>
+                            <div className="flex justify-center">
+                              <span className={cn(
+                                'text-sm font-bold tabular-nums',
+                                v.score >= 80 ? 'text-green-400' : v.score >= 60 ? 'text-amber-400' : 'text-red-400'
+                              )}>
+                                {v.score}
+                              </span>
+                            </div>
+                            <div className="flex justify-center">
+                              <span className={cn(
+                                'text-xs font-semibold tabular-nums',
+                                diff === 0 ? 'text-viralyze-muted' : 'text-red-400'
+                              )}>
+                                {diff === 0 ? '+0' : `-${diff}`}
+                              </span>
+                            </div>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm"
+                                className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white"
+                                onClick={() => {
+                                  setPrefilledIdea(v.content);
+                                  setPredictMode('idea');
+                                  setCurrentView('predict');
+                                  toast.success('Variation loaded for re-analysis');
+                                }}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
         </motion.div>

@@ -144,7 +144,7 @@ export default function AppSidebar() {
         </div>
       </div>
 
-      <SidebarFooter className="px-3 pb-4">
+      <SidebarFooter className="px-3 pb-6">
         <SidebarSeparator className="bg-white/[0.06] mb-2" />
         <div className="flex items-center gap-3 px-2 py-2 mb-2">
           <div className="h-8 w-8 rounded-full bg-gradient-wine flex items-center justify-center text-white text-xs font-bold">
@@ -172,6 +172,8 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      {/* Gradient fade at bottom for mobile sheet — prevents home indicator cutoff */}
+      <div className="md:hidden absolute bottom-0 left-0 right-0 h-12 pointer-events-none" style={{ background: 'linear-gradient(to top, #09090B 0%, transparent 100%)' }} />
     </Sidebar>
   );
 }

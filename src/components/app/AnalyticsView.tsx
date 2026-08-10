@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Loader2,
   FileJson,
+  FileSpreadsheet,
   Instagram,
   Youtube,
   Tv,
@@ -271,34 +272,56 @@ export default function AnalyticsView() {
   }, [fetchAnalytics]);
 
   const handleExportCSV = () => {
-    if (!data || !data.topContent.length) {
+    if (!data) {
       toast.error('No data to export');
       return;
     }
 
-    const headers = ['Title', 'Platform', 'Content Type', 'Score', 'Classification', 'Confidence', 'Date'];
-    const rows = data.topContent.map((item) => [
-      item.title,
-      item.platform,
-      '',
-      String(item.score),
-      getClassification(item.score),
-      '',
-      item.date,
-    ]);
+    const esc = (v: string | number) => {
+      const s = String(v).replace(/"/g, '""');
+      return `"${s}"`;
+    };
 
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((cell) => {
-        const escaped = String(cell).replace(/"/g, '""');
-        return `"${escaped}"`;
-      }).join(','))
-      .join('\n');
+    const rows: string[][] = [];
 
+    // Overview stats as first 4 rows
+    rows.push(['Overview Statistics', '', '']);
+    rows.push(['Metric', 'Value', '']);
+    rows.push(['Total Analyses', String(data.totalAnalyses), '']);
+    rows.push(['Average Score', String(data.avgScore), '']);
+    rows.push(['Best Score', String(data.bestScore), '']);
+    rows.push(['Prediction Accuracy', String(data.predictionAccuracy), '%']);
+    rows.push([]);
+
+    // Score distribution
+    rows.push(['Score Distribution', '', '']);
+    rows.push(['Range', 'Count', '']);
+    data.scoreDistribution.forEach((d) => rows.push([d.range, String(d.count), '']));
+    rows.push([]);
+
+    // Platform performance
+    rows.push(['Platform Performance', '', '']);
+    rows.push(['Platform', 'Score', '']);
+    data.platformPerformance.forEach((d) => rows.push([d.platform, String(d.score), '']));
+    rows.push([]);
+
+    // Weekly trend
+    rows.push(['Weekly Trend', '', '']);
+    rows.push(['Week', 'Score', '']);
+    data.weeklyTrend.forEach((d) => rows.push([d.week, String(d.score), '']));
+    rows.push([]);
+
+    // Top content
+    rows.push(['Top Content', '', '', '', '', '']);
+    rows.push(['Title', 'Platform', 'Score', 'Classification', 'Date', '']);
+    data.topContent.forEach((d) => rows.push([d.title, d.platform, String(d.score), getClassification(d.score), d.date, '']));
+
+    const csvContent = rows.map((row) => row.map(esc).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `viralytics-analytics-${Date.now()}.csv`;
+    link.download = 'viralyze-analytics.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -484,7 +507,7 @@ export default function AnalyticsView() {
             onClick={handleExportCSV}
             className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
           >
-            <Download className="h-4 w-4 mr-1.5" />
+            <FileSpreadsheet className="h-4 w-4 mr-1.5" />
             CSV
           </Button>
         </div>
