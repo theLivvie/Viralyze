@@ -1,6 +1,8 @@
 'use client';
 
-import { Sparkles, Twitter, Github, Linkedin, Instagram } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { Sparkles, Twitter, Github, Linkedin, Instagram, ArrowRight, Send } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/lib/store';
 
@@ -34,6 +36,7 @@ const socialLinks = [
 
 export default function LandingFooter() {
   const { setScrollToSection } = useAppStore();
+  const [email, setEmail] = useState('');
 
   const handleLinkClick = (section: string | null) => {
     if (section) {
@@ -43,9 +46,16 @@ export default function LandingFooter() {
   };
 
   return (
-    <footer className="border-t border-white/5 bg-viralyze-black">
-      {/* Glow line at top of footer */}
-      <div className="glow-line mx-auto max-w-xs" />
+    <footer className="relative border-t border-white/5 bg-viralyze-black">
+      {/* Glow line separator at the top of footer */}
+      <div className="absolute left-0 right-0 top-0">
+        <div
+          className="glow-line mx-auto max-w-md"
+          style={{
+            background: 'linear-gradient(90deg, transparent, #B8325A, #7F1D3A, transparent)',
+          }}
+        />
+      </div>
 
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
@@ -60,6 +70,27 @@ export default function LandingFooter() {
             <p className="mb-6 max-w-xs text-sm leading-relaxed text-viralyze-muted">
               AI-powered viral content prediction. Know what will go viral before you post.
             </p>
+
+            {/* Newsletter signup */}
+            <div className="mb-6">
+              <p className="mb-2.5 text-sm font-semibold text-viralyze-white">Stay in the loop</p>
+              <div className="focus-glow-wine flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  className="flex-1 bg-transparent text-sm text-viralyze-white placeholder-viralyze-muted/50 outline-none"
+                />
+                <button
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-wine-accent text-viralyze-white transition-opacity duration-200 hover:opacity-80"
+                  aria-label="Subscribe to newsletter"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
                 <button
@@ -80,12 +111,13 @@ export default function LandingFooter() {
               <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <button
+                    <motion.button
                       onClick={() => handleLinkClick(link.section)}
-                      className="text-sm text-viralyze-muted transition-colors hover:text-wine-accent"
+                      className="inline-block text-sm text-viralyze-muted transition-all duration-300 hover:text-wine-accent"
+                      whileHover={{ x: 3 }}
                     >
                       {link.label}
-                    </button>
+                    </motion.button>
                   </li>
                 ))}
               </ul>
@@ -100,12 +132,18 @@ export default function LandingFooter() {
             © {new Date().getFullYear()} Viralyze. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <button className="text-xs text-viralyze-muted transition-colors hover:text-viralyze-white">
+            <motion.button
+              className="text-xs text-viralyze-muted transition-all duration-300 hover:text-viralyze-white"
+              whileHover={{ x: 2 }}
+            >
               Privacy Policy
-            </button>
-            <button className="text-xs text-viralyze-muted transition-colors hover:text-viralyze-white">
+            </motion.button>
+            <motion.button
+              className="text-xs text-viralyze-muted transition-all duration-300 hover:text-viralyze-white"
+              whileHover={{ x: 2 }}
+            >
               Terms of Service
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>

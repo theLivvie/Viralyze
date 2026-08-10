@@ -1,0 +1,686 @@
+   104→
+   105→// --- Tooltip style for dark theme ---
+   106→const tooltipStyle = {
+   107→  backgroundColor: 'rgba(18, 18, 20, 0.9)',
+   108→  backdropFilter: 'blur(24px)',
+   109→  border: '1px solid rgba(255, 255, 255, 0.1)',
+   110→  borderRadius: '0.625rem',
+   111→  color: '#FAFAF9',
+   112→  fontSize: '0.875rem',
+   113→  padding: '0.5rem 0.75rem',
+   114→};
+   115→
+   116→const tooltipLabelStyle = {
+   117→  color: '#A1A1AA',
+   118→  fontWeight: 500,
+   119→  marginBottom: '0.25rem',
+   120→  fontSize: '0.75rem',
+   121→  textTransform: 'uppercase' as const,
+   122→  letterSpacing: '0.05em',
+   123→};
+   124→
+   125→// --- Animated Counter Component ---
+   126→function AnimatedCounter({ value, duration = 1.2 }: { value: number; duration?: number }) {
+   127→  const [display, setDisplay] = useState(0);
+   128→  const ref = useRef(false);
+   129→
+   130→  useEffect(() => {
+   131→    if (ref.current) return;
+   132→    ref.current = true;
+   133→    const mv = useMotionValue(0);
+   134→    const unsub = useTransform(mv, (v) => setDisplay(Math.round(v))).on('change', () => {});
+   135→    const ctrl = animate(mv, value, { duration, ease: 'easeOut' });
+   136→    return () => {
+   137→      ctrl.stop();
+   138→      unsub();
+   139→    };
+   140→  // eslint-disable-next-line react-hooks/exhaustive-deps
+   141→  }, [value, duration]);
+   142→
+   143→  return <>{display}</>;
+   144→}
+   145→
+   146→// --- Skeleton Loader ---
+   147→function SkeletonCard() {
+   148→  return (
+   149→    <Card className="glass">
+   150→      <CardContent className="p-4">
+   151→        <div className="animate-pulse flex flex-col items-center gap-2">
+   152→          <div className="h-5 w-5 rounded bg-white/[0.06]" />
+   153→          <div className="h-7 w-12 rounded bg-white/[0.06]" />
+   154→          <div className="h-3 w-20 rounded bg-white/[0.04]" />
+   155→        </div>
+   156→      </CardContent>
+   157→    </Card>
+   158→  );
+   159→}
+   160→
+   161→function SkeletonChart() {
+   162→  return (
+   163→    <Card className="glass">
+   164→      <CardHeader className="pb-2">
+   165→        <div className="animate-pulse h-5 w-40 rounded bg-white/[0.06]" />
+   166→      </CardHeader>
+   167→      <CardContent className="pt-0">
+   168→        <div className="animate-pulse h-56 w-full rounded-lg bg-white/[0.03]" />
+   169→      </CardContent>
+   170→    </Card>
+   171→  );
+   172→}
+   173→
+   174→function SkeletonList() {
+   175→  return (
+   176→    <Card className="glass">
+   177→      <CardHeader className="pb-2">
+   178→        <div className="animate-pulse h-5 w-28 rounded bg-white/[0.06]" />
+   179→      </CardHeader>
+   180→      <CardContent className="pt-0">
+   181→        <div className="flex flex-col gap-3">
+   182→          {[1, 2, 3, 4, 5].map((i) => (
+   183→            <div key={i} className="animate-pulse flex items-center gap-3">
+   184→              <div className="h-4 w-4 rounded bg-white/[0.06] shrink-0" />
+   185→              <div className="h-4 flex-1 rounded bg-white/[0.04]" />
+   186→              <div className="h-5 w-20 rounded bg-white/[0.06] shrink-0" />
+   187→              <div className="h-3 w-24 rounded bg-white/[0.04] shrink-0 hidden sm:block" />
+   188→            </div>
+   189→          ))}
+   190→        </div>
+   191→      </CardContent>
+   192→    </Card>
+   193→  );
+   194→}
+   195→
+   196→// --- Empty State ---
+   197→function EmptyState() {
+   198→  const setCurrentView = useAppStore((s) => s.setCurrentView);
+   199→
+   200→  return (
+   201→    <motion.div
+   202→      initial={{ opacity: 0, scale: 0.95 }}
+   203→      animate={{ opacity: 1, scale: 1 }}
+   204→      transition={{ duration: 0.4, ease: 'easeOut' }}
+   205→      className="flex flex-col items-center justify-center py-16 px-4"
+   206→    >
+   207→      <motion.div
+   208→        animate={{ y: [0, -6, 0] }}
+   209→        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+   210→      >
+   211→        <div className="h-16 w-16 rounded-2xl bg-wine-accent/10 flex items-center justify-center mb-4">
+   212→          <BarChart3 className="h-8 w-8 text-wine-accent" />
+   213→        </div>
+   214→      </motion.div>
+   215→      <h3 className="text-lg font-semibold text-viralyze-white mb-1">
+   216→        No analytics yet
+   217→      </h3>
+   218→      <p className="text-sm text-viralyze-muted text-center max-w-sm mb-6">
+   219→        Run some content predictions to see your performance analytics, score trends, and category breakdowns here.
+   220→      </p>
+   221→      <Button
+   222→        onClick={() => setCurrentView('predict')}
+   223→        className="bg-wine-accent hover:bg-wine-accent/80 text-white btn-shine"
+   224→      >
+   225→        <Sparkles className="h-4 w-4 mr-2" />
+   226→        Run Your First Prediction
+   227→      </Button>
+   228→    </motion.div>
+   229→  );
+   230→}
+   231→
+   232→// --- Main Component ---
+   233→export default function AnalyticsView() {
+   234→  const user = useAppStore((s) => s.user);
+   235→  const [data, setData] = useState<AnalyticsData | null>(null);
+   236→  const [loading, setLoading] = useState(true);
+   237→  const [refreshing, setRefreshing] = useState(false);
+   238→  const [error, setError] = useState<string | null>(null);
+   239→  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+   240→  const [liveClock, setLiveClock] = useState(new Date());
+   241→
+   242→  // Live clock tick
+   243→  useEffect(() => {
+   244→    const interval = setInterval(() => setLiveClock(new Date()), 1000);
+   245→    return () => clearInterval(interval);
+   246→  }, []);
+   247→
+   248→  const fetchAnalytics = useCallback(async (isRefresh = false) => {
+   249→    if (!user) { setLoading(false); return; }
+   250→    if (isRefresh) setRefreshing(true); else setLoading(true);
+   251→    setError(null);
+   252→
+   253→    try {
+   254→      const res = await fetch(`/api/analytics?userId=${user.id}`);
+   255→      if (!res.ok) throw new Error('Failed to fetch analytics');
+   256→      const json = await res.json();
+   257→      setData(json);
+   258→      setLastRefreshed(new Date());
+   259→      if (isRefresh) toast.success('Analytics refreshed');
+   260→    } catch (err) {
+   261→      if (!isRefresh) setError('Failed to load analytics. Please try again.');
+   262→      else toast.error('Failed to refresh analytics');
+   263→    } finally {
+   264→      if (isRefresh) setRefreshing(false); else setLoading(false);
+   265→    }
+   266→  }, [user]);
+   267→
+   268→  useEffect(() => {
+   269→    fetchAnalytics();
+   270→  }, [fetchAnalytics]);
+   271→
+   272→  const handleExportCSV = () => {
+   273→    if (!data || !data.topContent.length) {
+   274→      toast.error('No data to export');
+   275→      return;
+   276→    }
+   277→
+   278→    const headers = ['Title', 'Platform', 'Content Type', 'Score', 'Classification', 'Confidence', 'Date'];
+   279→    const rows = data.topContent.map((item) => [
+   280→      item.title,
+   281→      item.platform,
+   282→      '',
+   283→      String(item.score),
+   284→      getClassification(item.score),
+   285→      '',
+   286→      item.date,
+   287→    ]);
+   288→
+   289→    const csvContent = [headers, ...rows]
+   290→      .map((row) => row.map((cell) => {
+   291→        const escaped = String(cell).replace(/"/g, '""');
+   292→        return `"${escaped}"`;
+   293→      }).join(','))
+   294→      .join('\n');
+   295→
+   296→    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+   297→    const url = URL.createObjectURL(blob);
+   298→    const link = document.createElement('a');
+   299→    link.href = url;
+   300→    link.download = `viralytics-analytics-${Date.now()}.csv`;
+   301→    document.body.appendChild(link);
+   302→    link.click();
+   303→    document.body.removeChild(link);
+   304→    URL.revokeObjectURL(url);
+   305→
+   306→    toast.success('Analytics exported as CSV');
+   307→  };
+   308→
+   309→  const handleExportJSON = () => {
+   310→    if (!data) {
+   311→      toast.error('No data to export');
+   312→      return;
+   313→    }
+   314→    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+   315→    const url = URL.createObjectURL(blob);
+   316→    const link = document.createElement('a');
+   317→    link.href = url;
+   318→    link.download = `viralytics-analytics-${Date.now()}.json`;
+   319→    document.body.appendChild(link);
+   320→    link.click();
+   321→    document.body.removeChild(link);
+   322→    URL.revokeObjectURL(url);
+   323→    toast.success('Analytics exported as JSON');
+   324→  };
+   325→
+   326→  // Loading state
+   327→  if (loading) {
+   328→    return (
+   329→      <motion.div
+   330→        variants={container}
+   331→        initial="hidden"
+   332→        animate="show"
+   333→        className="flex flex-col gap-6 max-w-5xl mx-auto"
+   334→      >
+   335→        <motion.div variants={item}>
+   336→          <div className="animate-pulse h-8 w-40 rounded bg-white/[0.06]" />
+   337→          <div className="animate-pulse h-4 w-72 rounded bg-white/[0.04] mt-2" />
+   338→        </motion.div>
+   339→        <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   340→          <SkeletonCard />
+   341→          <SkeletonCard />
+   342→          <SkeletonCard />
+   343→          <SkeletonCard />
+   344→        </motion.div>
+   345→        <motion.div variants={item}>
+   346→          <SkeletonChart />
+   347→        </motion.div>
+   348→        <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   349→          <SkeletonChart />
+   350→          <SkeletonChart />
+   351→        </motion.div>
+   352→        <motion.div variants={item}>
+   353→          <SkeletonChart />
+   354→        </motion.div>
+   355→        <motion.div variants={item}>
+   356→          <SkeletonList />
+   357→        </motion.div>
+   358→      </motion.div>
+   359→    );
+   360→  }
+   361→
+   362→  // Error state
+   363→  if (error || !user) {
+   364→    return (
+   365→      <motion.div
+   366→        initial={{ opacity: 0, y: 12 }}
+   367→        animate={{ opacity: 1, y: 0 }}
+   368→        className="flex flex-col gap-6 max-w-5xl mx-auto"
+   369→      >
+   370→        <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">Analytics</h2>
+   371→        <Card className="glass">
+   372→          <CardContent className="p-8 flex flex-col items-center gap-4 text-center">
+   373→            <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center">
+   374→              <BarChart3 className="h-6 w-6 text-red-400" />
+   375→            </div>
+   376→            <p className="text-sm text-viralyze-muted">{error || 'Sign in to view your analytics.'}</p>
+   377→            {!user && (
+   378→              <Button
+   379→                onClick={() => useAppStore.getState().setAuthModal(true, 'login')}
+   380→                className="bg-wine-accent hover:bg-wine-accent/80 text-white"
+   381→              >
+   382→                Sign In
+   383→              </Button>
+   384→            )}
+   385→          </CardContent>
+   386→        </Card>
+   387→      </motion.div>
+   388→    );
+   389→  }
+   390→
+   391→  // Empty state (user has no analyses)
+   392→  if (data && data.totalAnalyses === 0) {
+   393→    return (
+   394→      <motion.div
+   395→        variants={container}
+   396→        initial="hidden"
+   397→        animate="show"
+   398→        className="flex flex-col gap-6 max-w-5xl mx-auto"
+   399→      >
+   400→        <motion.div variants={item}>
+   401→          <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">Analytics</h2>
+   402→          <p className="text-viralyze-muted mt-1">
+   403→            Track your content performance and viral potential trends
+   404→          </p>
+   405→        </motion.div>
+   406→        <motion.div variants={item}>
+   407→          <EmptyState />
+   408→        </motion.div>
+   409→      </motion.div>
+   410→    );
+   411→  }
+   412→
+   413→  // Guard: no data
+   414→  if (!data) return null;
+   415→
+   416→  // --- Derived data ---
+   417→  const overviewStats = [
+   418→    { icon: BarChart3, value: data.totalAnalyses, label: 'Total Analyses', accent: false, trend: 'up' as const, trendPercent: '+12%', isInt: true },
+   419→    { icon: TrendingUp, value: data.avgScore, label: 'Avg Score', accent: false, trend: 'up' as const, trendPercent: '+5.3', isInt: false },
+   420→    { icon: Sparkles, value: data.bestScore, label: 'Highest Score', accent: true, trend: 'up' as const, trendPercent: '+8', isInt: true },
+   421→    { icon: Target, value: data.predictionAccuracy, label: 'Prediction Accuracy', accent: false, trend: data.predictionAccuracy >= 80 ? 'up' as const : 'down' as const, trendPercent: data.predictionAccuracy >= 80 ? '+2.1' : '-1.4', isInt: true },
+   422→  ];
+   423→
+   424→  return (
+   425→    <motion.div
+   426→      variants={container}
+   427→      initial="hidden"
+   428→      animate="show"
+   429→      className="flex flex-col gap-6 max-w-5xl mx-auto noise-bg"
+   430→    >
+   431→      {/* Header */}
+   432→      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   433→        <div>
+   434→          <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   435→            Analytics
+   436→          </h2>
+   437→          <div className="flex items-center gap-2 mt-1">
+   438→            <p className="text-viralyze-muted text-sm">
+   439→              Track your content performance and viral potential trends
+   440→            </p>
+   441→            {/* Real-time last refreshed timestamp */}
+   442→            {lastRefreshed && (
+   443→              <span className="flex items-center gap-1 text-xs text-viralyze-muted/50">
+   444→                <Clock className="h-3 w-3" />
+   445→                <span className="font-mono tabular-nums">
+   446→                  {liveClock.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+   447→                </span>
+   448→                <span className="hidden sm:inline">·</span>
+   449→                <span className="hidden sm:inline">
+   450→                  Refreshed {lastRefreshed.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' })}
+   451→                </span>
+   452→              </span>
+   453→            )}
+   454→          </div>
+   455→        </div>
+   456→        <div className="flex items-center gap-2">
+   457→          <Button
+   458→            variant="outline"
+   459→            size="sm"
+   460→            onClick={() => fetchAnalytics(true)}
+   461→            disabled={refreshing}
+   462→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5"
+   463→          >
+   464→            {refreshing ? (
+   465→              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   466→            ) : (
+   467→              <RefreshCw className="h-3.5 w-3.5" />
+   468→            )}
+   469→            {refreshing ? 'Refreshing...' : 'Refresh'}
+   470→          </Button>
+   471→          <Button
+   472→            variant="outline"
+   473→            size="sm"
+   474→            onClick={handleExportJSON}
+   475→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   476→          >
+   477→            <FileJson className="h-4 w-4 mr-1.5" />
+   478→            JSON
+   479→          </Button>
+   480→          <Button
+   481→            variant="outline"
+   482→            size="sm"
+   483→            onClick={handleExportCSV}
+   484→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   485→          >
+   486→            <Download className="h-4 w-4 mr-1.5" />
+   487→            CSV
+   488→          </Button>
+   489→        </div>
+   490→      </motion.div>
+   491→
+   492→      {/* Overview Stats with Animated Counters */}
+   493→      <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   494→        {overviewStats.map((stat) => {
+   495→          const Icon = stat.icon;
+   496→          return (
+   497→            <Card key={stat.label} className="glass transition-all duration-300 hover:-translate-y-1 hover:glow-wine-sm hover:border-wine-accent/20">
+   498→              <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
+   499→                <div className="flex items-center gap-1.5 mb-1">
+   500→                  <Icon className={cn('h-5 w-5', stat.accent ? 'text-wine-accent' : 'text-viralyze-muted')} />
+   501→                  <svg width="32" height="16" viewBox="0 0 32 16" className="opacity-60" aria-hidden="true">
+   502→                    <polyline
+   503→                      fill="none"
+   504→                      stroke={stat.trend === 'up' ? '#22C55E' : '#EF4444'}
+   505→                      strokeWidth="1.5"
+   506→                      strokeLinecap="round"
+   507→                      strokeLinejoin="round"
+   508→                      points={stat.trend === 'up'
+   509→                        ? '2,12 8,10 14,8 20,6 26,4 30,3'
+   510→                        : '2,4 8,5 14,7 20,9 26,11 30,13'
+   511→                      }
+   512→                    />
+   513→                  </svg>
+   514→                  <span className={cn(
+   515→                    'text-[10px] font-semibold tabular-nums',
+   516→                    stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
+   517→                  )}>
+   518→                    {stat.trend === 'up' ? '↑' : '↓'}{stat.trendPercent}
+   519→                  </span>
+   520→                </div>
+   521→                <span className={cn('text-2xl font-bold tabular-nums', stat.accent ? 'text-wine-accent' : 'text-viralyze-white')}>
+   522→                  <AnimatedCounter value={stat.value} />{stat.label === 'Prediction Accuracy' ? '%' : ''}
+   523→                </span>
+   524→                <span className="text-xs text-viralyze-muted">{stat.label}</span>
+   525→              </CardContent>
+   526→            </Card>
+   527→          );
+   528→        })}
+   529→      </motion.div>
+   530→
+   531→      {/* Gradient Separator */}
+   532→      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
+   533→
+   534→      {/* Score Distribution */}
+   535→      <motion.div variants={item}>
+   536→        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
+   537→          <CardHeader className="pb-2">
+   538→            <CardTitle className="text-base font-medium text-viralyze-white">
+   539→              Score Distribution
+   540→            </CardTitle>
+   541→          </CardHeader>
+   542→          <CardContent className="pt-0">
+   543→            <div className="h-56">
+   544→              <ResponsiveContainer width="100%" height="100%">
+   545→                <BarChart data={data.scoreDistribution} barCategoryGap="20%">
+   546→                  <XAxis
+   547→                    dataKey="range"
+   548→                    tick={{ fill: '#A1A1AA', fontSize: 12 }}
+   549→                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+   550→                    tickLine={false}
+   551→                  />
+   552→                  <YAxis
+   553→                    tick={{ fill: '#A1A1AA', fontSize: 12 }}
+   554→                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+   555→                    tickLine={false}
+   556→                    allowDecimals={false}
+   557→                  />
+   558→                  <Tooltip
+   559→                    contentStyle={tooltipStyle}
+   560→                    labelStyle={tooltipLabelStyle}
+   561→                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+   562→                  />
+   563→                  <Bar dataKey="count" fill="#B8325A" radius={[4, 4, 0, 0]} name="Analyses" />
+   564→                </BarChart>
+   565→              </ResponsiveContainer>
+   566→            </div>
+   567→          </CardContent>
+   568→        </Card>
+   569→      </motion.div>
+   570→
+   571→      {/* Gradient Separator */}
+   572→      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
+   573→
+   574→      {/* Platform Performance + Category Breakdown */}
+   575→      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   576→        {/* Radar Chart */}
+   577→        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
+   578→          <CardHeader className="pb-2">
+   579→            <CardTitle className="text-base font-medium text-viralyze-white">
+   580→              Platform Performance
+   581→            </CardTitle>
+   582→          </CardHeader>
+   583→          <CardContent className="pt-0">
+   584→            {data.platformPerformance.length > 0 ? (
+   585→              <div className="h-64">
+   586→                <ResponsiveContainer width="100%" height="100%">
+   587→                  <RadarChart data={data.platformPerformance} outerRadius="70%">
+   588→                    <PolarGrid stroke="rgba(255,255,255,0.1)" />
+   589→                    <PolarAngleAxis
+   590→                      dataKey="platform"
+   591→                      tick={{ fill: '#A1A1AA', fontSize: 11 }}
+   592→                    />
+   593→                    <PolarRadiusAxis
+   594→                      angle={90}
+   595→                      domain={[0, 100]}
+   596→                      tick={{ fill: '#A1A1AA', fontSize: 10 }}
+   597→                      axisLine={false}
+   598→                    />
+   599→                    <Radar
+   600→                      name="Score"
+   601→                      dataKey="score"
+   602→                      stroke="#B8325A"
+   603→                      fill="#B8325A"
+   604→                      fillOpacity={0.25}
+   605→                      strokeWidth={2}
+   606→                    />
+   607→                    <Tooltip
+   608→                      contentStyle={tooltipStyle}
+   609→                      labelStyle={tooltipLabelStyle}
+   610→                    />
+   611→                  </RadarChart>
+   612→                </ResponsiveContainer>
+   613→              </div>
+   614→            ) : (
+   615→              <div className="h-64 flex items-center justify-center text-sm text-viralyze-muted">
+   616→                No platform data yet
+   617→              </div>
+   618→            )}
+   619→          </CardContent>
+   620→        </Card>
+   621→
+   622→        {/* Category Breakdown - Horizontal Bar Chart */}
+   623→        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
+   624→          <CardHeader className="pb-2">
+   625→            <CardTitle className="text-base font-medium text-viralyze-white">
+   626→              Category Breakdown
+   627→            </CardTitle>
+   628→          </CardHeader>
+   629→          <CardContent className="pt-0">
+   630→            {data.categoryBreakdown.length > 0 ? (
+   631→              <div className="h-64">
+   632→                <ResponsiveContainer width="100%" height="100%">
+   633→                  <BarChart
+   634→                    data={data.categoryBreakdown}
+   635→                    layout="vertical"
+   636→                    barCategoryGap="20%"
+   637→                  >
+   638→                    <CartesianGrid
+   639→                      strokeDasharray="3 3"
+   640→                      stroke="rgba(255,255,255,0.05)"
+   641→                      horizontal={false}
+   642→                    />
+   643→                    <XAxis
+   644→                      type="number"
+   645→                      domain={[0, 100]}
+   646→                      tick={{ fill: '#A1A1AA', fontSize: 11 }}
+   647→                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+   648→                      tickLine={false}
+   649→                    />
+   650→                    <YAxis
+   651→                      type="category"
+   652→                      dataKey="category"
+   653→                      tick={{ fill: '#A1A1AA', fontSize: 12 }}
+   654→                      axisLine={false}
+   655→                      tickLine={false}
+   656→                      width={110}
+   657→                    />
+   658→                    <Tooltip
+   659→                      contentStyle={tooltipStyle}
+   660→                      labelStyle={tooltipLabelStyle}
+   661→                      cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+   662→                    />
+   663→                    <Bar dataKey="score" fill="#B8325A" radius={[0, 4, 4, 0]} name="Score" />
+   664→                  </BarChart>
+   665→                </ResponsiveContainer>
+   666→              </div>
+   667→            ) : (
+   668→              <div className="h-64 flex items-center justify-center text-sm text-viralyze-muted">
+   669→                No category data yet
+   670→              </div>
+   671→            )}
+   672→          </CardContent>
+   673→        </Card>
+   674→      </motion.div>
+   675→
+   676→      {/* Gradient Separator */}
+   677→      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
+   678→
+   679→      {/* Score Trend - Area Chart */}
+   680→      <motion.div variants={item}>
+   681→        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
+   682→          <CardHeader className="pb-2">
+   683→            <CardTitle className="text-base font-medium text-viralyze-white">
+   684→              Score Trend
+   685→            </CardTitle>
+   686→          </CardHeader>
+   687→          <CardContent className="pt-0">
+   688→            {data.weeklyTrend.length > 0 ? (
+   689→              <div className="h-56">
+   690→                <ResponsiveContainer width="100%" height="100%">
+   691→                  <AreaChart data={data.weeklyTrend}>
+   692→                    <defs>
+   693→                      <linearGradient id="wineGradient" x1="0" y1="0" x2="0" y2="1">
+   694→                        <stop offset="0%" stopColor="#B8325A" stopOpacity={0.4} />
+   695→                        <stop offset="95%" stopColor="#B8325A" stopOpacity={0} />
+   696→                      </linearGradient>
+   697→                    </defs>
+   698→                    <CartesianGrid
+   699→                      strokeDasharray="3 3"
+   700→                      stroke="rgba(255,255,255,0.05)"
+   701→                    />
+   702→                    <XAxis
+   703→                      dataKey="week"
+   704→                      tick={{ fill: '#A1A1AA', fontSize: 12 }}
+   705→                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+   706→                      tickLine={false}
+   707→                    />
+   708→                    <YAxis
+   709→                      domain={[0, 100]}
+   710→                      tick={{ fill: '#A1A1AA', fontSize: 12 }}
+   711→                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+   712→                      tickLine={false}
+   713→                    />
+   714→                    <Tooltip
+   715→                      contentStyle={tooltipStyle}
+   716→                      labelStyle={tooltipLabelStyle}
+   717→                    />
+   718→                    <Area
+   719→                      type="monotone"
+   720→                      dataKey="score"
+   721→                      stroke="#B8325A"
+   722→                      strokeWidth={2}
+   723→                      fill="url(#wineGradient)"
+   724→                      name="Score"
+   725→                    />
+   726→                  </AreaChart>
+   727→                </ResponsiveContainer>
+   728→              </div>
+   729→            ) : (
+   730→              <div className="h-56 flex items-center justify-center text-sm text-viralyze-muted">
+   731→                Need more than one week of data to show trends
+   732→              </div>
+   733→            )}
+   734→          </CardContent>
+   735→        </Card>
+   736→      </motion.div>
+   737→
+   738→      {/* Gradient Separator */}
+   739→      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
+   740→
+   741→      {/* Top Content */}
+   742→      <motion.div variants={item}>
+   743→        <div className="glow-wine-sm rounded-xl p-[1px]">
+   744→          <Card className="glass">
+   745→            <CardHeader className="pb-2">
+   746→              <CardTitle className="text-base font-medium text-viralyze-white">
+   747→                🏆 Top Content
+   748→              </CardTitle>
+   749→            </CardHeader>
+   750→          <CardContent className="pt-0">
+   751→            {data.topContent.length > 0 ? (
+   752→              <div className="flex flex-col divide-y divide-white/[0.06]">
+   753→                {data.topContent.map((content) => {
+   754→                  const PIcon = platformIcons[content.platform as Platform] || BarChart3;
+   755→                  const cls = getClassification(content.score);
+   756→                  return (
+   757→                    <div
+   758→                      key={content.id}
+   759→                      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+   760→                    >
+   761→                      <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   762→                      <span className="text-sm text-viralyze-white flex-1 truncate">
+   763→                        {content.title}
+   764→                      </span>
+   765→                      <Badge
+   766→                        variant="outline"
+   767→                        className={cn('text-xs shrink-0', getScoreColor(content.score))}
+   768→                      >
+   769→                        {content.score} — {cls}
+   770→                      </Badge>
+   771→                      <span className="text-xs text-viralyze-muted hidden sm:block shrink-0">
+   772→                        {content.date}
+   773→                      </span>
+   774→                    </div>
+   775→                  );
+   776→                })}
+   777→              </div>
+   778→            ) : (
+   779→              <div className="py-8 flex items-center justify-center text-sm text-viralyze-muted">
+   780→                No content yet
+   781→              </div>
+   782→            )}
+   783→          </CardContent>
+   784→        </Card>
+   785→        </div>
+   786→      </motion.div>
+   787→    </motion.div>
+   788→  );
+   789→}

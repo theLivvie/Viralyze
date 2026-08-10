@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, TrendingUp, Zap, Target, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/lib/store';
-import { useRef } from 'react';
+import { useRef, useState, useCallback } from 'react';
 
 const container = {
   hidden: { opacity: 0 },
@@ -26,12 +26,24 @@ const scoreBars = [
   { label: 'Retention', value: 85, color: 'bg-wine-accent' },
 ];
 
+const floatingParticles = [
+  { x: '12%', y: '20%', size: 3, duration: 14, delay: 0, color: 'var(--color-wine-accent)' },
+  { x: '75%', y: '15%', size: 2, duration: 18, delay: 2, color: 'var(--color-wine)' },
+  { x: '60%', y: '70%', size: 4, duration: 16, delay: 1, color: 'var(--color-wine-accent)' },
+  { x: '25%', y: '80%', size: 2, duration: 20, delay: 3, color: 'var(--color-wine-deep)' },
+  { x: '85%', y: '55%', size: 3, duration: 15, delay: 4, color: 'var(--color-wine-accent)' },
+  { x: '45%', y: '10%', size: 2, duration: 22, delay: 1.5, color: 'var(--color-wine)' },
+  { x: '90%', y: '30%', size: 3, duration: 17, delay: 5, color: 'var(--color-wine-accent)' },
+  { x: '35%', y: '60%', size: 2, duration: 19, delay: 2.5, color: 'var(--color-wine-deep)' },
+];
+
 function FloatingParticles() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Existing random particles */}
       {Array.from({ length: 20 }).map((_, i) => (
         <div
-          key={i}
+          key={`rand-${i}`}
           className="absolute rounded-full opacity-20"
           style={{
             width: `${Math.random() * 3 + 1}px`,
@@ -70,6 +82,32 @@ function FloatingParticles() {
           }}
         />
       ))}
+      {/* Intentional floating particle dots with different durations */}
+      {floatingParticles.map((p, i) => (
+        <motion.div
+          key={`float-${i}`}
+          className="absolute rounded-full"
+          animate={{
+            y: [-15, 15, -10, 20, -15],
+            x: [-5, 8, -3, 5, -5],
+            opacity: [0.15, 0.35, 0.2, 0.3, 0.15],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: p.delay,
+          }}
+          style={{
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            left: p.x,
+            top: p.y,
+            background: p.color,
+            filter: 'blur(0.5px)',
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -78,8 +116,23 @@ function DashboardMockup() {
   return (
     <motion.div
       initial={{ opacity: 0, x: 40, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      transition={{ duration: 0.8, delay: 0.8, ease: 'easeOut' }}
+      animate={{
+        opacity: 1,
+        x: 0,
+        scale: [0.95, 1, 1.02, 1, 1.02, 1],
+      }}
+      transition={{
+        opacity: { duration: 0.8, delay: 0.8, ease: 'easeOut' },
+        x: { duration: 0.8, delay: 0.8, ease: 'easeOut' },
+        scale: {
+          duration: 6,
+          delay: 1.6,
+          repeat: Infinity,
+          repeatType: 'reverse',
+          ease: 'easeInOut',
+          times: [0, 0.17, 0.33, 0.5, 0.83, 1],
+        },
+      }}
       className="relative"
     >
       {/* Animated gradient border wrapper */}
@@ -156,10 +209,21 @@ function DashboardMockup() {
   );
 }
 
+const heroWords = ['Know', 'What', 'Will', 'Go', 'Viral', 'Before', 'You', 'Post.'];
+
 export default function HeroSection() {
   const { setCurrentView, setScrollToSection, setAuthModal } = useAppStore();
   const sectionRef = useRef<HTMLElement>(null);
   const mockupRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -169,7 +233,30 @@ export default function HeroSection() {
   const mockupY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 
   return (
-    <section ref={sectionRef} className="noise-bg relative flex min-h-screen items-center overflow-hidden bg-gradient-wine-radial pt-16">
+    <section
+      ref={sectionRef}
+      onMouseMove={handleMouseMove}
+      className="noise-bg relative flex min-h-screen items-center overflow-hidden bg-gradient-wine-radial pt-16"
+    >
+      {/* Dot grid background pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Mouse-following spotlight */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[1] transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(600px circle at ${mousePos.x}% ${mousePos.y}%, rgba(127,29,58,0.07), transparent 60%)`,
+        }}
+        aria-hidden="true"
+      />
+
       <FloatingParticles />
 
       {/* Vignette overlay */}
@@ -197,12 +284,26 @@ export default function HeroSection() {
               </span>
             </motion.div>
 
+            {/* Staggered word animation heading */}
             <motion.h1
               variants={item}
               className="mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-viralyze-white sm:text-5xl lg:text-6xl"
             >
-              Know What Will Go Viral{' '}
-              <span className="text-gradient-wine">Before You Post.</span>
+              {heroWords.map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.5,
+                    delay: 0.6 + i * 0.08,
+                    ease: 'easeOut',
+                  }}
+                  className={word === 'Viral' ? 'text-gradient-wine mr-1.5 inline-block' : 'mr-1.5 inline-block'}
+                >
+                  {word}
+                </motion.span>
+              ))}
             </motion.h1>
 
             <motion.p

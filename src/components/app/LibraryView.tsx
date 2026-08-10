@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Trash2,
@@ -14,6 +14,8 @@ import {
   Loader2,
   GitCompareArrows,
   X,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,7 @@ import { useAppStore } from '@/lib/store';
 import type { Platform, Classification, SavedAnalysis } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import QuickScoreWidget from '@/components/shared/QuickScoreWidget';
 
 const platformIcons: Record<Platform, React.ElementType> = {
   instagram: Instagram,
@@ -51,13 +54,6 @@ const classificationStyles: Record<Classification, string> = {
   moderate: 'bg-amber-500/20 text-amber-400',
   high: 'bg-green-500/20 text-green-400',
   viral: 'bg-emerald-500/20 text-emerald-400',
-};
-
-const classificationBorderStyles: Record<Classification, string> = {
-  low: 'border-red-400',
-  moderate: 'border-amber-400',
-  high: 'border-green-400',
-  viral: 'border-emerald-400',
 };
 
 const container = {
@@ -423,6 +419,13 @@ export default function LibraryView() {
   const isFilteredEmpty = !loading && filtered.length === 0 && analyses.length > 0;
   const isEmpty = !loading && analyses.length === 0;
 
+  const compareItems = compareMode && selectedIds.size === 2
+    ? analyses.filter((a) => selectedIds.has(a.id))
+    : [];
+  const showComparePanel = compareItems.length === 2;
+  const [compareA, compareB] = showComparePanel ? compareItems : [null, null];
+  const compareScoreDiff = showComparePanel ? compareA!.overallScore - compareB!.overallScore : 0;
+
   return (
     <motion.div
       variants={container}
@@ -540,6 +543,78 @@ export default function LibraryView() {
         </motion.div>
       )}
 
+      {/* Inline Comparison Panel - shows when exactly 2 items selected */}
+      <AnimatePresence>
+        {showComparePanel && compareA && compareB && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -12 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -12 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <Card className="glass glow-wine-sm mb-2">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <GitCompareArrows className="h-4 w-4 text-wine-accent" />
+                    <span className="text-sm font-semibold text-viralyze-white">Comparison</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={exitCompareMode}
+                    className="text-viralyze-muted hover:text-viralyze-white gap-1 h-7 text-xs"
+                  >
+                    <X className="h-3 w-3" />
+                    Clear Comparison
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {[compareA, compareB].map((item) => {
+                    if (!item) return null;
+                    const PI = platformIcons[item.platform];
+                    return (
+                      <div key={item.id} className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <div className="flex items-center gap-2 text-viralyze-white">
+                          <PI className="h-4 w-4 text-viralyze-muted" />
+                          <span className="text-sm font-medium capitalize">{item.platform}</span>
+                        </div>
+                        <QuickScoreWidget
+                          score={item.overallScore}
+                          size="lg"
+                          classification={item.classification}
+                        />
+                        <p className="text-xs text-viralyze-white text-center font-medium leading-snug line-clamp-2">
+                          {item.title || 'Untitled'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Score difference */}
+                <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
+                  <span className="text-xs text-viralyze-muted">Score difference:</span>
+                  {compareScoreDiff > 0 ? (
+                    <span className="flex items-center gap-1 text-xs font-bold text-green-400">
+                      <ArrowUp className="h-3 w-3" />
+                      +{compareScoreDiff} for {compareA.title || 'Item 1'}
+                    </span>
+                  ) : compareScoreDiff < 0 ? (
+                    <span className="flex items-center gap-1 text-xs font-bold text-red-400">
+                      <ArrowDown className="h-3 w-3" />
+                      +{Math.abs(compareScoreDiff)} for {compareB.title || 'Item 2'}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-viralyze-muted">Tied!</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Loading skeleton */}
       {loading && (
         <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -649,12 +724,11 @@ export default function LibraryView() {
                           {analysis.title || 'Untitled'}
                         </span>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn('text-xs shrink-0', classificationStyles[analysis.classification])}
-                      >
-                        {analysis.overallScore}
-                      </Badge>
+                      <QuickScoreWidget
+                        score={analysis.overallScore}
+                        size="sm"
+                        classification={analysis.classification}
+                      />
                     </div>
                     {/* Score category sparklines */}
                     {topScores && (

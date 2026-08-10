@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Menu } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, ChevronRight } from 'lucide-react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ const viewTitles: Record<AppView, string> = {
   analysis: 'Analysis',
   library: 'Content Library',
   ideas: 'Idea Generator',
+  templates: 'Templates',
   trends: 'Trend Radar',
   analytics: 'Analytics',
   calendar: 'Content Calendar',
@@ -23,6 +25,23 @@ const viewTitles: Record<AppView, string> = {
   pricing: 'Pricing',
   features: 'Features',
   'how-it-works': 'How It Works',
+};
+
+const viewBreadcrumbs: Record<AppView, string[]> = {
+  landing: [],
+  dashboard: ['Dashboard'],
+  predict: ['Dashboard', 'Predict'],
+  analysis: ['Dashboard', 'Predict', 'Analysis'],
+  library: ['Dashboard', 'Library'],
+  ideas: ['Dashboard', 'Ideas'],
+  templates: ['Dashboard', 'Templates'],
+  trends: ['Dashboard', 'Trends'],
+  analytics: ['Dashboard', 'Analytics'],
+  calendar: ['Dashboard', 'Calendar'],
+  settings: ['Dashboard', 'Settings'],
+  pricing: ['Pricing'],
+  features: ['Features'],
+  'how-it-works': ['How It Works'],
 };
 
 interface AppLayoutProps {
@@ -37,6 +56,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }, [currentView, setSidebarOpen]);
 
   const title = viewTitles[currentView] || 'Dashboard';
+  const breadcrumbs = viewBreadcrumbs[currentView] || [];
   const predictionsUsed = user?.predictionsUsed || 0;
   const predictionsLimit = user?.predictionsLimit || 10;
 
@@ -49,7 +69,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <header className="sticky top-0 z-30 glass-strong flex items-center justify-between h-14 px-4 md:px-6">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="md:hidden text-viralyze-muted hover:text-viralyze-white" />
-              <h1 className="text-lg font-semibold text-viralyze-white">{title}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-viralyze-white">{title}</h1>
+                {/* Breadcrumb navigation indicator */}
+                {breadcrumbs.length > 1 && (
+                  <div className="hidden sm:flex items-center gap-1 ml-1">
+                    {breadcrumbs.slice(0, -1).map((crumb, i) => (
+                      <span key={i} className="flex items-center gap-1">
+                        <ChevronRight className="h-3 w-3 text-viralyze-muted/40" />
+                        <span className="text-xs text-viralyze-muted/60">{crumb}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2.5">
               {/* Usage counter badge */}
@@ -65,12 +98,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
           </header>
 
-          {/* Wine accent glow line below header */}
-          <div className="glow-line bg-gradient-wine" />
+          {/* Animated wine accent glow line below header — animates width from center on view change */}
+            <motion.div
+              className="glow-line bg-gradient-wine"
+              key={currentView}
+              initial={{ width: '0%', marginLeft: '50%' }}
+              animate={{ width: '100%', marginLeft: '0%' }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            />
 
-          {/* Content with subtle radial wine gradient */}
+          {/* Content with subtle radial wine gradient + page transition */}
           <main className="flex-1 p-4 md:p-6 overflow-auto bg-gradient-wine-radial">
-            {children}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentView}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>

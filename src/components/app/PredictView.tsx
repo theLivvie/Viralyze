@@ -62,6 +62,7 @@ export default function PredictView() {
     if (prefilledIdea) {
       setIdeaText(prefilledIdea);
       setPrefilledIdea('');
+      toast.success('Idea pre-filled from Ideas page');
     }
   }, [prefilledIdea, setPrefilledIdea]);
   const [contentText, setContentText] = useState('');

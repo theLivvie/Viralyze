@@ -18,6 +18,8 @@ import {
   Download,
   RefreshCw,
   ClipboardCopy,
+  Plus,
+  FileText,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +50,7 @@ const item = {
 };
 
 export default function AnalysisView() {
-  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode } = useAppStore();
+  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses } = useAppStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!currentAnalysis) {
@@ -91,12 +93,26 @@ export default function AnalysisView() {
     predictedEngagement,
   } = currentAnalysis;
 
+  // Find original content from saved analyses
+  const savedItem = savedAnalyses.find((a) => a.id === currentAnalysis.id);
+  const originalContent = savedItem?.contentText || savedItem?.ideaText || '';
+
   const copyToClipboard = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
       toast.success('Copied to clipboard!');
       setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const handleShare = async () => {
+    const text = `My content scored ${overallScore}/100 on Viralyze! ${classification === 'viral' ? '🔥' : classification === 'high' ? '✨' : '📊'}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Summary copied to clipboard!');
     } catch {
       toast.error('Failed to copy');
     }
@@ -187,8 +203,19 @@ export default function AnalysisView() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-6 max-w-4xl mx-auto"
+      className="flex flex-col gap-6 max-w-4xl mx-auto relative"
     >
+      {/* Floating Action Button — New Analysis */}
+      <motion.button
+        onClick={() => setCurrentView('predict')}
+        title="New Analysis"
+        className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-full bg-gradient-wine btn-shine flex items-center justify-center text-white shadow-lg glow-wine-sm hover:scale-110 transition-transform duration-200"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Plus className="h-6 w-6" />
+      </motion.button>
+
       {/* Top bar: Back + Actions */}
       <motion.div variants={item} className="flex items-center justify-between">
         <Button
@@ -204,6 +231,15 @@ export default function AnalysisView() {
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline">Saved</span>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -225,23 +261,65 @@ export default function AnalysisView() {
         </div>
       </motion.div>
 
+      {/* Content Preview Card (original content) */}
+      {originalContent && (
+        <motion.div variants={item}>
+          <Card className="glass overflow-hidden relative">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-wine-accent" />
+                  Original Content
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+                  onClick={() => copyToClipboard(originalContent, 'original')}
+                >
+                  {copiedField === 'original' ? (
+                    <Check className="h-3.5 w-3.5 text-green-400" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  Copy
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-viralyze-white/80 leading-relaxed bg-white/[0.02] rounded-lg p-4 border border-white/[0.06] max-h-40 overflow-y-auto scrollbar-thin whitespace-pre-wrap">
+                {originalContent}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Score Header */}
       <motion.div variants={item}>
         <Card className="glass overflow-hidden relative">
           <div className="scan-line-animated" />
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row items-center gap-8">
-              {/* Score Ring with floating dots */}
+              {/* Score Ring with floating dots + tooltip on segments */}
               <div className="relative flex-shrink-0">
                 <div className="absolute -top-3 -left-3 w-2 h-2 rounded-full bg-wine-accent animate-pulse" />
                 <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-wine-accent/60 animate-pulse [animation-delay:0.5s]" />
                 <div className="absolute top-1/2 -right-4 w-1 h-1 rounded-full bg-wine-accent/40 animate-pulse [animation-delay:1s]" />
-                <ScoreRing
-                  score={overallScore}
-                  size={200}
-                  classification={classification}
-                  confidence={confidence}
-                />
+                <div title={scoreEntries.map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}>
+                  <ScoreRing
+                    score={overallScore}
+                    size={200}
+                    classification={classification}
+                    confidence={confidence}
+                  />
+                </div>
+                {/* Category score tooltips around the ring */}
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[260px]">
+                  <p className="text-[10px] text-viralyze-muted/50 text-center leading-relaxed">
+                    {scoreEntries.slice(0, 3).map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}
+                  </p>
+                </div>
               </div>
 
               {/* Right side info */}
@@ -290,6 +368,7 @@ export default function AnalysisView() {
                           <span
                             key={emotion}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/[0.05] border border-white/[0.08] text-viralyze-white hover:border-wine-accent/30 transition-colors"
+                            title={`${emotion}: ${pct}%`}
                           >
                             {emotion}
                             <span className="text-wine-accent font-bold tabular-nums">{pct}%</span>
@@ -304,7 +383,7 @@ export default function AnalysisView() {
         </Card>
       </motion.div>
 
-      {/* Category Scores */}
+      {/* Category Scores with tooltips on hover */}
       {scoreEntries.length > 0 && (
         <motion.div variants={item}>
           <Card className="glass">
@@ -316,12 +395,13 @@ export default function AnalysisView() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {scoreEntries.map(([key, value], i) => (
-                <ScoreBar
-                  key={key}
-                  label={categoryLabels[key] || key}
-                  score={value as number}
-                  delay={i * 0.08}
-                />
+                <div key={key} title={`${categoryLabels[key] || key}: ${value}/100`}>
+                  <ScoreBar
+                    label={categoryLabels[key] || key}
+                    score={value as number}
+                    delay={i * 0.08}
+                  />
+                </div>
               ))}
             </CardContent>
           </Card>
@@ -347,6 +427,7 @@ export default function AnalysisView() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.1 }}
                     className="glass rounded-lg p-3 flex flex-col items-center gap-2 hover:glow-wine-sm transition-all duration-300 cursor-default"
+                    title={`${pf.platform}: ${pf.score}/100`}
                   >
                     <span className="text-2xl">{platformIcons[pf.platform] || '📱'}</span>
                     <span className="text-xs text-viralyze-muted capitalize">

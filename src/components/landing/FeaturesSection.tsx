@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import {
   Brain,
@@ -72,12 +72,27 @@ const subFeatures = [
   },
 ];
 
+const marqueeBadges = [
+  'AI-Powered', 'Real-time', 'Multi-Platform', 'GPT-4 Integration', 'Hook Analysis',
+  'Trend Detection', 'Content Scoring', 'Viral Prediction', 'Engagement Forecast',
+  'Smart Suggestions', 'Creator Analytics', 'Optimization Engine', 'Sentiment Analysis',
+  'Audience Insights', 'Viral Patterns',
+];
+
 export default function FeaturesSection() {
   const ref = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  });
+
+  const parallaxY = useTransform(scrollYProgress, [0, 1], [60, -60]);
+
   return (
-    <section className="relative py-20 sm:py-28" id="features">
+    <section ref={sectionRef} className="relative py-20 sm:py-28" id="features">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -94,8 +109,11 @@ export default function FeaturesSection() {
           </p>
         </motion.div>
 
-        {/* Main Feature Cards */}
-        <div className="mb-16 grid gap-6 md:grid-cols-3">
+        {/* Main Feature Cards with parallax */}
+        <motion.div
+          style={{ y: parallaxY }}
+          className="mb-16 grid gap-6 md:grid-cols-3"
+        >
           {mainFeatures.map((feature, i) => (
             <motion.div
               key={feature.title}
@@ -106,12 +124,19 @@ export default function FeaturesSection() {
               className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-wine-accent/30 hover:glow-wine-sm hover:shadow-[0_0_30px_rgba(127,29,58,0.25)]"
             >
               <div className="mb-4 text-4xl">{feature.emoji}</div>
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-wine-accent/10">
+                <motion.div
+                  whileHover={{ rotate: 90, transition: { duration: 0.4, ease: 'easeInOut' } }}
+                >
+                  <feature.icon className="h-5 w-5 text-wine-accent" />
+                </motion.div>
+              </div>
               <h3 className="mb-1 text-xl font-bold text-viralyze-white">{feature.title}</h3>
               <p className="mb-3 text-sm font-medium text-wine-accent">{feature.subtitle}</p>
               <p className="text-sm leading-relaxed text-viralyze-muted">{feature.description}</p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Gradient Line Separator */}
         <motion.div
@@ -148,6 +173,35 @@ export default function FeaturesSection() {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        {/* Horizontal marquee of capability badges */}
+        <div className="relative mt-16 overflow-hidden">
+          {/* Fade edges */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-24" style={{ background: 'linear-gradient(to right, var(--color-background), transparent)' }} />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-24" style={{ background: 'linear-gradient(to left, var(--color-background), transparent)' }} />
+
+          <motion.div
+            animate={{ x: [0, -2400] }}
+            transition={{
+              x: {
+                repeat: Infinity,
+                repeatType: 'loop',
+                duration: 40,
+                ease: 'linear',
+              },
+            }}
+            className="flex w-max gap-3"
+          >
+            {[...marqueeBadges, ...marqueeBadges, ...marqueeBadges].map((badge, i) => (
+              <span
+                key={`${badge}-${i}`}
+                className="whitespace-nowrap rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1 text-[11px] font-medium text-viralyze-muted/60"
+              >
+                {badge}
+              </span>
+            ))}
+          </motion.div>
         </div>
       </div>
     </section>

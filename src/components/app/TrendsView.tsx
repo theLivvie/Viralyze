@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock, Lightbulb } from 'lucide-react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock, Lightbulb, Search, Bookmark, BookmarkCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,11 +18,25 @@ const platformIcons: Record<Platform, React.ElementType> = {
   linkedin: Linkedin,
 };
 
+const filterCategories = ['All', 'Technology', 'Entertainment', 'Lifestyle', 'Business', 'Health'] as const;
+type FilterCategory = (typeof filterCategories)[number];
+
+// Map filter categories to the trend data categories
+const filterToDataCategory: Record<string, string[]> = {
+  All: [],
+  Technology: ['technology'],
+  Entertainment: ['social media', 'culture'],
+  Lifestyle: ['culture', 'social media'],
+  Business: ['business'],
+  Health: ['health & wellness', 'health'],
+};
+
 interface MockTrend {
   name: string;
   heat: number;
   growth: string;
   platforms: Platform[];
+  category: string;
 }
 
 interface TrendCategory {
@@ -36,38 +50,38 @@ const fallbackTrendData: TrendCategory[] = [
     category: 'Technology',
     icon: Flame,
     trends: [
-      { name: 'AI-powered content creation tools', heat: 5, growth: '+142%', platforms: ['youtube', 'tiktok', 'x'] },
-      { name: 'Claude vs ChatGPT comparisons', heat: 4, growth: '+89%', platforms: ['youtube', 'x'] },
-      { name: 'Apple Vision Pro apps', heat: 3, growth: '+67%', platforms: ['youtube', 'instagram'] },
-      { name: 'No-code app builders', heat: 3, growth: '+54%', platforms: ['youtube', 'tiktok'] },
+      { name: 'AI-powered content creation tools', heat: 5, growth: '+142%', platforms: ['youtube', 'tiktok', 'x'], category: 'technology', label: 'Hot' },
+      { name: 'Claude vs ChatGPT comparisons', heat: 4, growth: '+89%', platforms: ['youtube', 'x'], category: 'technology' },
+      { name: 'Apple Vision Pro apps', heat: 3, growth: '+67%', platforms: ['youtube', 'instagram'], category: 'technology' },
+      { name: 'No-code app builders', heat: 3, growth: '+54%', platforms: ['youtube', 'tiktok'], category: 'technology' },
     ],
   },
   {
     category: 'Social Media',
     icon: TrendingUp,
     trends: [
-      { name: 'Day in the life content format', heat: 5, growth: '+201%', platforms: ['instagram', 'tiktok'] },
-      { name: 'Storytelling carousels', heat: 4, growth: '+156%', platforms: ['instagram', 'linkedin'] },
-      { name: 'Authentic behind-the-scenes', heat: 4, growth: '+98%', platforms: ['instagram', 'tiktok', 'youtube'] },
-      { name: 'AI-generated thumbnails', heat: 3, growth: '+78%', platforms: ['youtube'] },
+      { name: 'Day in the life content format', heat: 5, growth: '+201%', platforms: ['instagram', 'tiktok'], category: 'social media', label: 'Hot' },
+      { name: 'Storytelling carousels', heat: 4, growth: '+156%', platforms: ['instagram', 'linkedin'], category: 'social media', label: 'Rising' },
+      { name: 'Authentic behind-the-scenes', heat: 4, growth: '+98%', platforms: ['instagram', 'tiktok', 'youtube'], category: 'social media' },
+      { name: 'AI-generated thumbnails', heat: 3, growth: '+78%', platforms: ['youtube'], category: 'social media' },
     ],
   },
   {
     category: 'Business',
     icon: ArrowUpRight,
     trends: [
-      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'] },
-      { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'] },
-      { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'] },
+      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'], category: 'business', label: 'Hot' },
+      { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'], category: 'business' },
+      { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'], category: 'business' },
     ],
   },
   {
     category: 'Culture',
     icon: Flame,
     trends: [
-      { name: 'Nostalgia content (90s/2000s)', heat: 4, growth: '+134%', platforms: ['tiktok', 'instagram'] },
-      { name: 'POV-style educational content', heat: 4, growth: '+112%', platforms: ['tiktok', 'instagram'] },
-      { name: 'Cultural commentary', heat: 3, growth: '+65%', platforms: ['youtube', 'x'] },
+      { name: 'Nostalgia content (90s/2000s)', heat: 4, growth: '+134%', platforms: ['tiktok', 'instagram'], category: 'culture', label: 'Rising' },
+      { name: 'POV-style educational content', heat: 4, growth: '+112%', platforms: ['tiktok', 'instagram'], category: 'culture' },
+      { name: 'Cultural commentary', heat: 3, growth: '+65%', platforms: ['youtube', 'x'], category: 'culture' },
     ],
   },
 ];
@@ -139,6 +153,40 @@ function HeatBar({ heat }: { heat: number }) {
   );
 }
 
+// Empty state component for no matching trends
+function TrendsEmptyState({ searchQuery, hasFilter, onClear }: { searchQuery: string; hasFilter: boolean; onClear: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center py-16 px-4 text-center"
+    >
+      <div className="h-16 w-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
+        <Search className="h-7 w-7 text-viralyze-muted/50" />
+      </div>
+      <h3 className="text-lg font-semibold text-viralyze-white mb-1">
+        No trends found
+      </h3>
+      <p className="text-sm text-viralyze-muted max-w-sm mb-5">
+        {searchQuery && hasFilter
+          ? 'No trends match both your search and filter. Try broadening your criteria.'
+          : searchQuery
+          ? `No trends match "${searchQuery}". Try a different keyword.`
+          : 'No trends found in this category. Try selecting "All" to see everything.'}
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onClear}
+        className="border-wine-accent/30 text-wine-accent hover:bg-wine-accent/10"
+      >
+        <Sparkles className="mr-2 h-4 w-4" />
+        Clear Filters
+      </Button>
+    </motion.div>
+  );
+}
+
 export default function TrendsView() {
   const { setPrefilledIdea, setPredictMode, setCurrentView } = useAppStore();
   const [trendData, setTrendData] = useState<TrendCategory[]>(fallbackTrendData);
@@ -146,12 +194,34 @@ export default function TrendsView() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState(false);
   const [liveClock, setLiveClock] = useState(new Date());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
+  const [bookmarkedTrends, setBookmarkedTrends] = useState<Set<string>>(new Set());
 
   const handleUseAsIdea = (trendName: string) => {
     setPrefilledIdea(`Create content about: ${trendName}`);
     setPredictMode('idea');
     setCurrentView('predict');
     toast.success('Trend loaded — customize and analyze!');
+  };
+
+  const toggleBookmark = (trendName: string) => {
+    setBookmarkedTrends((prev) => {
+      const next = new Set(prev);
+      if (next.has(trendName)) {
+        next.delete(trendName);
+        toast.info('Bookmark removed');
+      } else {
+        next.add(trendName);
+        toast.success('Trend bookmarked!');
+      }
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setActiveFilter('All');
   };
 
   // Live clock tick
@@ -168,9 +238,8 @@ export default function TrendsView() {
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       if (data.categories && Array.isArray(data.categories)) {
-        // Map API response to our TrendCategory format
         const mapped: TrendCategory[] = data.categories.map(
-          (cat: { category: string; trends: { name: string; growth: string; heat: number; platforms: string[] }[] }) => ({
+          (cat: { category: string; trends: { name: string; growth: string; heat: number; platforms: string[]; label?: string }[] }) => ({
             category: cat.category,
             icon: categoryIconMap[cat.category.toLowerCase()] || TrendingUp,
             trends: cat.trends.map((t) => ({
@@ -178,22 +247,52 @@ export default function TrendsView() {
               heat: t.heat,
               growth: t.growth,
               platforms: (t.platforms || []).filter((p: string) => p in platformIcons) as Platform[],
+              category: cat.category.toLowerCase(),
+              label: t.label,
             })),
           })
         );
         setTrendData(mapped);
         setLastUpdated(new Date());
       } else {
-        // Keep fallback data
         setTrendData(fallbackTrendData);
       }
     } catch {
       setError(true);
-      // Keep current data (fallback or previously fetched)
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Filtered trend data based on search and category filter
+  const filteredTrendData = useMemo(() => {
+    let data = trendData;
+
+    // Apply category filter
+    if (activeFilter !== 'All') {
+      const matchCategories = filterToDataCategory[activeFilter] || [];
+      if (matchCategories.length > 0) {
+        data = data.filter((cat) =>
+          matchCategories.some((mc) => cat.category.toLowerCase() === mc)
+        );
+      }
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      data = data
+        .map((cat) => ({
+          ...cat,
+          trends: cat.trends.filter((t) => t.name.toLowerCase().includes(q)),
+        }))
+        .filter((cat) => cat.trends.length > 0);
+    }
+
+    return data;
+  }, [trendData, activeFilter, searchQuery]);
+
+  const hasAnyResults = filteredTrendData.some((cat) => cat.trends.length > 0);
 
   return (
     <motion.div
@@ -244,70 +343,168 @@ export default function TrendsView() {
         </Button>
       </motion.div>
 
-      {/* Category Sections */}
-      {trendData.map((cat) => {
-        const CatIcon = cat.icon;
-        return (
-          <motion.div key={cat.category} variants={item}>
-            <div className="flex items-center gap-2 mb-3">
-              <CatIcon className="h-4 w-4 text-wine-accent" />
-              <h3 className="text-sm font-semibold text-viralyze-white uppercase tracking-wider">
-                {cat.category}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {cat.trends.map((trend, i) => (
-                <Card key={i} className="glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300">
-                  <CardContent className="p-4 relative">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-viralyze-white leading-snug">
-                          {trend.name}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <HeatIndicator heat={trend.heat} />
-                          <span className="text-xs font-medium text-green-400">
-                            {trend.growth}
-                          </span>
-                        </div>
-                        {/* Animated heat bar */}
-                        <div className="mt-2">
-                          <HeatBar heat={trend.heat} />
-                        </div>
-                        <div className="flex gap-1.5 mt-2">
-                          {trend.platforms.map((p) => {
-                            const PI = platformIcons[p];
-                            return (
-                              <div
-                                key={p}
-                                className="h-6 w-6 rounded-md bg-white/[0.06] flex items-center justify-center"
-                              >
-                                <PI className="h-3 w-3 text-viralyze-muted" />
+      {/* Search input */}
+      <motion.div variants={item} className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted/50 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search trends..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full h-10 pl-10 pr-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-viralyze-white placeholder:text-viralyze-muted/40 focus:outline-none focus-glow-wine transition-all duration-200"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-viralyze-muted/40 hover:text-viralyze-white transition-colors text-xs"
+          >
+            Clear
+          </button>
+        )}
+      </motion.div>
+
+      {/* Category filter pills */}
+      <motion.div variants={item} className="flex flex-wrap gap-2">
+        {filterCategories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveFilter(cat)}
+            className={cn(
+              'px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200',
+              activeFilter === cat
+                ? 'bg-wine-accent/20 border-wine-accent/40 text-wine-accent glow-wine-sm'
+                : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:text-viralyze-white hover:border-white/15'
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </motion.div>
+
+      {/* Trend categories — with empty state when nothing matches */}
+      <AnimatePresence mode="wait">
+        {!hasAnyResults ? (
+          <TrendsEmptyState
+            key="empty"
+            searchQuery={searchQuery}
+            hasFilter={activeFilter !== 'All'}
+            onClear={clearFilters}
+          />
+        ) : (
+          <motion.div key="trends" variants={container} initial="hidden" animate="show" exit="hidden">
+            {filteredTrendData.map((cat) => {
+              const CatIcon = cat.icon;
+              return (
+                <motion.div key={cat.category} variants={item} className="mb-8 last:mb-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CatIcon className="h-4 w-4 text-wine-accent" />
+                    <h3 className="text-sm font-semibold text-viralyze-white uppercase tracking-wider">
+                      {cat.category}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {cat.trends.map((trend, i) => {
+                      const isBookmarked = bookmarkedTrends.has(trend.name);
+                      const isHot = (trend as any).label === 'Hot' || trend.heat >= 5;
+                      const isRising = (trend as any).label === 'Rising' || trend.growth.startsWith('+1');
+                      const hasPulseLabel = isHot || isRising;
+
+                      return (
+                        <Card
+                          key={i}
+                          className={cn(
+                            'glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300 relative',
+                            hasPulseLabel && 'animate-pulse-glow'
+                          )}
+                        >
+                          <CardContent className="p-4 relative">
+                            {/* Hot / Rising pulse label */}
+                            {hasPulseLabel && (
+                              <div className="absolute top-2 right-2">
+                                <span className={cn(
+                                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+                                  isHot
+                                    ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+                                    : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                )}>
+                                  <Flame className="h-2.5 w-2.5" />
+                                  {isHot ? 'Hot' : 'Rising'}
+                                </span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Use as Idea button — visible on hover */}
-                    <Button
-                      size="sm"
-                      className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-wine btn-shine text-white h-7 px-2.5 text-xs gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUseAsIdea(trend.name);
-                      }}
-                    >
-                      <Lightbulb className="h-3 w-3" />
-                      Use as Idea
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                            )}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-viralyze-white leading-snug pr-16">
+                                  {trend.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <HeatIndicator heat={trend.heat} />
+                                  <span className="text-xs font-medium text-green-400">
+                                    {trend.growth}
+                                  </span>
+                                </div>
+                                {/* Animated heat bar */}
+                                <div className="mt-2">
+                                  <HeatBar heat={trend.heat} />
+                                </div>
+                                <div className="flex gap-1.5 mt-2">
+                                  {trend.platforms.map((p) => {
+                                    const PI = platformIcons[p];
+                                    return (
+                                      <div
+                                        key={p}
+                                        className="h-6 w-6 rounded-md bg-white/[0.06] flex items-center justify-center"
+                                      >
+                                        <PI className="h-3 w-3 text-viralyze-muted" />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                            {/* Bookmark button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleBookmark(trend.name);
+                              }}
+                              className={cn(
+                                'absolute bottom-3 left-3 h-7 w-7 rounded-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100',
+                                isBookmarked
+                                  ? 'bg-wine-accent/20 text-wine-accent opacity-100'
+                                  : 'bg-white/[0.06] text-viralyze-muted hover:text-viralyze-white'
+                              )}
+                              title={isBookmarked ? 'Remove bookmark' : 'Bookmark this trend'}
+                            >
+                              {isBookmarked ? (
+                                <BookmarkCheck className="h-3.5 w-3.5" />
+                              ) : (
+                                <Bookmark className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                            {/* Use as Idea button — visible on hover */}
+                            <Button
+                              size="sm"
+                              className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-wine btn-shine text-white h-7 px-2.5 text-xs gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUseAsIdea(trend.name);
+                              }}
+                            >
+                              <Lightbulb className="h-3 w-3" />
+                              Use as Idea
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              );
+            })}
           </motion.div>
-        );
-      })}
+        )}
+      </AnimatePresence>
 
       {/* Emerging Niches */}
       <motion.div variants={item}>
@@ -323,7 +520,7 @@ export default function TrendsView() {
               {emergingNiches.map((niche, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+                  className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-wine-accent/20 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <HeatIndicator heat={niche.heat} />

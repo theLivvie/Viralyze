@@ -15,6 +15,7 @@ export type AppView =
   | 'analysis'
   | 'library'
   | 'ideas'
+  | 'templates'
   | 'trends'
   | 'analytics'
   | 'calendar'

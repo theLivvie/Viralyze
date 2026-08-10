@@ -1,72 +1,134 @@
 'use client';
 
 import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Check, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
 
-const plans = [
-  {
-    name: 'Free',
-    price: '₹0',
-    period: '/mo',
-    description: 'Try Viralyze with basic predictions.',
-    highlighted: false,
-    features: [
-      '5 predictions per month',
-      'Basic score breakdown',
-      '1 platform support',
-      'Community support',
-    ],
-    cta: 'Start Free',
-  },
-  {
-    name: 'Creator',
-    price: '₹499',
-    period: '/mo',
-    description: 'For serious creators who want to grow.',
-    highlighted: true,
-    features: [
-      '100 predictions per month',
-      'Advanced 9-category analysis',
-      'AI optimization suggestions',
-      'Content idea generator',
-      'Trend intelligence',
-      'All 5 platforms',
-      'Priority support',
-    ],
-    cta: 'Get Creator',
-  },
-  {
-    name: 'Pro',
-    price: '₹1,499',
-    period: '/mo',
-    description: 'For teams and power users.',
-    highlighted: false,
-    features: [
-      '500 predictions per month',
-      'Advanced analytics dashboard',
-      'Personal content model',
-      'Competitor analysis',
-      'Team collaboration (5 seats)',
-      'API access',
-      'Custom reports',
-      'Dedicated support',
-    ],
-    cta: 'Get Pro',
-  },
-];
+const planData = {
+  monthly: [
+    {
+      name: 'Free',
+      price: '$0',
+      rawPrice: 0,
+      period: '/mo',
+      description: 'Try Viralyze with basic predictions.',
+      highlighted: false,
+      features: [
+        '5 predictions per month',
+        'Basic score breakdown',
+        '1 platform support',
+        'Community support',
+      ],
+      cta: 'Start Free',
+    },
+    {
+      name: 'Creator',
+      price: '$19',
+      rawPrice: 19,
+      period: '/mo',
+      description: 'For serious creators who want to grow.',
+      highlighted: true,
+      features: [
+        '100 predictions per month',
+        'Advanced 9-category analysis',
+        'AI optimization suggestions',
+        'Content idea generator',
+        'Trend intelligence',
+        'All 5 platforms',
+        'Priority support',
+      ],
+      cta: 'Get Creator',
+    },
+    {
+      name: 'Pro',
+      price: '$49',
+      rawPrice: 49,
+      period: '/mo',
+      description: 'For teams and power users.',
+      highlighted: false,
+      features: [
+        '500 predictions per month',
+        'Advanced analytics dashboard',
+        'Personal content model',
+        'Competitor analysis',
+        'Team collaboration (5 seats)',
+        'API access',
+        'Custom reports',
+        'Dedicated support',
+      ],
+      cta: 'Get Pro',
+    },
+  ],
+  yearly: [
+    {
+      name: 'Free',
+      price: '$0',
+      rawPrice: 0,
+      period: '/yr',
+      description: 'Try Viralyze with basic predictions.',
+      highlighted: false,
+      features: [
+        '5 predictions per month',
+        'Basic score breakdown',
+        '1 platform support',
+        'Community support',
+      ],
+      cta: 'Start Free',
+    },
+    {
+      name: 'Creator',
+      price: '$190',
+      rawPrice: 190,
+      period: '/yr',
+      description: 'For serious creators who want to grow.',
+      highlighted: true,
+      features: [
+        '100 predictions per month',
+        'Advanced 9-category analysis',
+        'AI optimization suggestions',
+        'Content idea generator',
+        'Trend intelligence',
+        'All 5 platforms',
+        'Priority support',
+      ],
+      cta: 'Get Creator',
+    },
+    {
+      name: 'Pro',
+      price: '$490',
+      rawPrice: 490,
+      period: '/yr',
+      description: 'For teams and power users.',
+      highlighted: false,
+      features: [
+        '500 predictions per month',
+        'Advanced analytics dashboard',
+        'Personal content model',
+        'Competitor analysis',
+        'Team collaboration (5 seats)',
+        'API access',
+        'Custom reports',
+        'Dedicated support',
+      ],
+      cta: 'Get Pro',
+    },
+  ],
+};
 
 export default function PricingSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
   const { setAuthModal } = useAppStore();
+  const [isYearly, setIsYearly] = useState(false);
 
   const handleSelectPlan = () => {
     setAuthModal(true, 'signup');
   };
+
+  const plans = isYearly ? planData.yearly : planData.monthly;
 
   return (
     <section className="relative py-20 sm:py-28" id="pricing">
@@ -87,17 +149,49 @@ export default function PricingSection() {
           </p>
         </motion.div>
 
+        {/* Monthly/Yearly Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-10 flex items-center justify-center gap-4"
+        >
+          <span className={`text-sm font-medium transition-colors duration-300 ${!isYearly ? 'text-viralyze-white' : 'text-viralyze-muted'}`}>Monthly</span>
+          <button
+            onClick={() => setIsYearly(!isYearly)}
+            className="relative flex h-7 w-12 items-center rounded-full border border-white/10 bg-white/[0.05] p-0.5 transition-colors duration-300"
+            aria-label="Toggle yearly pricing"
+          >
+            <motion.div
+              animate={{ x: isYearly ? 20 : 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className={`h-6 w-6 rounded-full transition-colors duration-300 ${isYearly ? 'bg-wine-accent' : 'bg-viralyze-muted/50'}`}
+            />
+          </button>
+          <span className={`text-sm font-medium transition-colors duration-300 ${isYearly ? 'text-viralyze-white' : 'text-viralyze-muted'}`}>Yearly</span>
+          {isYearly && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-full bg-viralyze-success/15 px-2.5 py-0.5 text-xs font-semibold text-viralyze-success"
+            >
+              Save 17%
+            </motion.span>
+          )}
+        </motion.div>
+
         {/* Animated gradient line above pricing grid */}
         <div className="glow-line mx-auto mb-10 max-w-xs" />
 
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan, i) => (
             <motion.div
-              key={plan.name}
+              key={`${plan.name}-${isYearly ? 'yearly' : 'monthly'}`}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15 + i * 0.12 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              whileHover={{ scale: 1.02, transition: { duration: 0.25 } }}
               className={`relative flex flex-col rounded-2xl p-6 sm:p-8 transition-all duration-300 ${
                 plan.highlighted
                   ? 'border-wine-accent/40 bg-gradient-wine-subtle glow-wine'

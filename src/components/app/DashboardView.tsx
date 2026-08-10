@@ -140,6 +140,35 @@ export default function DashboardView() {
 
   const maxPlatformCount = Math.max(...Object.values(platformCounts), 1);
 
+  // Derive activity items from saved analyses
+  const activityItems = useMemo(() => {
+    if (savedAnalyses.length === 0) return [];
+    return savedAnalyses.slice(0, 5).map((a) => {
+      const PIcon = platformIcons[a.platform];
+      const now = Date.now();
+      const created = new Date(a.createdAt).getTime();
+      const diffMs = now - created;
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHr = Math.floor(diffMs / 3600000);
+      const diffDay = Math.floor(diffMs / 86400000);
+      let timeStr: string;
+      if (diffMin < 1) timeStr = 'Just now';
+      else if (diffMin < 60) timeStr = `${diffMin} min ago`;
+      else if (diffHr < 24) timeStr = `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+      else timeStr = `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+
+      const accentColor = a.overallScore >= 80 ? 'text-emerald-400' : a.overallScore >= 60 ? 'text-green-400' : a.overallScore >= 40 ? 'text-amber-400' : 'text-red-400';
+
+      return {
+        id: a.id,
+        icon: PIcon,
+        description: `Analyzed ${a.platform} content \u2014 Score: ${a.overallScore}`,
+        time: timeStr,
+        accentColor,
+      };
+    });
+  }, [savedAnalyses]);
+
   const handleAnalysisClick = async (id: string) => {
     try {
       setViewingId(id);
@@ -401,6 +430,37 @@ export default function DashboardView() {
           </Card>
         </div>
       </motion.div>
+
+      {/* Activity Feed */}
+      {activityItems.length > 0 && (
+        <motion.div variants={item}>
+          <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+            Recent Activity
+          </h3>
+          <Card className="glass">
+            <CardContent className="p-4 flex flex-col gap-0 divide-y divide-white/[0.04]">
+              {activityItems.map((act, i) => {
+                const AIcon = act.icon;
+                return (
+                  <motion.div
+                    key={act.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.3 }}
+                    className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <div className={cn("h-8 w-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0", act.accentColor)}>
+                      <AIcon className="h-3.5 w-3.5" />
+                    </div>
+                    <p className="text-sm text-viralyze-white flex-1">{act.description}</p>
+                    <span className="text-xs text-viralyze-muted shrink-0">{act.time}</span>
+                  </motion.div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Recent Analyses - Enhanced */}
       <motion.div variants={item}>

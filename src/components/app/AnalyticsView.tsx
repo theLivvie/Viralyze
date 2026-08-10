@@ -1,18 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import {
   BarChart3,
   TrendingUp,
   Sparkles,
   Target,
   Download,
+  RefreshCw,
+  Loader2,
+  FileJson,
   Instagram,
   Youtube,
   Tv,
   Twitter,
   Linkedin,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,6 +122,28 @@ const tooltipLabelStyle = {
   letterSpacing: '0.05em',
 };
 
+// --- Animated Counter Component ---
+function AnimatedCounter({ value, duration = 1.2 }: { value: number; duration?: number }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef(false);
+  const mv = useMotionValue(0);
+  const displayValue = useTransform(mv, (v) => Math.round(v));
+
+  useEffect(() => {
+    const unsub = displayValue.on('change', (v) => setDisplay(v));
+    return unsub;
+  }, [displayValue]);
+
+  useEffect(() => {
+    if (ref.current) return;
+    ref.current = true;
+    const ctrl = animate(mv, value, { duration, ease: 'easeOut' });
+    return () => { ctrl.stop(); };
+  }, [value, duration]);
+
+  return <>{display}</>;
+}
+
 // --- Skeleton Loader ---
 function SkeletonCard() {
   return (
@@ -209,7 +235,40 @@ export default function AnalyticsView() {
   const user = useAppStore((s) => s.user);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [liveClock, setLiveClock] = useState(new Date());
+
+  // Live clock tick
+  useEffect(() => {
+    const interval = setInterval(() => setLiveClock(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchAnalytics = useCallback(async (isRefresh = false) => {
+    if (!user) { setLoading(false); return; }
+    if (isRefresh) setRefreshing(true); else setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/analytics?userId=${user.id}`);
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      const json = await res.json();
+      setData(json);
+      setLastRefreshed(new Date());
+      if (isRefresh) toast.success('Analytics refreshed');
+    } catch (err) {
+      if (!isRefresh) setError('Failed to load analytics. Please try again.');
+      else toast.error('Failed to refresh analytics');
+    } finally {
+      if (isRefresh) setRefreshing(false); else setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const handleExportCSV = () => {
     if (!data || !data.topContent.length) {
@@ -231,7 +290,7 @@ export default function AnalyticsView() {
     const csvContent = [headers, ...rows]
       .map((row) => row.map((cell) => {
         const escaped = String(cell).replace(/"/g, '""');
-        return "${escaped}";
+        return `"${escaped}"`;
       }).join(','))
       .join('\n');
 
@@ -248,31 +307,22 @@ export default function AnalyticsView() {
     toast.success('Analytics exported as CSV');
   };
 
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
+  const handleExportJSON = () => {
+    if (!data) {
+      toast.error('No data to export');
       return;
     }
-
-    let cancelled = false;
-
-    async function fetchAnalytics() {
-      try {
-        const res = await fetch(`/api/analytics?userId=${user.id}`);
-        if (!res.ok) throw new Error('Failed to fetch analytics');
-        const json = await res.json();
-        if (cancelled) return;
-        setData(json);
-      } catch (err) {
-        if (!cancelled) setError('Failed to load analytics. Please try again.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchAnalytics();
-    return () => { cancelled = true; };
-  }, [user]);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `viralytics-analytics-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Analytics exported as JSON');
+  };
 
   // Loading state
   if (loading) {
@@ -366,10 +416,10 @@ export default function AnalyticsView() {
 
   // --- Derived data ---
   const overviewStats = [
-    { icon: BarChart3, value: String(data.totalAnalyses), label: 'Total Analyses', accent: false, trend: 'up' as const, trendPercent: '+12%' },
-    { icon: TrendingUp, value: String(data.avgScore), label: 'Avg Score', accent: false, trend: 'up' as const, trendPercent: '+5.3' },
-    { icon: Sparkles, value: String(data.bestScore), label: 'Highest Score', accent: true, trend: 'up' as const, trendPercent: '+8' },
-    { icon: Target, value: `${data.predictionAccuracy}%`, label: 'Prediction Accuracy', accent: false, trend: data.predictionAccuracy >= 80 ? 'up' as const : 'down' as const, trendPercent: data.predictionAccuracy >= 80 ? '+2.1' : '-1.4' },
+    { icon: BarChart3, value: data.totalAnalyses, label: 'Total Analyses', accent: false, trend: 'up' as const, trendPercent: '+12%', isInt: true },
+    { icon: TrendingUp, value: data.avgScore, label: 'Avg Score', accent: false, trend: 'up' as const, trendPercent: '+5.3', isInt: false },
+    { icon: Sparkles, value: data.bestScore, label: 'Highest Score', accent: true, trend: 'up' as const, trendPercent: '+8', isInt: true },
+    { icon: Target, value: data.predictionAccuracy, label: 'Prediction Accuracy', accent: false, trend: data.predictionAccuracy >= 80 ? 'up' as const : 'down' as const, trendPercent: data.predictionAccuracy >= 80 ? '+2.1' : '-1.4', isInt: true },
   ];
 
   return (
@@ -385,27 +435,67 @@ export default function AnalyticsView() {
           <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
             Analytics
           </h2>
-          <p className="text-viralyze-muted mt-1">
-            Track your content performance and viral potential trends
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-viralyze-muted text-sm">
+              Track your content performance and viral potential trends
+            </p>
+            {/* Real-time last refreshed timestamp */}
+            {lastRefreshed && (
+              <span className="flex items-center gap-1 text-xs text-viralyze-muted/50">
+                <Clock className="h-3 w-3" />
+                <span className="font-mono tabular-nums">
+                  {liveClock.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <span className="hidden sm:inline">·</span>
+                <span className="hidden sm:inline">
+                  Refreshed {lastRefreshed.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' })}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportCSV}
-          className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
-        >
-          <Download className="h-4 w-4 mr-1.5" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchAnalytics(true)}
+            disabled={refreshing}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5"
+          >
+            {refreshing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportJSON}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+          >
+            <FileJson className="h-4 w-4 mr-1.5" />
+            JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            CSV
+          </Button>
+        </div>
       </motion.div>
 
-      {/* Overview Stats */}
+      {/* Overview Stats with Animated Counters */}
       <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {overviewStats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="glass transition-transform duration-300 hover:-translate-y-0.5">
+            <Card key={stat.label} className="glass transition-all duration-300 hover:-translate-y-1 hover:glow-wine-sm hover:border-wine-accent/20">
               <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Icon className={cn('h-5 w-5', stat.accent ? 'text-wine-accent' : 'text-viralyze-muted')} />
@@ -430,7 +520,7 @@ export default function AnalyticsView() {
                   </span>
                 </div>
                 <span className={cn('text-2xl font-bold tabular-nums', stat.accent ? 'text-wine-accent' : 'text-viralyze-white')}>
-                  {stat.value}
+                  <AnimatedCounter value={stat.value} />{stat.label === 'Prediction Accuracy' ? '%' : ''}
                 </span>
                 <span className="text-xs text-viralyze-muted">{stat.label}</span>
               </CardContent>
@@ -444,7 +534,7 @@ export default function AnalyticsView() {
 
       {/* Score Distribution */}
       <motion.div variants={item}>
-        <Card className="glass">
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Score Distribution
@@ -485,7 +575,7 @@ export default function AnalyticsView() {
       {/* Platform Performance + Category Breakdown */}
       <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Radar Chart */}
-        <Card className="glass">
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Platform Performance
@@ -531,7 +621,7 @@ export default function AnalyticsView() {
         </Card>
 
         {/* Category Breakdown - Horizontal Bar Chart */}
-        <Card className="glass">
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Category Breakdown
@@ -589,7 +679,7 @@ export default function AnalyticsView() {
 
       {/* Score Trend - Area Chart */}
       <motion.div variants={item}>
-        <Card className="glass">
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Score Trend

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView, animate } from 'framer-motion';
+import { motion, useInView, animate, useMotionValue, useTransform } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, Zap, Target, Clock, Hash } from 'lucide-react';
 
@@ -29,8 +29,8 @@ function CountUpNumber({ target, delay, isInView }: { target: number; delay: num
     if (!isInView) return;
     const timeout = setTimeout(() => {
       const controls = animate(0, target, {
-        duration: 1.2,
-        ease: 'easeOut',
+        duration: 1.4,
+        ease: [0.16, 1, 0.3, 1],
         onUpdate: (v) => setCount(Math.round(v)),
       });
       return () => controls.stop();
@@ -41,7 +41,7 @@ function CountUpNumber({ target, delay, isInView }: { target: number; delay: num
   return <span>{count}</span>;
 }
 
-function TypingText({ text, delay, isInView }: { text: string; delay: number; isInView: boolean }) {
+function TypingText({ text, delay, isInView, onProgress }: { text: string; delay: number; isInView: boolean; onProgress?: (p: number) => void }) {
   const [displayed, setDisplayed] = useState('');
   const [typing, setTyping] = useState(false);
 
@@ -53,16 +53,18 @@ function TypingText({ text, delay, isInView }: { text: string; delay: number; is
       const interval = setInterval(() => {
         if (i < text.length) {
           setDisplayed(text.slice(0, i + 1));
+          onProgress?.((i + 1) / text.length);
           i++;
         } else {
           clearInterval(interval);
           setTyping(false);
+          onProgress?.(1);
         }
       }, 20);
       return () => clearInterval(interval);
     }, delay);
     return () => clearTimeout(timeout);
-  }, [isInView, text, delay]);
+  }, [isInView, text, delay, onProgress]);
 
   return (
     <>
@@ -76,6 +78,11 @@ export default function DemoSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
   const [selectedPlatform, setSelectedPlatform] = useState('instagram');
+  const [typingProgress, setTypingProgress] = useState(0);
+
+  const handleTypingProgress = (p: number) => {
+    setTypingProgress(p);
+  };
 
   return (
     <section className="relative py-20 sm:py-28 bg-viralyze-soft-black" id="demo">
@@ -84,6 +91,16 @@ export default function DemoSection() {
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-wine-accent/20 blur-[120px]" />
         <div className="absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-wine-deep/30 blur-[120px]" />
       </div>
+
+      {/* Subtle dot grid background pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+        aria-hidden="true"
+      />
 
       <div ref={ref} className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -95,7 +112,7 @@ export default function DemoSection() {
           <div className="mb-4 inline-flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="relative inline-flex h-full w-full rounded-full bg-emerald-500" />
             </span>
             <span className="text-xs font-semibold uppercase tracking-widest text-viralyze-muted">Live Demo</span>
           </div>
@@ -121,6 +138,18 @@ export default function DemoSection() {
             <div className="scan-line-animated" />
           )}
 
+          {/* Demo card header with AI Ready status */}
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-viralyze-success opacity-75" />
+                <span className="relative inline-flex h-full w-full rounded-full bg-viralyze-success" />
+              </span>
+              <span className="text-xs font-medium text-viralyze-success">AI Ready</span>
+            </div>
+            <span className="text-xs text-viralyze-muted">Real-time Analysis</span>
+          </div>
+
           {/* Platform Selector */}
           <div className="mb-4 flex flex-wrap gap-2">
             {platforms.map((p) => (
@@ -142,7 +171,22 @@ export default function DemoSection() {
           <div className="mb-6 rounded-xl border border-white/5 bg-white/[0.02] p-4">
             <p className="mb-1 text-xs font-medium text-viralyze-muted/60">Content Idea</p>
             <p className="text-sm leading-relaxed text-viralyze-white/90">
-              <TypingText text={demoText} delay={800} isInView={isInView} />
+              <TypingText text={demoText} delay={800} isInView={isInView} onProgress={handleTypingProgress} />
+            </p>
+          </div>
+
+          {/* Progress bar at bottom of demo card */}
+          <div className="mb-6">
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-white/5">
+              <motion.div
+                className="h-full rounded-full bg-gradient-wine"
+                initial={{ width: '0%' }}
+                animate={isInView ? { width: `${typingProgress * 100}%` } : { width: '0%' }}
+                transition={{ duration: 0.15, ease: 'linear' }}
+              />
+            </div>
+            <p className="mt-1.5 text-[10px] text-viralyze-muted/50">
+              {typingProgress === 0 ? 'Waiting for input...' : typingProgress < 1 ? `Analyzing... ${Math.round(typingProgress * 100)}%` : 'Analysis complete'}
             </p>
           </div>
 

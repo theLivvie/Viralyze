@@ -23,6 +23,7 @@ import TrendsView from '@/components/app/TrendsView';
 import SettingsView from '@/components/app/SettingsView';
 import AnalyticsView from '@/components/app/AnalyticsView';
 import CalendarView from '@/components/app/CalendarView';
+import ContentTemplatesView from '@/components/app/ContentTemplatesView';
 import OnboardingOverlay from '@/components/app/OnboardingOverlay';
 import KeyboardShortcuts from '@/components/app/KeyboardShortcuts';
 
@@ -32,6 +33,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   analysis: AnalysisView,
   library: LibraryView,
   ideas: IdeasView,
+  templates: ContentTemplatesView,
   trends: TrendsView,
   analytics: AnalyticsView,
   calendar: CalendarView,

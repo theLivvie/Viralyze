@@ -100,8 +100,7 @@ export default function IdeasView() {
     setPredictMode('idea');
     setPredictPlatform(idea.platform);
     setPredictContentType(idea.contentType);
-    setPrefilledIdea(idea.title + '. ' + idea.description);
-    toast.success('Idea loaded — customize and analyze!');
+    setPrefilledIdea(idea.title);
     setCurrentView('predict');
   };
 

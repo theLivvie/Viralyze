@@ -5,12 +5,14 @@ import {
   Sparkles,
   Library,
   Lightbulb,
+  LayoutTemplate,
   TrendingUp,
   BarChart3,
   CalendarDays,
   Settings,
   LogOut,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   Sidebar,
   SidebarContent,
@@ -35,17 +37,18 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { view: 'predict', label: 'Predict', icon: Sparkles, highlight: true },
+  { view: 'predict', label: 'Predict Content', icon: Sparkles, highlight: true },
   { view: 'library', label: 'Content Library', icon: Library },
-  { view: 'ideas', label: 'Ideas', icon: Lightbulb },
+  { view: 'ideas', label: 'Idea Generator', icon: Lightbulb },
+  { view: 'templates', label: 'Templates', icon: LayoutTemplate },
   { view: 'trends', label: 'Trend Radar', icon: TrendingUp },
   { view: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { view: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { view: 'calendar', label: 'Content Calendar', icon: CalendarDays },
   { view: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export default function AppSidebar() {
-  const { currentView, setCurrentView, user, logout, sidebarOpen, setSidebarOpen } = useAppStore();
+  const { currentView, setCurrentView, user, logout, sidebarOpen, setSidebarOpen, savedAnalyses } = useAppStore();
 
   const handleNav = (view: AppView) => {
     setCurrentView(view);
@@ -64,7 +67,12 @@ export default function AppSidebar() {
           onClick={() => setCurrentView('dashboard')}
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
         >
-          <Sparkles className="h-7 w-7 text-wine-accent" />
+          <motion.div
+            animate={{ scale: [1, 1.12, 1], opacity: [1, 0.8, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <Sparkles className="h-7 w-7 text-wine-accent" />
+          </motion.div>
           <span className="text-lg font-bold text-viralyze-white tracking-tight">
             Viralyze
           </span>
@@ -89,6 +97,7 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       isActive={isActive}
                       onClick={() => handleNav(item.view)}
+                      title={item.label}
                       className={
                         isActive
                           ? 'bg-wine-accent/10 text-wine-accent hover:bg-wine-accent/15 hover:text-wine-accent'
@@ -101,6 +110,12 @@ export default function AppSidebar() {
                       {item.highlight && !isActive && (
                         <span className="ml-auto h-2 w-2 rounded-full bg-wine-accent animate-pulse-glow" />
                       )}
+                      {/* Badge on Library showing saved analyses count */}
+                      {item.view === 'library' && savedAnalyses.length > 0 && (
+                        <span className="ml-auto h-5 min-w-[20px] px-1.5 rounded-full bg-wine-accent/20 text-wine-accent text-[10px] font-bold flex items-center justify-center tabular-nums">
+                          {savedAnalyses.length}
+                        </span>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -109,6 +124,9 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Glow line divider between nav items and footer/usage section */}
+      <div className="glow-line mx-5 bg-gradient-wine" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Usage bar above footer */}
       <div className="px-5 pb-2">
@@ -145,6 +163,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={logout}
+              title="Log Out"
               className="text-viralyze-muted hover:text-red-400 hover:bg-red-500/10"
             >
               <LogOut className="h-4 w-4" />
