@@ -493,3 +493,114 @@ Stage Summary:
 - Total files modified: ~15
 - Zero lint errors
 - Dev server compiles cleanly
+
+---
+Task ID: 3-styling
+Agent: styling-expert
+Task: Styling improvements across Analytics, Settings, Hero, Features components
+
+Work Log:
+- AnalyticsView.tsx: Added noise-bg texture to main container, mini SVG sparkline polylines with up/down trend arrows (green/red) to each overview stat card, hover:-translate-y-0.5 lift effect on stat cards, glass card with glow-wine-sm border behind Top Content section header, gradient glow-line separators between every chart section
+- SettingsView.tsx: Added gradient mesh background (2 blurred wine circles) behind profile section, hover:glow-wine-sm on all plan comparison table rows, animated gradient-border class on danger zone card, subtle wine-tinted animate-pulse-glow behind each notification toggle switch
+- HeroSection.tsx: Added 3 additional larger Framer Motion floating particles (6px/12px/18px) with varied animation durations and delays, added vignette radial gradient overlay from transparent center to dark edges, added 'Trusted by 10,000+ creators worldwide' micro-text with muted/40 opacity and pulse-glow animation
+- FeaturesSection.tsx: Added hover:glow-wine-sm on main engine feature cards, improved sub-feature number badges (01-06) with wine-accent border, dark background, and slightly larger size, added hover:glow-wine-sm on sub-feature cards
+
+Stage Summary:
+- 4 files modified (AnalyticsView, SettingsView, HeroSection, FeaturesSection)
+- Zero new CSS classes or keyframes added (used only existing utilities + Framer Motion)
+- Zero lint errors
+- All styling improvements use existing theme system (wine colors, glass, glow-wine, noise-bg, gradient-border, animate-pulse-glow, glow-line)
+
+---
+Task ID: 4-features
+Agent: features Agent
+Task: New features - Trends Use as Idea, Analysis Re-analyze + Copy All, Library score sparklines
+
+Work Log:
+- TrendsView.tsx: Imported toast from 'sonner' and useAppStore from '@/lib/store', imported Lightbulb icon, added `group` class to each trend Card, added `relative` to CardContent, added 'Use as Idea' button (size=sm, bg-gradient-wine, btn-shine) positioned absolute bottom-right with opacity-0 group-hover:opacity-100 transition, button calls setPrefilledIdea(`Create content about: ${trend.name}`), setPredictMode('idea'), setCurrentView('predict'), and toast.success
+- AnalysisView.tsx: Imported RefreshCw and ClipboardCopy icons from lucide-react, destructured setPrefilledIdea and setPredictMode from useAppStore, added handleReanalyze async function that fetches original content from GET /api/library?id=ID and navigates to predict view, added handleCopyAll async function that concatenates non-null optimizedTitle/optimizedHook/optimizedCaption with newlines and copies to clipboard, added 'Re-analyze' button (variant=outline, border-white/[0.1]) next to Export button in top bar, added 'Copy All' button (variant=ghost) inside AI-Optimized Content CardHeader next to title
+- LibraryView.tsx: Added categoryLabels map (hook/Hook, engagement/Engage, shareability/Share, retention/Retain, originality/Original, audienceFit/Fit), added scoreBarColor helper (green >=70, amber >=45, red otherwise), computed top 3 score categories from 6 category keys (hook, engagement, shareability, retention, originality, audienceFit) defaulting undefined to 50, added sparkline row below title/badge section with 3 tiny pill badges showing label + score number and 1.5px height bars colored by value
+
+Stage Summary:
+- 3 files modified (TrendsView, AnalysisView, LibraryView)
+- New interactive features: Use as Idea (trends), Re-analyze (analysis), Copy All Optimized (analysis), score sparklines (library)
+- Zero lint errors verified via `bun run lint`
+
+---
+Task ID: 4c
+Agent: dashboard-enhancer
+Task: Enhanced Dashboard with platform distribution, strengths summary, improved welcome
+
+Work Log:
+- Added `useMemo` import from React for platform count calculations
+- Added `Zap` and `Share2` icon imports from lucide-react, removed unused `Inbox` import
+- Added `platformLabels` map for human-readable platform names (Instagram, YouTube, TikTok, X, LinkedIn)
+- Added `classificationDotColors` map for colored dots (green for high/viral, amber for moderate, red for low)
+- Enhanced Welcome Section: wrapped greeting in flex row with `animate-pulse-glow` ✨ sparkle next to user name, added plan Badge (outline, wine-accent border) derived from `user?.plan` with fallback to 'Free Plan'
+- Added Platform Distribution Card: glass card below Quick Stats, computes platform counts via useMemo grouping savedAnalyses by platform, renders only platforms with count > 0, each row has platform icon + label + animated proportion bar (bg-wine-accent/60 over bg-wine-accent/10 track, width based on count/maxCount ratio) + count number, shows 'No data yet' when no analyses exist
+- Added Top Strengths Summary: 3 glass cards in responsive grid (1 col mobile, 3 cols sm+), each with wine-accent/15 circle icon container (Zap=Strong Hooks, TrendingUp=High Engagement, Share2=Great Shareability), label, and 'Keep it up!' muted subtitle
+- Enhanced Recent Analyses: added classification-colored dot (2px rounded-full circle) before each score Badge, dot colors from classificationDotColors map (emerald for viral, green for high, amber for moderate, red for low)
+- Cleaned up unused `Inbox` import
+- Verified zero lint errors via `bun run lint`
+
+Stage Summary:
+- 1 file modified (DashboardView.tsx)
+- 4 new dashboard sections/features: improved welcome with sparkle + plan badge, platform distribution bars, top strengths summary cards, classification-colored dots on recent analyses
+- Zero lint errors verified
+
+---
+Task ID: 8 (Orchestrator — Round 4)
+Agent: Main
+Task: QA assessment, bug fixes, styling improvements, new features (Round 4)
+
+Work Log:
+- Read full worklog.md (549 lines) to assess project state — Post-MVP Enhancement Round 3 complete
+- Code-level QA across all key files (page.tsx, store.ts, types.ts, PredictView, AnalysisView, DashboardView, LibraryView, IdeasView, TrendsView, CalendarView, SettingsView, AnalyticsView, AppLayout, AppSidebar, globals.css, predict/route.ts)
+- Lint check: zero errors
+
+## Bugs Found & Fixed
+1. **API missing 3 score keys in response** — /api/predict returned only 6 of 9 CategoryScores (hook, engagement, shareability, retention, originality, audienceFit). Missing: emotionalImpact, contentQuality, trendAlignment. Fixed by adding all 3 keys to response normalization.
+2. **API missing predictedEngagement in response** — AnalysisView displays predicted engagement (likes/comments/shares/saves) but the API never returned this data. Added fallback defaults and proper field pass-through.
+3. **API missing emotionalBreakdown in system prompt** — The LLM prompt didn't request emotionalBreakdown or predictedEngagement, so AI responses often lacked them. Added both fields to the JSON schema in the system prompt with detailed specifications.
+4. **DashboardView hardcoded greeting** — Showed "Hello, Creator" instead of user's actual name. Fixed to use `user?.name || 'Creator'`.
+5. **"Analyze Existing Content" card didn't set mode** — Clicking the card navigated to predict but stayed in 'idea' mode. Fixed to call `setPredictMode('post')` before navigation.
+
+## Styling Improvements (via subagent)
+- **AnalyticsView**: Added noise-bg texture, mini SVG sparklines on overview stat cards (up/down trend arrows), hover lift (-translate-y-0.5), Top Content section wrapped in glow-wine-sm container, gradient line separators (glow-line) between every chart section
+- **SettingsView**: Added gradient mesh background (2 blurred circles) behind profile section, hover:glow-wine-sm on plan comparison table rows, animated gradient-border on danger zone card, wine-tinted glow containers around notification toggles
+- **HeroSection**: Added 3 extra large floating particles with Framer Motion multi-keyframe animations (y/opacity/scale, 10-16s durations, staggered delays, subtle blur), vignette overlay (radial-gradient from transparent center to dark edges at z-[5]), "Trusted by 10,000+ creators worldwide" micro-text in muted/40 with pulse-glow animation
+- **FeaturesSection**: Added hover:glow-wine-sm on 3 main engine cards, upgraded number badges (01-06) with h-5 w-5, border-wine-accent/60, bg-viralyze-soft-black, text-wine-accent styling, animated glow-line separator between engines and feature grid
+
+## New Features (via subagents)
+1. **Trends → Predict pre-fill (Task 4a)**: Each trend card in TrendsView now has a "Use as Idea" button (bg-gradient-wine, btn-shine, opacity-0 group-hover:opacity-100). Clicking sets prefilledIdea with "Create content about: {trend.name}", switches to idea mode, navigates to predict, shows success toast.
+2. **Re-analyze button (Task 4b)**: AnalysisView top bar now has a "Re-analyze" button (RefreshCw icon, outline variant). Fetches original content from /api/library?id=ID, sets as prefilledIdea, navigates to predict view. Falls back gracefully if no ID or fetch fails.
+3. **Copy All Optimized (Task 4b)**: AnalysisView AI-Optimized Content section header has a "Copy All" button (ClipboardCopy icon, ghost variant). Concatenates all non-null optimized fields with double newlines and copies to clipboard.
+4. **Enhanced Dashboard (Task 4c)**: Welcome section now shows ✨ sparkle emoji with pulse-glow, user's plan badge (wine-accent outline). Platform Distribution Card with animated proportion bars. Top Strengths Summary (3 cards: Strong Hooks, High Engagement, Great Shareability). Classification-colored dots on recent analyses.
+5. **Library Score Sparklines (Task 4d)**: Each library card now shows top 3 score categories as tiny inline badges with 1.5px height colored bars. Scores default to 50 if undefined. Color coding: green ≥70, amber ≥45, red <45.
+
+Stage Summary:
+- 5 bugs fixed (3 API, 2 UI)
+- 4 files received styling improvements (Analytics, Settings, Hero, Features)
+- 5 new features implemented across 4 files
+- Total files modified: ~10 (predict route, Dashboard, Analysis, Library, Trends, Analytics, Settings, Hero, Features)
+- Zero lint errors
+- Dev server compiles cleanly (200 response)
+
+## Current Project Status
+- **Phase**: Post-MVP Enhancement (Round 4 — QA, Bug Fixes, Styling, Features)
+- **Working Features**: Landing page (10 polished sections + vignette + extra particles), Auth (login/signup modal), Dashboard (personalized greeting, plan badge, CTA cards, stats, score history, platform distribution, strengths summary, recent analyses with classification dots), Predict (gradient mesh, typing indicator, character count, gradient border, pre-filled ideas), Analysis (full breakdown, export JSON, copy-to-clipboard, Copy All, Re-analyze button, emotional breakdown, predicted engagement), Library (search/filter/sort, delete, compare mode, score sparklines on cards), Ideas (topic input, AI generation, results grid, Analyze→Predict pre-fill), Trends (AI refresh, heat bars, live clock, noise texture, Use as Idea buttons), Analytics (real DB data, noise-bg, sparkline stats, gradient separators, hover lifts, Top Content glow), Calendar (time-of-day gradients, hover lift, today pill, pulsing add buttons), Settings (profile editing, notification toggles, plan comparison, danger zone, gradient mesh, animated border)
+- **AI Integration**: LLM-powered content prediction (with emotionalBreakdown + predictedEngagement), idea generation, trend analysis
+- **Database**: SQLite with Prisma ORM, users and content analyses
+- **API Endpoints**: POST /api/predict, GET/DELETE /api/library, GET /api/library?id, POST /api/ideas, POST/PUT /api/auth, GET /api/analytics, GET /api/trends
+
+## Unresolved / Next Steps (Priority Order)
+1. Predicted vs actual performance tracking (post-publish feedback loop)
+2. Google OAuth integration
+3. Rate limiting on API routes
+4. Calendar slots linked to actual predictions
+5. More polished mobile animations (specifically sheet transitions)
+6. Sound/haptic feedback on interactions
+7. Email notifications for scheduled calendar content
+8. Export analytics as CSV/PDF
+9. A/B testing between content variations
+10. Real-time collaboration features

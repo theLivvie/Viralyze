@@ -41,7 +41,23 @@ Return this EXACT JSON structure:
     {"label": "Emotional", "style": "emotional", "score": <0-100>, "content": "<rewritten content>"},
     {"label": "Educational", "style": "educational", "score": <0-100>, "content": "<rewritten content>"},
     {"label": "Storytelling", "style": "storytelling", "score": <0-100>, "content": "<rewritten content>"}
-  ]
+  ],
+  "emotionalBreakdown": {
+    "curiosity": <0-100>,
+    "surprise": <0-100>,
+    "excitement": <0-100>,
+    "humor": <0-100>,
+    "inspiration": <0-100>,
+    "relatability": <0-100>,
+    "controversy": <0-100>,
+    "fear": <0-100>
+  },
+  "predictedEngagement": {
+    "likes": "<formatted string like 12.5K or 500>",
+    "comments": "<formatted string>",
+    "shares": "<formatted string>",
+    "saves": "<formatted string>"
+  }
 }
 
 Scoring guidelines:
@@ -177,11 +193,17 @@ export async function POST(request: NextRequest) {
         retention: analysis.scores?.retention || 50,
         originality: analysis.scores?.originality || 50,
         audienceFit: analysis.scores?.audienceFit || 50,
+        emotionalImpact: analysis.scores?.emotionalImpact || 50,
+        contentQuality: analysis.scores?.contentQuality || 50,
+        trendAlignment: analysis.scores?.trendAlignment || 50,
       },
       platformFit: Array.isArray(analysis.platformFit) ? analysis.platformFit : [],
       emotionalBreakdown: analysis.emotionalBreakdown && typeof analysis.emotionalBreakdown === 'object'
         ? analysis.emotionalBreakdown
         : { curiosity: 70, surprise: 60, excitement: 65, humor: 40, inspiration: 55, relatability: 70, controversy: 30, fear: 20 },
+      predictedEngagement: analysis.predictedEngagement && typeof analysis.predictedEngagement === 'object'
+        ? analysis.predictedEngagement
+        : { likes: '1.2K', comments: '85', shares: '340', saves: '220' },
       strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
       weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
       improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],

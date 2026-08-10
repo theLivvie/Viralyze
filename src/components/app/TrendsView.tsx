@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock } from 'lucide-react';
+import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock, Lightbulb } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAppStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Platform } from '@/lib/types';
@@ -138,11 +140,19 @@ function HeatBar({ heat }: { heat: number }) {
 }
 
 export default function TrendsView() {
+  const { setPrefilledIdea, setPredictMode, setCurrentView } = useAppStore();
   const [trendData, setTrendData] = useState<TrendCategory[]>(fallbackTrendData);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState(false);
   const [liveClock, setLiveClock] = useState(new Date());
+
+  const handleUseAsIdea = (trendName: string) => {
+    setPrefilledIdea(`Create content about: ${trendName}`);
+    setPredictMode('idea');
+    setCurrentView('predict');
+    toast.success('Trend loaded — customize and analyze!');
+  };
 
   // Live clock tick
   useEffect(() => {
@@ -247,8 +257,8 @@ export default function TrendsView() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {cat.trends.map((trend, i) => (
-                <Card key={i} className="glass hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300">
-                  <CardContent className="p-4">
+                <Card key={i} className="glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300">
+                  <CardContent className="p-4 relative">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-viralyze-white leading-snug">
@@ -279,6 +289,18 @@ export default function TrendsView() {
                         </div>
                       </div>
                     </div>
+                    {/* Use as Idea button — visible on hover */}
+                    <Button
+                      size="sm"
+                      className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-wine btn-shine text-white h-7 px-2.5 text-xs gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUseAsIdea(trend.name);
+                      }}
+                    >
+                      <Lightbulb className="h-3 w-3" />
+                      Use as Idea
+                    </Button>
                   </CardContent>
                 </Card>
               ))}

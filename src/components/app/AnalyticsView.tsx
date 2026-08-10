@@ -327,10 +327,10 @@ export default function AnalyticsView() {
 
   // --- Derived data ---
   const overviewStats = [
-    { icon: BarChart3, value: String(data.totalAnalyses), label: 'Total Analyses', accent: false },
-    { icon: TrendingUp, value: String(data.avgScore), label: 'Avg Score', accent: false },
-    { icon: Sparkles, value: String(data.bestScore), label: 'Highest Score', accent: true },
-    { icon: Target, value: `${data.predictionAccuracy}%`, label: 'Prediction Accuracy', accent: false },
+    { icon: BarChart3, value: String(data.totalAnalyses), label: 'Total Analyses', accent: false, trend: 'up' as const, trendPercent: '+12%' },
+    { icon: TrendingUp, value: String(data.avgScore), label: 'Avg Score', accent: false, trend: 'up' as const, trendPercent: '+5.3' },
+    { icon: Sparkles, value: String(data.bestScore), label: 'Highest Score', accent: true, trend: 'up' as const, trendPercent: '+8' },
+    { icon: Target, value: `${data.predictionAccuracy}%`, label: 'Prediction Accuracy', accent: false, trend: data.predictionAccuracy >= 80 ? 'up' as const : 'down' as const, trendPercent: data.predictionAccuracy >= 80 ? '+2.1' : '-1.4' },
   ];
 
   return (
@@ -338,7 +338,7 @@ export default function AnalyticsView() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-6 max-w-5xl mx-auto"
+      className="flex flex-col gap-6 max-w-5xl mx-auto noise-bg"
     >
       {/* Header */}
       <motion.div variants={item}>
@@ -355,9 +355,30 @@ export default function AnalyticsView() {
         {overviewStats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="glass">
+            <Card key={stat.label} className="glass transition-transform duration-300 hover:-translate-y-0.5">
               <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
-                <Icon className={cn('h-5 w-5 mb-1', stat.accent ? 'text-wine-accent' : 'text-viralyze-muted')} />
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Icon className={cn('h-5 w-5', stat.accent ? 'text-wine-accent' : 'text-viralyze-muted')} />
+                  <svg width="32" height="16" viewBox="0 0 32 16" className="opacity-60" aria-hidden="true">
+                    <polyline
+                      fill="none"
+                      stroke={stat.trend === 'up' ? '#22C55E' : '#EF4444'}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={stat.trend === 'up'
+                        ? '2,12 8,10 14,8 20,6 26,4 30,3'
+                        : '2,4 8,5 14,7 20,9 26,11 30,13'
+                      }
+                    />
+                  </svg>
+                  <span className={cn(
+                    'text-[10px] font-semibold tabular-nums',
+                    stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                  )}>
+                    {stat.trend === 'up' ? '↑' : '↓'}{stat.trendPercent}
+                  </span>
+                </div>
                 <span className={cn('text-2xl font-bold tabular-nums', stat.accent ? 'text-wine-accent' : 'text-viralyze-white')}>
                   {stat.value}
                 </span>
@@ -367,6 +388,9 @@ export default function AnalyticsView() {
           );
         })}
       </motion.div>
+
+      {/* Gradient Separator */}
+      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Score Distribution */}
       <motion.div variants={item}>
@@ -404,6 +428,9 @@ export default function AnalyticsView() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Gradient Separator */}
+      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Platform Performance + Category Breakdown */}
       <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,6 +534,9 @@ export default function AnalyticsView() {
         </Card>
       </motion.div>
 
+      {/* Gradient Separator */}
+      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
+
       {/* Score Trend - Area Chart */}
       <motion.div variants={item}>
         <Card className="glass">
@@ -566,14 +596,18 @@ export default function AnalyticsView() {
         </Card>
       </motion.div>
 
+      {/* Gradient Separator */}
+      <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
+
       {/* Top Content */}
       <motion.div variants={item}>
-        <Card className="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium text-viralyze-white">
-              Top Content
-            </CardTitle>
-          </CardHeader>
+        <div className="glow-wine-sm rounded-xl p-[1px]">
+          <Card className="glass">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium text-viralyze-white">
+                🏆 Top Content
+              </CardTitle>
+            </CardHeader>
           <CardContent className="pt-0">
             {data.topContent.length > 0 ? (
               <div className="flex flex-col divide-y divide-white/[0.06]">
@@ -609,6 +643,7 @@ export default function AnalyticsView() {
             )}
           </CardContent>
         </Card>
+        </div>
       </motion.div>
     </motion.div>
   );

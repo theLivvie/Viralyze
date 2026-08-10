@@ -1,8 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, FileText, BarChart3, TrendingUp, Inbox, ArrowRight, Instagram, Youtube, Tv, Twitter, Linkedin, Search } from 'lucide-react';
+import {
+  Sparkles,
+  FileText,
+  BarChart3,
+  TrendingUp,
+  ArrowRight,
+  Instagram,
+  Youtube,
+  Tv,
+  Twitter,
+  Linkedin,
+  Search,
+  Zap,
+  Share2,
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
@@ -17,11 +31,26 @@ const platformIcons: Record<Platform, React.ElementType> = {
   linkedin: Linkedin,
 };
 
+const platformLabels: Record<Platform, string> = {
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+  x: 'X',
+  linkedin: 'LinkedIn',
+};
+
 const classificationStyles: Record<Classification, string> = {
   low: 'bg-red-500/20 text-red-400',
   moderate: 'bg-amber-500/20 text-amber-400',
   high: 'bg-green-500/20 text-green-400',
   viral: 'bg-emerald-500/20 text-emerald-400',
+};
+
+const classificationDotColors: Record<Classification, string> = {
+  low: 'bg-red-400',
+  moderate: 'bg-amber-400',
+  high: 'bg-green-400',
+  viral: 'bg-emerald-400',
 };
 
 const container = {
@@ -77,7 +106,7 @@ function ScoreHistory({ scores }: { scores: number[] }) {
 }
 
 export default function DashboardView() {
-  const { savedAnalyses, setCurrentView, setCurrentAnalysis, user } = useAppStore();
+  const { savedAnalyses, setCurrentView, setCurrentAnalysis, setPredictMode, user } = useAppStore();
 
   const totalAnalyses = savedAnalyses.length;
   const avgScore =
@@ -93,6 +122,23 @@ export default function DashboardView() {
 
   const recentAnalyses = savedAnalyses.slice(0, 5);
   const scoreHistory = savedAnalyses.map((a) => a.overallScore);
+
+  // Platform distribution counts
+  const platformCounts = useMemo(() => {
+    const counts: Record<Platform, number> = {
+      instagram: 0,
+      youtube: 0,
+      tiktok: 0,
+      x: 0,
+      linkedin: 0,
+    };
+    savedAnalyses.forEach((a) => {
+      counts[a.platform]++;
+    });
+    return counts;
+  }, [savedAnalyses]);
+
+  const maxPlatformCount = Math.max(...Object.values(platformCounts), 1);
 
   const handleAnalysisClick = async (id: string) => {
     try {
@@ -110,6 +156,10 @@ export default function DashboardView() {
     }
   };
 
+  const planLabel = user?.plan
+    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) + ' Plan'
+    : 'Free Plan';
+
   return (
     <motion.div
       variants={container}
@@ -117,14 +167,27 @@ export default function DashboardView() {
       animate="show"
       className="flex flex-col gap-6 max-w-5xl mx-auto"
     >
-      {/* Welcome */}
+      {/* Welcome - Enhanced */}
       <motion.div variants={item}>
-        <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
-          Hello, Creator
-        </h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+            Welcome back, {user?.name || 'Creator'}
+          </h2>
+          <span className="animate-pulse-glow text-lg" aria-hidden="true">
+            ✨
+          </span>
+        </div>
         <p className="text-viralyze-muted mt-1">
           Ready to predict your next viral hit?
         </p>
+        <div className="mt-2">
+          <Badge
+            variant="outline"
+            className="border-wine-accent/40 text-wine-accent text-xs"
+          >
+            {planLabel}
+          </Badge>
+        </div>
       </motion.div>
 
       {/* CTA Cards with gradient mesh background and hover lift */}
@@ -165,7 +228,7 @@ export default function DashboardView() {
           >
             <Card
               className="glass border-white/[0.06] cursor-pointer group hover:border-white/15 transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] h-full"
-              onClick={() => setCurrentView('predict')}
+              onClick={() => { setPredictMode('post'); setCurrentView('predict'); }}
             >
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0">
@@ -257,7 +320,89 @@ export default function DashboardView() {
         )}
       </motion.div>
 
-      {/* Recent Analyses */}
+      {/* Platform Distribution */}
+      <motion.div variants={item}>
+        <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+          Platform Distribution
+        </h3>
+        <Card className="glass">
+          <CardContent className="p-4">
+            {totalAnalyses === 0 ? (
+              <p className="text-sm text-viralyze-muted text-center py-4">
+                No data yet
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {(Object.keys(platformIcons) as Platform[]).map((platform) => {
+                  const count = platformCounts[platform];
+                  if (count === 0) return null;
+                  const PIcon = platformIcons[platform];
+                  const barWidth = (count / maxPlatformCount) * 100;
+                  return (
+                    <div key={platform} className="flex items-center gap-3">
+                      <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+                      <span className="text-xs text-viralyze-muted w-20 shrink-0">
+                        {platformLabels[platform]}
+                      </span>
+                      <div className="flex-1 flex items-center gap-2">
+                        <div className="flex-1 h-3 rounded-full bg-wine-accent/10 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${barWidth}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className="h-full rounded-full bg-wine-accent/60"
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-viralyze-white tabular-nums w-6 text-right">
+                          {count}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Top Strengths Summary */}
+      <motion.div variants={item}>
+        <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+          Top Strengths
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card className="glass">
+            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+              <div className="h-10 w-10 rounded-full bg-wine-accent/15 flex items-center justify-center">
+                <Zap className="h-5 w-5 text-wine-accent" />
+              </div>
+              <span className="text-sm font-medium text-viralyze-white">Strong Hooks</span>
+              <span className="text-xs text-viralyze-muted">Keep it up!</span>
+            </CardContent>
+          </Card>
+          <Card className="glass">
+            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+              <div className="h-10 w-10 rounded-full bg-wine-accent/15 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-wine-accent" />
+              </div>
+              <span className="text-sm font-medium text-viralyze-white">High Engagement</span>
+              <span className="text-xs text-viralyze-muted">Keep it up!</span>
+            </CardContent>
+          </Card>
+          <Card className="glass">
+            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+              <div className="h-10 w-10 rounded-full bg-wine-accent/15 flex items-center justify-center">
+                <Share2 className="h-5 w-5 text-wine-accent" />
+              </div>
+              <span className="text-sm font-medium text-viralyze-white">Great Shareability</span>
+              <span className="text-xs text-viralyze-muted">Keep it up!</span>
+            </CardContent>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Recent Analyses - Enhanced */}
       <motion.div variants={item}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider">
@@ -305,12 +450,21 @@ export default function DashboardView() {
                     <span className="text-sm text-viralyze-white flex-1 truncate">
                       {analysis.title || 'Untitled'}
                     </span>
-                    <Badge
-                      variant="outline"
-                      className={cn('text-xs', classificationStyles[analysis.classification])}
-                    >
-                      {analysis.overallScore}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full shrink-0',
+                          classificationDotColors[analysis.classification]
+                        )}
+                        aria-hidden="true"
+                      />
+                      <Badge
+                        variant="outline"
+                        className={cn('text-xs', classificationStyles[analysis.classification])}
+                      >
+                        {analysis.overallScore}
+                      </Badge>
+                    </div>
                     <span className="text-xs text-viralyze-muted hidden sm:block">
                       {new Date(analysis.createdAt).toLocaleDateString()}
                     </span>

@@ -44,6 +44,32 @@ function FloatingParticles() {
           }}
         />
       ))}
+      {/* Extra accent particles with larger sizes and varied delays */}
+      {[6, 12, 18].map((size, i) => (
+        <motion.div
+          key={`extra-${i}`}
+          className="absolute rounded-full"
+          animate={{
+            y: [0, -20, 10, -15, 0],
+            opacity: [0.08, 0.18, 0.12, 0.2, 0.08],
+            scale: [1, 1.15, 0.95, 1.1, 1],
+          }}
+          transition={{
+            duration: 10 + i * 3,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: i * 2,
+          }}
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            left: `${20 + i * 28}%`,
+            top: `${30 + i * 18}%`,
+            background: i === 1 ? 'var(--color-wine)' : 'var(--color-wine-accent)',
+            filter: 'blur(1px)',
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -146,6 +172,15 @@ export default function HeroSection() {
     <section ref={sectionRef} className="noise-bg relative flex min-h-screen items-center overflow-hidden bg-gradient-wine-radial pt-16">
       <FloatingParticles />
 
+      {/* Vignette overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[5]"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(9,9,11,0.6) 100%)',
+        }}
+        aria-hidden="true"
+      />
+
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
           {/* Left Content */}
@@ -169,6 +204,14 @@ export default function HeroSection() {
               Know What Will Go Viral{' '}
               <span className="text-gradient-wine">Before You Post.</span>
             </motion.h1>
+
+            <motion.p
+              variants={item}
+              className="mt-2 text-xs tracking-widest uppercase text-viralyze-muted/40 animate-pulse-glow"
+              style={{ animationDuration: '3s' }}
+            >
+              Trusted by 10,000+ creators worldwide
+            </motion.p>
 
             <motion.p
               variants={item}

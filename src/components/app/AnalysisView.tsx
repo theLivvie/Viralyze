@@ -16,6 +16,8 @@ import {
   Sparkles,
   CheckCircle2,
   Download,
+  RefreshCw,
+  ClipboardCopy,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,7 +48,7 @@ const item = {
 };
 
 export default function AnalysisView() {
-  const { currentAnalysis, setCurrentView } = useAppStore();
+  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode } = useAppStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!currentAnalysis) {
@@ -95,6 +97,42 @@ export default function AnalysisView() {
       setCopiedField(field);
       toast.success('Copied to clipboard!');
       setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const handleReanalyze = async () => {
+    if (currentAnalysis?.id) {
+      try {
+        const res = await fetch(`/api/library?id=${currentAnalysis.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const content = data.contentText || data.ideaText || '';
+          if (content) {
+            setPrefilledIdea(content);
+            setCurrentView('predict');
+            toast.success('Content loaded for re-analysis');
+            return;
+          }
+        }
+      } catch {
+        // fall through to default behavior
+      }
+    }
+    setCurrentView('predict');
+    toast.success('Navigate to predict to start a new analysis');
+  };
+
+  const handleCopyAll = async () => {
+    const parts = [optimizedTitle, optimizedHook, optimizedCaption].filter(Boolean);
+    if (parts.length === 0) {
+      toast.error('No optimized content to copy');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(parts.join('\n\n'));
+      toast.success('All optimized content copied!');
     } catch {
       toast.error('Failed to copy');
     }
@@ -166,6 +204,15 @@ export default function AnalysisView() {
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline">Saved</span>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReanalyze}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+          >
+            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+            Re-analyze
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -417,10 +464,21 @@ export default function AnalysisView() {
           <Card className="glass overflow-hidden relative">
             <div className="glow-line w-full bg-gradient-to-r from-transparent via-wine-accent to-transparent" />
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-wine-accent" />
-                AI-Optimized Content
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-wine-accent" />
+                  AI-Optimized Content
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+                  onClick={handleCopyAll}
+                >
+                  <ClipboardCopy className="h-3.5 w-3.5" />
+                  Copy All
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {optimizedTitle && (

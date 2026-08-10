@@ -70,6 +70,21 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
+const categoryLabels: Record<string, string> = {
+  hook: 'Hook',
+  engagement: 'Engage',
+  shareability: 'Share',
+  retention: 'Retain',
+  originality: 'Original',
+  audienceFit: 'Fit',
+};
+
+const scoreBarColor = (value: number) => {
+  if (value >= 70) return 'bg-green-400';
+  if (value >= 45) return 'bg-amber-400';
+  return 'bg-red-400';
+};
+
 function SkeletonCard() {
   return (
     <Card className="glass animate-pulse">
@@ -529,6 +544,16 @@ export default function LibraryView() {
           {filtered.map((analysis) => {
             const PIcon = platformIcons[analysis.platform];
             const isSelected = selectedIds.has(analysis.id);
+
+            // Compute top 3 score categories
+            const scoreKeys = ['hook', 'engagement', 'shareability', 'retention', 'originality', 'audienceFit'] as const;
+            const topScores = analysis.scores
+              ? scoreKeys
+                  .map((k) => ({ key: k, value: analysis.scores![k] ?? 50 }))
+                  .sort((a, b) => b.value - a.value)
+                  .slice(0, 3)
+              : null;
+
             return (
               <motion.div key={analysis.id} variants={item}>
                 <Card
@@ -570,6 +595,27 @@ export default function LibraryView() {
                         {analysis.overallScore}
                       </Badge>
                     </div>
+                    {/* Score category sparklines */}
+                    {topScores && (
+                      <div className="flex items-center gap-2 mb-3">
+                        {topScores.map(({ key, value }) => (
+                          <div
+                            key={key}
+                            className="flex flex-col items-center gap-0.5 min-w-0"
+                          >
+                            <span className="text-[10px] leading-tight text-viralyze-muted/70 font-medium tabular-nums whitespace-nowrap">
+                              {categoryLabels[key]}: {value}
+                            </span>
+                            <div className="h-[1.5px] w-10 rounded-full bg-white/[0.06] overflow-hidden">
+                              <div
+                                className={cn('h-full rounded-full', scoreBarColor(value))}
+                                style={{ width: `${value}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs text-viralyze-muted">
                         <Badge variant="outline" className="text-xs border-white/10 text-viralyze-muted">

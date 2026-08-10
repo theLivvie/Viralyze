@@ -73,8 +73,13 @@ export default function SettingsView() {
       className="flex flex-col gap-6 max-w-2xl mx-auto"
     >
       {/* Profile — with gradient border and avatar upload zone */}
-      <motion.div variants={item}>
-        <div className="gradient-border rounded-xl">
+      <motion.div variants={item} className="relative">
+        {/* Gradient mesh background (2 blurred circles) */}
+        <div className="pointer-events-none absolute -inset-8 overflow-hidden rounded-3xl" aria-hidden="true">
+          <div className="absolute -left-16 -top-16 h-48 w-48 rounded-full bg-wine-accent/15 blur-[80px]" />
+          <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-wine-deep/20 blur-[80px]" />
+        </div>
+        <div className="gradient-border rounded-xl relative z-10">
           <Card className="glass relative z-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -211,7 +216,7 @@ export default function SettingsView() {
                   </tr>
                 </thead>
                 <tbody className="text-viralyze-muted">
-                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
+                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] hover:glow-wine-sm transition-all">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Predictions</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3 text-xs tabular-nums">
@@ -219,7 +224,7 @@ export default function SettingsView() {
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
+                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] hover:glow-wine-sm transition-all">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Analytics</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3">
@@ -231,7 +236,7 @@ export default function SettingsView() {
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
+                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] hover:glow-wine-sm transition-all">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Export Data</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3">
@@ -243,7 +248,7 @@ export default function SettingsView() {
                       </td>
                     ))}
                   </tr>
-                  <tr className="hover:bg-white/[0.03] transition-colors">
+                  <tr className="hover:bg-white/[0.03] hover:glow-wine-sm transition-all">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Priority Support</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3">
@@ -282,11 +287,13 @@ export default function SettingsView() {
                   <p className="text-xs text-viralyze-muted/50">Receive prediction results via email</p>
                 </div>
               </div>
-              <Switch
-                checked={notifications.email}
-                onCheckedChange={(v) => setNotifications((n) => ({ ...n, email: v }))}
-                className="data-[state=checked]:bg-wine-accent"
-              />
+              <div className="rounded-full p-1 bg-wine-accent/10 animate-pulse-glow" style={{ animationDuration: '4s' }}>
+                <Switch
+                  checked={notifications.email}
+                  onCheckedChange={(v) => setNotifications((n) => ({ ...n, email: v }))}
+                  className="data-[state=checked]:bg-wine-accent"
+                />
+              </div>
             </div>
             <Separator className="bg-white/[0.06]" />
             <div className="flex items-center justify-between">
@@ -299,11 +306,13 @@ export default function SettingsView() {
                   <p className="text-xs text-viralyze-muted/50">Get a weekly summary of trending topics</p>
                 </div>
               </div>
-              <Switch
-                checked={notifications.weeklyDigest}
-                onCheckedChange={(v) => setNotifications((n) => ({ ...n, weeklyDigest: v }))}
-                className="data-[state=checked]:bg-wine-accent"
-              />
+              <div className="rounded-full p-1 bg-wine-accent/10 animate-pulse-glow" style={{ animationDuration: '4s' }}>
+                <Switch
+                  checked={notifications.weeklyDigest}
+                  onCheckedChange={(v) => setNotifications((n) => ({ ...n, weeklyDigest: v }))}
+                  className="data-[state=checked]:bg-wine-accent"
+                />
+              </div>
             </div>
             <Separator className="bg-white/[0.06]" />
             <div className="flex items-center justify-between">
@@ -316,11 +325,13 @@ export default function SettingsView() {
                   <p className="text-xs text-viralyze-muted/50">Get notified when predictions are ready</p>
                 </div>
               </div>
-              <Switch
-                checked={notifications.predictionAlerts}
-                onCheckedChange={(v) => setNotifications((n) => ({ ...n, predictionAlerts: v }))}
-                className="data-[state=checked]:bg-wine-accent"
-              />
+              <div className="rounded-full p-1 bg-wine-accent/10 animate-pulse-glow" style={{ animationDuration: '4s' }}>
+                <Switch
+                  checked={notifications.predictionAlerts}
+                  onCheckedChange={(v) => setNotifications((n) => ({ ...n, predictionAlerts: v }))}
+                  className="data-[state=checked]:bg-wine-accent"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -350,7 +361,8 @@ export default function SettingsView() {
 
       {/* Danger Zone */}
       <motion.div variants={item}>
-        <Card className="glass border-red-500/20 hover:border-red-500/30 transition-colors">
+        <div className="gradient-border rounded-xl">
+          <Card className="glass border-red-500/20 hover:border-red-500/30 transition-colors relative z-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-red-400">
               <AlertTriangle className="h-4 w-4" />
@@ -371,6 +383,7 @@ export default function SettingsView() {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </motion.div>
     </motion.div>
   );

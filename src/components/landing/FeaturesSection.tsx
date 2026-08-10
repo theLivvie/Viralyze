@@ -103,7 +103,7 @@ export default function FeaturesSection() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15 + i * 0.12 }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-wine-accent/30 hover:shadow-[0_0_30px_rgba(127,29,58,0.25)]"
+              className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-wine-accent/30 hover:glow-wine-sm hover:shadow-[0_0_30px_rgba(127,29,58,0.25)]"
             >
               <div className="mb-4 text-4xl">{feature.emoji}</div>
               <h3 className="mb-1 text-xl font-bold text-viralyze-white">{feature.title}</h3>
@@ -133,12 +133,12 @@ export default function FeaturesSection() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.7 + i * 0.08 }}
               whileHover={{ x: 4, transition: { duration: 0.2 } }}
-              className="flex gap-4 rounded-xl border border-white/5 bg-white/[0.01] p-4 transition-colors hover:border-white/10 hover:bg-white/[0.03]"
+              className="flex gap-4 rounded-xl border border-white/5 bg-white/[0.01] p-4 transition-all hover:border-white/10 hover:bg-white/[0.03] hover:glow-wine-sm"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-wine-accent/10 relative">
                 <feature.icon className="h-5 w-5 text-wine-accent" />
-                {/* Number badge */}
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-wine-accent/80 text-[8px] font-bold text-white">
+                {/* Number badge circle with wine-accent border */}
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border border-wine-accent/60 bg-viralyze-soft-black text-[9px] font-bold text-wine-accent">
                   {String(i + 1).padStart(2, '0')}
                 </span>
               </div>
