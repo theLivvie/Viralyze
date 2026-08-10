@@ -16,9 +16,13 @@ import {
   Search,
   Zap,
   Share2,
+  Recycle,
+  Trophy,
+  RefreshCw,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/lib/store';
 import type { Platform, Classification } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -106,7 +110,7 @@ function ScoreHistory({ scores }: { scores: number[] }) {
 }
 
 export default function DashboardView() {
-  const { savedAnalyses, setCurrentView, setCurrentAnalysis, setPredictMode, user } = useAppStore();
+  const { savedAnalyses, setCurrentView, setCurrentAnalysis, setPredictMode, setPrefilledIdea, setPredictPlatform, setPredictContentType, user } = useAppStore();
 
   const totalAnalyses = savedAnalyses.length;
   const avgScore =
@@ -313,7 +317,59 @@ export default function DashboardView() {
           </Card>
         </div>
 
-        {/* Score History Mini Bar Chart */}
+        {/* Score Leaderboard */}
+        {totalAnalyses >= 2 && (() => {
+          const top5 = [...savedAnalyses].sort((a, b) => b.overallScore - a.overallScore).slice(0, 5);
+          const rankColors = ['text-yellow-400', 'text-gray-300', 'text-amber-600', 'text-viralyze-muted', 'text-viralyze-muted'];
+          const rankBg = ['bg-yellow-400/10', 'bg-gray-300/10', 'bg-amber-600/10', 'bg-white/[0.02]', 'bg-white/[0.02]'];
+          return (
+            <motion.div variants={item}>
+              <Card className="glass">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="h-4 w-4 text-wine-accent" />
+                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+                      Score Leaderboard
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {top5.map((a, i) => {
+                      const PIcon = platformIcons[a.platform];
+                      return (
+                        <motion.div
+                          key={a.id}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.08, duration: 0.3, ease: 'easeOut' }}
+                          className="flex items-center gap-3 py-1.5"
+                        >
+                          <span className={cn('text-sm font-bold w-6 text-right tabular-nums', rankColors[i])}>
+                            #{i + 1}
+                          </span>
+                          <PIcon className="h-3.5 w-3.5 text-viralyze-muted shrink-0" />
+                          <span className="text-sm text-viralyze-white flex-1 truncate">
+                            {(a.title || 'Untitled').length > 30
+                              ? (a.title || 'Untitled').slice(0, 30) + '...'
+                              : (a.title || 'Untitled')}
+                          </span>
+                          <span className={cn(
+                            'text-xs font-bold tabular-nums px-2 py-0.5 rounded-full',
+                            rankBg[i],
+                            a.overallScore >= 85 ? 'text-emerald-400' : a.overallScore >= 65 ? 'text-green-400' : a.overallScore >= 40 ? 'text-amber-400' : 'text-red-400'
+                          )}>
+                            {a.overallScore}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })()}
+
+      {/* Score History Mini Bar Chart */}
         {scoreHistory.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -430,6 +486,67 @@ export default function DashboardView() {
           </Card>
         </div>
       </motion.div>
+
+      {/* Content Recycler */}
+      {totalAnalyses >= 1 && (() => {
+        const bottom3 = [...savedAnalyses].sort((a, b) => a.overallScore - b.overallScore).slice(0, 3);
+        return (
+          <motion.div variants={item}>
+            <Card className="glass">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Recycle className="h-4 w-4 text-wine-accent" />
+                  <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+                    Content Recycler
+                  </span>
+                </div>
+                <p className="text-xs text-viralyze-muted/70 mb-3">
+                  Breathe new life into your content
+                </p>
+                <div className="flex flex-col gap-2">
+                  {bottom3.map((a, i) => {
+                    const PIcon = platformIcons[a.platform];
+                    const scoreColor = a.overallScore < 40 ? 'text-red-400' : 'text-amber-400';
+                    const scoreBg = a.overallScore < 40 ? 'bg-red-500/15' : 'bg-amber-500/15';
+                    return (
+                      <motion.div
+                        key={a.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1, duration: 0.35, ease: 'easeOut' }}
+                        className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-colors"
+                      >
+                        <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+                        <span className="text-sm text-viralyze-white flex-1 truncate">
+                          {a.title || 'Untitled'}
+                        </span>
+                        <span className={cn('text-xs font-bold tabular-nums px-2 py-0.5 rounded-full', scoreBg, scoreColor)}>
+                          {a.overallScore}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 text-xs text-wine-accent hover:text-wine-accent/80 hover:bg-wine-accent/10 shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrefilledIdea(a.contentText || a.ideaText || a.title);
+                            setPredictPlatform(a.platform);
+                            setPredictContentType(a.contentType);
+                            setCurrentView('predict');
+                          }}
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Re-analyze
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        );
+      })()}
 
       {/* Activity Feed */}
       {activityItems.length > 0 && (

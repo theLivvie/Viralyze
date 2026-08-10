@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, Variants } from 'framer-motion';
 import {
   BarChart3,
   TrendingUp,
@@ -71,6 +71,15 @@ const container = {
 const item = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+};
+
+const chartCardVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, delay: i * 0.1, ease: 'easeOut' },
+  }),
 };
 
 // --- Helpers ---
@@ -462,6 +471,20 @@ export default function AnalyticsView() {
             <p className="text-viralyze-muted text-sm">
               Track your content performance and viral potential trends
             </p>
+            {/* Live Data badge */}
+            {data && data.totalAnalyses > 0 && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-medium text-green-400"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                </span>
+                Live Data
+              </motion.span>
+            )}
             {/* Real-time last refreshed timestamp */}
             {lastRefreshed && (
               <span className="flex items-center gap-1 text-xs text-viralyze-muted/50">
@@ -518,7 +541,12 @@ export default function AnalyticsView() {
         {overviewStats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="glass transition-all duration-300 hover:-translate-y-1 hover:glow-wine-sm hover:border-wine-accent/20">
+            <motion.div
+              key={stat.label}
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+            <Card className="glass transition-all duration-300 hover:-translate-y-1 hover:glow-wine-sm hover:border-wine-accent/40">
               <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Icon className={cn('h-5 w-5', stat.accent ? 'text-wine-accent' : 'text-viralyze-muted')} />
@@ -548,6 +576,7 @@ export default function AnalyticsView() {
                 <span className="text-xs text-viralyze-muted">{stat.label}</span>
               </CardContent>
             </Card>
+            </motion.div>
           );
         })}
       </motion.div>
@@ -556,14 +585,20 @@ export default function AnalyticsView() {
       <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Score Distribution */}
-      <motion.div variants={item}>
-        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
-          <CardHeader className="pb-2">
+      <motion.div
+        custom={0}
+        variants={chartCardVariants}
+      >
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm relative overflow-hidden">
+          {/* Gradient mesh background */}
+          <div className="pointer-events-none absolute -top-8 -left-8 h-24 w-24 rounded-full bg-wine-accent/10 blur-[60px]" />
+          <div className="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-wine-deep/15 blur-[60px]" />
+          <CardHeader className="pb-2 relative z-10">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Score Distribution
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 relative z-10">
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.scoreDistribution} barCategoryGap="20%">
@@ -596,15 +631,21 @@ export default function AnalyticsView() {
       <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Platform Performance + Category Breakdown */}
-      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <motion.div
+        custom={1}
+        variants={chartCardVariants}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
         {/* Radar Chart */}
-        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
-          <CardHeader className="pb-2">
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-8 -left-8 h-24 w-24 rounded-full bg-wine-accent/10 blur-[60px]" />
+          <div className="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-wine-deep/15 blur-[60px]" />
+          <CardHeader className="pb-2 relative z-10">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Platform Performance
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 relative z-10">
             {data.platformPerformance.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -644,13 +685,15 @@ export default function AnalyticsView() {
         </Card>
 
         {/* Category Breakdown - Horizontal Bar Chart */}
-        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
-          <CardHeader className="pb-2">
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-8 -left-8 h-24 w-24 rounded-full bg-wine-accent/10 blur-[60px]" />
+          <div className="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-wine-deep/15 blur-[60px]" />
+          <CardHeader className="pb-2 relative z-10">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Category Breakdown
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 relative z-10">
             {data.categoryBreakdown.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -701,14 +744,19 @@ export default function AnalyticsView() {
       <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Score Trend - Area Chart */}
-      <motion.div variants={item}>
-        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm">
-          <CardHeader className="pb-2">
+      <motion.div
+        custom={2}
+        variants={chartCardVariants}
+      >
+        <Card className="glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-8 -left-8 h-24 w-24 rounded-full bg-wine-accent/10 blur-[60px]" />
+          <div className="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-wine-deep/15 blur-[60px]" />
+          <CardHeader className="pb-2 relative z-10">
             <CardTitle className="text-base font-medium text-viralyze-white">
               Score Trend
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 relative z-10">
             {data.weeklyTrend.length > 0 ? (
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
@@ -763,15 +811,20 @@ export default function AnalyticsView() {
       <motion.div variants={item} className="glow-line w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.4), transparent)' }} />
 
       {/* Top Content */}
-      <motion.div variants={item}>
+      <motion.div
+        custom={3}
+        variants={chartCardVariants}
+      >
         <div className="glow-wine-sm rounded-xl p-[1px]">
-          <Card className="glass">
-            <CardHeader className="pb-2">
+          <Card className="glass relative overflow-hidden">
+            <div className="pointer-events-none absolute -top-8 -left-8 h-24 w-24 rounded-full bg-wine-accent/10 blur-[60px]" />
+            <div className="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-wine-deep/15 blur-[60px]" />
+            <CardHeader className="pb-2 relative z-10">
               <CardTitle className="text-base font-medium text-viralyze-white">
                 🏆 Top Content
               </CardTitle>
             </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 relative z-10">
             {data.topContent.length > 0 ? (
               <div className="flex flex-col divide-y divide-white/[0.06]">
                 {data.topContent.map((content) => {

@@ -16,6 +16,10 @@ import {
   X,
   ArrowUp,
   ArrowDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -308,6 +312,7 @@ export default function LibraryView() {
   const [compareMode, setCompareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchLibrary = useCallback(async () => {
     if (!user?.id) {
@@ -350,6 +355,11 @@ export default function LibraryView() {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!user?.id) return;
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(null), 2000);
+      return;
+    }
     setDeleting(id);
     try {
       const res = await fetch(`/api/library?id=${id}&userId=${user.id}`, { method: 'DELETE' });
@@ -492,6 +502,46 @@ export default function LibraryView() {
         </Select>
       </motion.div>
 
+      {/* Score Trend sparkline */}
+      {!loading && analyses.length >= 3 && (
+        <motion.div variants={item}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Score Trend</span>
+          </div>
+          <Card className="glass">
+            <CardContent className="p-4">
+              {(() => {
+                const last15 = analyses.slice(-15);
+                const avg = Math.round(last15.reduce((s, a) => s + a.overallScore, 0) / last15.length);
+                return (
+                  <div className="relative flex items-end gap-1.5 h-20">
+                    {last15.map((a, i) => {
+                      const h = Math.max(4, (a.overallScore / 100) * 100);
+                      const barColor = a.overallScore >= 70 ? 'bg-green-400' : a.overallScore >= 50 ? 'bg-amber-400' : 'bg-red-400';
+                      return (
+                        <motion.div
+                          key={a.id}
+                          initial={{ height: 0 }}
+                          animate={{ height: `${h}%` }}
+                          transition={{ duration: 0.5, delay: i * 0.04, ease: 'easeOut' }}
+                          className={cn('flex-1 rounded-sm min-w-[4px] max-w-[20px]', barColor)}
+                          title={`Score: ${a.overallScore}`}
+                        />
+                      );
+                    })}
+                    {/* Average dashed line */}
+                    <div
+                      className="absolute left-0 right-0 border-t border-dashed border-viralyze-muted/30 pointer-events-none"
+                      style={{ bottom: `${avg}%` }}
+                    />
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Compare controls */}
       {!loading && analyses.length > 1 && (
         <motion.div variants={item} className="flex items-center gap-2">
@@ -514,6 +564,37 @@ export default function LibraryView() {
           >
             <GitCompareArrows className="h-3.5 w-3.5" />
             {compareMode ? 'Exit Compare' : 'Compare'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const csvRows = ['Title,Platform,Content Type,Score,Classification,Date'];
+              filtered.forEach((a) => {
+                const row = [
+                  `"${(a.title || 'Untitled').replace(/"/g, '""')}",`,
+                  a.platform,
+                  a.contentType,
+                  a.overallScore,
+                  a.classification,
+                  new Date(a.createdAt).toLocaleDateString(),
+                ].join(',');
+                csvRows.push(row);
+              });
+              const csvString = csvRows.join('\n');
+              const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = 'viralyze-library.csv';
+              link.click();
+              URL.revokeObjectURL(url);
+              toast.success('Library exported as CSV');
+            }}
+            className="gap-1.5 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-all"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
           </Button>
           {compareMode && selectedIds.size > 0 && (
             <>
@@ -632,8 +713,8 @@ export default function LibraryView() {
             <Card className="glass relative z-0">
               <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
                 <motion.div
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  animate={{ y: [0, -8, 0], rotate: [0, 3, -3, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                 >
                   <Inbox className="h-10 w-10 text-viralyze-muted/40" />
                 </motion.div>
@@ -694,7 +775,7 @@ export default function LibraryView() {
               <motion.div key={analysis.id} variants={item}>
                 <Card
                   className={cn(
-                    'glass group transition-all duration-300 cursor-pointer',
+                    'glass group transition-all duration-300 cursor-pointer relative overflow-hidden',
                     compareMode && 'hover:bg-white/[0.03]',
                     !compareMode && 'hover:bg-white/[0.03] hover:glow-wine-sm',
                     isSelected && 'border-2 border-wine-accent/60 glow-wine-sm bg-wine-accent/[0.04]',
@@ -702,7 +783,24 @@ export default function LibraryView() {
                   )}
                   onClick={() => handleCardClick(analysis.id)}
                 >
-                  <CardContent className="p-4">
+                  {/* Shimmer overlay on hover */}
+                  <motion.div
+                    className="absolute inset-0 z-10 pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 60%)',
+                      }}
+                      initial={{ x: '-100%' }}
+                      whileHover={{ x: '200%' }}
+                      transition={{ duration: 0.8, ease: 'easeInOut' }}
+                    />
+                  </motion.div>
+                  <CardContent className="p-4 relative z-20">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2 min-w-0">
                         {compareMode && (
@@ -724,11 +822,22 @@ export default function LibraryView() {
                           {analysis.title || 'Untitled'}
                         </span>
                       </div>
-                      <QuickScoreWidget
-                        score={analysis.overallScore}
-                        size="sm"
-                        classification={analysis.classification}
-                      />
+                      <div className="flex items-center gap-1.5">
+                        <QuickScoreWidget
+                          score={analysis.overallScore}
+                          size="sm"
+                          classification={analysis.classification}
+                        />
+                        {/* Trend indicator based on position in sorted array */}
+                        {(() => {
+                          const idx = filtered.findIndex((a) => a.id === analysis.id);
+                          const mid = Math.floor(filtered.length / 2);
+                          if (filtered.length < 2) return <Minus className="h-3 w-3 text-viralyze-muted/30" />;
+                          if (idx < mid) return <ArrowDownRight className="h-3.5 w-3.5 text-red-400/70" />;
+                          if (idx > mid) return <ArrowUpRight className="h-3.5 w-3.5 text-green-400/70" />;
+                          return <Minus className="h-3 w-3 text-viralyze-muted/30" />;
+                        })()}
+                      </div>
                     </div>
                     {/* Score category sparklines */}
                     {topScores && (
@@ -758,19 +867,31 @@ export default function LibraryView() {
                         </Badge>
                         <span>{new Date(analysis.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDelete(e, analysis.id)}
-                        disabled={deleting === analysis.id}
-                      >
-                        {deleting === analysis.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
+                      {confirmDeleteId === analysis.id ? (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="text-xs text-red-400 font-medium hover:text-red-300 transition-colors"
+                          onClick={(e) => handleDelete(e, analysis.id)}
+                          disabled={deleting === analysis.id}
+                        >
+                          {deleting === analysis.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Confirm?'}
+                        </motion.button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => handleDelete(e, analysis.id)}
+                          disabled={deleting === analysis.id}
+                        >
+                          {deleting === analysis.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

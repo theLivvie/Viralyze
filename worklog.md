@@ -1084,3 +1084,163 @@ Stage Summary:
 11. Email notifications for scheduled calendar content
 12. Onboarding persistence (currently localStorage, should sync to DB)
 13. Internationalization (i18n) support
+
+---
+Task ID: 9-a
+Agent: frontend-styling-expert (subagent)
+Task: Styling round 3 — enhance 5 components with visual detail and polish
+
+Work Log:
+- **LibraryView.tsx** — Added shimmer/sweep light reflection effect on card hover via Framer Motion animated gradient overlay (absolute positioned, z-10/20 layering, x: -100% → 200% on hover). Added score trend indicator arrows (ArrowUpRight green, ArrowDownRight red, Minus gray) next to QuickScoreWidget based on analysis position in filtered array. Replaced instant delete with 2-step inline confirmation (shows 'Confirm?' text with motion.button, reverts after 2s via setTimeout). Enhanced empty state Inbox icon with combined float + rotation oscillation (y: 0→-8→0, rotate: 0→3→-3→0 over 3s).
+- **AnalyticsView.tsx** — Added gradient mesh background to every chart CardContent (2 blurred circles: wine-accent/10 top-left, wine-deep/15 bottom-right). Wrapped each overview stat card in motion.div with whileHover={{scale: 1.03}} spring animation and upgraded hover border to hover:border-wine-accent/40. Added 'Live Data' badge with pulsing green dot (animate-ping + static dot) in header when data is loaded. Replaced chart card variants with chartCardVariants using custom delay prop (0.1s stagger between each: 0, 1, 2, 3).
+- **SettingsView.tsx** — Added hover:bg-white/[0.03] and hover:border-white/[0.08] transitions to all section cards (Plan & Usage, Compare Plans, Notifications, Account). Made toggle switch glow conditional: when ON, applies animate-pulse-glow + box-shadow 12px wine-accent; when OFF, plain bg-white/[0.04]. Added slow-rotating conic-gradient ring around profile avatar (motion.div with conic-gradient wine palette, rotate 360° over 6s infinite). Replaced danger zone gradient-border with border-red-500/30 + animate-pulse-glow (3s duration) for subtle pulsing red border.
+- **LandingFooter.tsx** — Added social icon bounce animation (whileHover scale 1.15, whileTap scale 1, spring stiffness 400 damping 15). Added newsletter success state with AnimatePresence: form wraps in gradient-border, on submit shows green Check + 'Subscribed!' in green-bordered pill. Added left-border accents (border-l-2 border-wine-accent/30 pl-3) to each link group heading (Product, Company, Resources). Replaced Separator above copyright with glow-line gradient divider.
+- **AnalysisView.tsx** — Added animate-pulse-glow (3s, border-radius 50%) to ScoreRing container for gentle glow pulse. Grouped Export and Share buttons into button group (flex gap-1, Export has rounded-r-none border-r-0, Share has rounded-none). Replaced text markers with decorative icons: CheckCircle2 (green) for strengths, AlertCircle (amber) for weaknesses, Lightbulb (wine-accent) for improvements. Added hover-reveal 'Use for Prediction' action on variation cards (opacity-0 translate-y-2 → group-hover:opacity-100 group-hover:translate-y-0 transition), moved Sparkles button there.
+
+Stage Summary:
+- 5 components significantly polished with Framer Motion animations
+- All changes use existing CSS utility classes from globals.css only (no new keyframes/classes)
+- Wine/maroon palette consistently maintained throughout
+- All existing functionality preserved intact
+- New icons: ArrowUpRight, ArrowDownRight, Minus, AlertCircle, Lightbulb, Check (lucide-react)
+- New imports: cn (utils), AnimatePresence, Variants (framer-motion)
+
+---
+Task ID: 9-b
+Agent: features-agent (subagent)
+Task: Implement 5 new features — Content Recycler, Score Leaderboard, Score Trend Chart, CSV Export, Quick Actions Bar
+
+Work Log:
+- **Feature 1: Content Recycler (DashboardView.tsx)**
+  - New 'Content Recycler' section after 'Top Strengths', before 'Activity Feed'
+  - Shows bottom 3 analyses by overallScore with platform icon, truncated title, color-coded score badge (red<40, amber>=40)
+  - 'Re-analyze' button pre-fills store (prefilledIdea, platform, contentType) and navigates to predict view
+  - Wrapped in glass Card with Recycle icon header and motivational message
+  - Framer Motion staggered entry (delay: i * 0.1s, y: 8→0)
+  - New icons: Recycle, RefreshCw, Trophy. New imports: Button from @/components/ui/button
+
+- **Feature 2: Score Leaderboard (DashboardView.tsx)**
+  - New 'Score Leaderboard' widget after 'Quick Stats', before 'Score History'
+  - Shows top 5 analyses sorted by overallScore descending
+  - Each row: rank number (#1-#5), platform icon, truncated title (30 chars), score badge
+  - #1 gold (text-yellow-400), #2 silver (text-gray-300), #3 bronze (text-amber-600)
+  - Framer Motion staggered slide-in from left (delay: i * 0.08s, x: -12→0)
+  - Wrapped in glass Card with Trophy icon header. Only shows when 2+ analyses
+
+- **Feature 3: Score History Chart (LibraryView.tsx)**
+  - Score Trend sparkline bar chart above library grid (before compare controls), shown when 3+ analyses
+  - Last 15 analysis scores as colored bars (green>=70, amber>=50, red<50)
+  - Simple divs with dynamic heights, no external chart library
+  - Framer Motion animated bars growing from 0 (delay: i * 0.04s)
+  - Dashed average line across chart at average score height
+  - New icon import: Download
+
+- **Feature 4: Library CSV Export (LibraryView.tsx)**
+  - 'Export CSV' button added next to Compare button in toolbar
+  - Generates CSV from currently filtered analyses (Title, Platform, Content Type, Score, Classification, Date)
+  - Uses Blob + URL.createObjectURL + anchor click trick
+  - Shows toast 'Library exported as CSV' via sonner
+
+- **Feature 5: Quick Actions Floating Bar (AppLayout.tsx)**
+  - Fixed bottom glass-strong bar with border-t border-white/[0.06]
+  - 4 compact buttons: New Prediction (Sparkles), Generate Ideas (Lightbulb), View Trends (TrendingUp), View Analytics (BarChart3)
+  - Each button: icon + tiny label below, wine-accent hover color
+  - Framer Motion slide-up entry (y: 20→0, delay: 0.3s)
+  - Only shows when logged in and on non-landing view
+  - Main content area padding increased to pb-16 to prevent overlap
+  - New icon imports: Sparkles, Lightbulb, TrendingUp, BarChart3
+
+Stage Summary:
+- 5 features implemented across 3 files (DashboardView.tsx, LibraryView.tsx, AppLayout.tsx)
+- No new types, routes, or CSS classes added
+- All animations use Framer Motion (staggered entry, slide-in, grow from 0)
+- Wine/maroon theme consistently maintained
+- All existing functionality preserved intact
+- New icons: Recycle, RefreshCw, Trophy, Download, Sparkles, Lightbulb, TrendingUp, BarChart3
+
+---
+Task ID: 9
+Agent: Main (orchestrator)
+Task: QA assessment, bug fixes, styling polish (round 6), new features (round 4), handover documentation
+
+Work Log:
+- Reviewed worklog.md — project at Round 5 complete, 11 views working
+- Dev server confirmed (localhost:3000, 200 response, clean compile)
+- Lint: zero errors on initial check
+- QA via agent-browser:
+  - Landing page: renders clean, no console errors
+  - All 8 app views navigated sequentially: zero errors
+  - Screenshot evidence: qa-r6-dashboard2.png, qa-r6-predict2.png, qa-r6-library2.png, qa-r6-analytics2.png
+  - No bug fixes needed this round — project stable
+
+Styling Enhancements (Task 9-a, 5 files):
+- LibraryView.tsx: Card shimmer sweep on hover, trend arrows (up/down/neutral) next to QuickScoreWidget, 2-step delete confirmation with auto-revert, empty state floating+rotating Inbox icon
+- AnalyticsView.tsx: Gradient mesh background on each chart card, stat card hover scale (1.03) + wine-accent border glow, 'Live Data' badge with pulsing green dot, chart card stagger animation (0.1s delay)
+- SettingsView.tsx: Section card hover effects, toggle ON wine-accent glow, avatar slow-rotating conic-gradient ring (6s infinite), danger zone pulsing red border
+- LandingFooter.tsx: Social icon bounce hover (scale 1.15 spring), newsletter gradient-border + success state with Check icon, link group heading left-border accents (wine-accent/30), glow-line copyright divider
+- AnalysisView.tsx: ScoreRing animate-pulse-glow, Export+Share button group with shared borders, decorative icons (CheckCircle2/AlertCircle/Lightbulb) on strength/weakness/improvement items, variation 'Use for Prediction' hover-reveal animation
+
+New Features (Task 9-b, 5 features):
+- Content Recycler (DashboardView): Bottom 3 analyses with Re-analyze button → pre-fills Predict form (setPrefilledIdea + setPredictPlatform + setPredictContentType + setCurrentView)
+- Score Leaderboard (DashboardView): Top 5 analyses with gold/silver/bronze rank badges, platform icons, staggered slide-in from left
+- Score Trend Chart (LibraryView): Pure div-based bar chart (last 15 scores), color-coded (green/amber/red), animated grow-from-zero, dashed average line
+- Library CSV Export (LibraryView): Export filtered analyses as CSV (Title, Platform, Content Type, Score, Classification, Date)
+- Quick Actions Floating Bar (AppLayout): Fixed bottom bar with 4 compact buttons (New Prediction, Generate Ideas, View Trends, View Analytics), slide-up entry, glass-strong styling, pb-16 on main content
+
+Stage Summary:
+- 0 bug fixes needed (project stable)
+- 5 files styled with enhanced visual detail
+- 5 new features implemented across 3 files
+- Zero new files created
+- Zero lint errors
+- Dev server compiles cleanly
+- All views QA verified via agent-browser
+
+## Current Project Status
+- **Phase**: Post-MVP Enhancement (Round 6 — Styling Polish Round 3, Features Round 4)
+- **Total Views**: 11 (Dashboard, Predict, Analysis, Library, Ideas, Templates, Trends, Analytics, Calendar, Settings + Landing)
+- **Working Features** (complete list):
+  - Landing page (10 sections: hero w/ mouse spotlight + dot grid + floating particles + staggered words, social proof w/ dual marquee, problem section, demo w/ 3-step progress + AI Ready indicator, features w/ parallax + icon rotation + capability marquee, how-it-works, pricing w/ monthly/yearly toggle + Save 17% badge, CTA w/ radial glow + floating particles, footer w/ newsletter signup + link accent borders + glow-line divider)
+  - Auth (login/signup modal, demo mode)
+  - Dashboard (activity feed, score history bar chart, platform distribution, CTA cards, quick stats, score leaderboard w/ gold/silver/bronze, top strengths, content recycler w/ re-analyze)
+  - Predict (3-step loading animation, recent predictions pills, content type icons, color-shifting char count, gradient mesh, pre-fill from Ideas/Templates/Recycler)
+  - Analysis (full breakdown w/ pulse-glow ScoreRing, export JSON+CSV, share button, FAB, content preview, A/B variation compare, Score Insights panel, strength/weakness/improvement decorative icons, variation hover-reveal)
+  - Library (search/filter/sort, delete w/ 2-step confirmation, compare mode w/ inline panel + modal, QuickScoreWidget cards, score sparklines, trend arrows, card shimmer hover, score trend chart, CSV export)
+  - Ideas (rich empty state w/ Lightbulb + suggestion chips, AI generation, engagement indicators, viral potential badges, platform suggestions, stagger animation, →Predict pre-fill)
+  - Templates (10 curated templates, 6 categories, search, Use Template → Predict, QuickScoreWidget)
+  - Trends (AI refresh, search, category filters, bookmark, Hot/Rising badges, pulse animation)
+  - Analytics (real DB data, live clock, JSON+CSV export, refresh, animated counters, Live Data badge, gradient mesh chart cards, stat card hover scale, chart stagger, loading/empty/error states)
+  - Calendar (week stats bar, content type color borders, note dialog, mobile 3-day view, drag feedback, time-of-day gradients, hover lift, today pill)
+  - Settings (profile editing, notification toggles w/ wine glow, plan comparison, danger zone w/ red pulse, avatar w/ rotating conic ring)
+  - Notification Center (Popover from Bell icon, auto-generated from analyses, mark-all-read, empty state, spring badge)
+  - Quick Actions bar (fixed bottom, 4 compact nav buttons, slide-up animation)
+  - Onboarding overlay (3-step tour)
+  - Keyboard shortcuts (Ctrl+K/L/I/\/, floating ? button)
+  - Page transitions (AnimatePresence fade+slide)
+  - Breadcrumb navigation
+
+## Completed Modifications This Round
+- **Bug Fixes** (0): Project stable, no issues found
+- **Styling** (5 files): LibraryView, AnalyticsView, SettingsView, LandingFooter, AnalysisView
+- **Features** (5): Content Recycler, Score Leaderboard, Score Trend Chart, Library CSV Export, Quick Actions Bar
+
+## Verification Results
+- `bun run lint`: zero errors, zero warnings
+- Dev server: compiles cleanly, 200 responses
+- agent-browser QA: all views render, no console errors
+- Screenshot evidence: /home/z/my-project/download/qa-r6-*.png
+
+## Unresolved / Next Steps (Priority Order)
+1. Predicted vs actual performance tracking (post-publish feedback loop)
+2. Google OAuth integration (replace demo auth)
+3. Rate limiting on API routes
+4. Calendar slots linked to actual predictions (currently localStorage only)
+5. A/B testing backend (UI exists, need server-side)
+6. Real-time collaboration features
+7. Accessibility audit (ARIA labels, keyboard navigation, screen reader testing)
+8. Mobile responsive polish (sheet transitions, touch targets 44px+)
+9. Performance optimization (code splitting, lazy loading, image optimization)
+10. Sound/haptic feedback on interactions
+11. Email notifications for scheduled calendar content
+12. Onboarding persistence (currently localStorage, should sync to DB)
+13. Internationalization (i18n) support

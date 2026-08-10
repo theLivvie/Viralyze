@@ -1,8 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Sparkles, Twitter, Github, Linkedin, Instagram, ArrowRight, Send } from 'lucide-react';
+import { Sparkles, Twitter, Github, Linkedin, Instagram, ArrowRight, Send, Check } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/lib/store';
 
@@ -37,11 +37,20 @@ const socialLinks = [
 export default function LandingFooter() {
   const { setScrollToSection } = useAppStore();
   const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
 
   const handleLinkClick = (section: string | null) => {
     if (section) {
       setScrollToSection(section);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) {
+      setSubscribed(true);
+      setEmail('');
     }
   };
 
@@ -74,32 +83,62 @@ export default function LandingFooter() {
             {/* Newsletter signup */}
             <div className="mb-6">
               <p className="mb-2.5 text-sm font-semibold text-viralyze-white">Stay in the loop</p>
-              <div className="focus-glow-wine flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@email.com"
-                  className="flex-1 bg-transparent text-sm text-viralyze-white placeholder-viralyze-muted/50 outline-none"
-                />
-                <button
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-wine-accent text-viralyze-white transition-opacity duration-200 hover:opacity-80"
-                  aria-label="Subscribe to newsletter"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <AnimatePresence mode="wait">
+                {subscribed ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/[0.08] px-3 py-2.5"
+                  >
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/20">
+                      <Check className="h-3 w-3 text-green-400" />
+                    </div>
+                    <span className="text-sm font-medium text-green-400">Subscribed!</span>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onSubmit={handleSubscribe}
+                    className="gradient-border rounded-lg"
+                  >
+                    <div className="focus-glow-wine flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@email.com"
+                        className="flex-1 bg-transparent text-sm text-viralyze-white placeholder-viralyze-muted/50 outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-wine-accent text-viralyze-white transition-opacity duration-200 hover:opacity-80"
+                        aria-label="Subscribe to newsletter"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </motion.form>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
-                <button
+                <motion.button
                   key={social.label}
                   aria-label={social.label}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] text-viralyze-muted transition-all duration-300 hover:border-white/10 hover:text-viralyze-white hover:glow-wine-sm"
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                 >
                   <social.icon className="h-4 w-4" />
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -107,7 +146,7 @@ export default function LandingFooter() {
           {/* Link Columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="mb-4 text-sm font-semibold text-viralyze-white">{category}</h4>
+              <h4 className="mb-4 text-sm font-semibold text-viralyze-white border-l-2 border-wine-accent/30 pl-3">{category}</h4>
               <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
@@ -125,7 +164,7 @@ export default function LandingFooter() {
           ))}
         </div>
 
-        <Separator className="my-8 bg-white/5" />
+        <div className="glow-line my-8" style={{ background: 'linear-gradient(90deg, transparent, rgba(184,50,90,0.3), transparent)' }} />
 
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-viralyze-muted">

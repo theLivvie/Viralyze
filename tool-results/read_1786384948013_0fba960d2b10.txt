@@ -1,0 +1,841 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import {
+     6→  Search,
+     7→  Trash2,
+     8→  Inbox,
+     9→  Instagram,
+    10→  Youtube,
+    11→  Tv,
+    12→  Twitter,
+    13→  Linkedin,
+    14→  Loader2,
+    15→  GitCompareArrows,
+    16→  X,
+    17→  ArrowUp,
+    18→  ArrowDown,
+    19→  ArrowUpRight,
+    20→  ArrowDownRight,
+    21→  Minus,
+    22→} from 'lucide-react';
+    23→import { Card, CardContent } from '@/components/ui/card';
+    24→import { Button } from '@/components/ui/button';
+    25→import { Input } from '@/components/ui/input';
+    26→import { Badge } from '@/components/ui/badge';
+    27→import {
+    28→  Dialog,
+    29→  DialogContent,
+    30→  DialogHeader,
+    31→  DialogTitle,
+    32→  DialogDescription,
+    33→} from '@/components/ui/dialog';
+    34→import {
+    35→  Select,
+    36→  SelectContent,
+    37→  SelectItem,
+    38→  SelectTrigger,
+    39→  SelectValue,
+    40→} from '@/components/ui/select';
+    41→import { useAppStore } from '@/lib/store';
+    42→import type { Platform, Classification, SavedAnalysis } from '@/lib/types';
+    43→import { cn } from '@/lib/utils';
+    44→import { toast } from 'sonner';
+    45→import QuickScoreWidget from '@/components/shared/QuickScoreWidget';
+    46→
+    47→const platformIcons: Record<Platform, React.ElementType> = {
+    48→  instagram: Instagram,
+    49→  youtube: Youtube,
+    50→  tiktok: Tv,
+    51→  x: Twitter,
+    52→  linkedin: Linkedin,
+    53→};
+    54→
+    55→const classificationStyles: Record<Classification, string> = {
+    56→  low: 'bg-red-500/20 text-red-400',
+    57→  moderate: 'bg-amber-500/20 text-amber-400',
+    58→  high: 'bg-green-500/20 text-green-400',
+    59→  viral: 'bg-emerald-500/20 text-emerald-400',
+    60→};
+    61→
+    62→const container = {
+    63→  hidden: { opacity: 0 },
+    64→  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+    65→};
+    66→
+    67→const item = {
+    68→  hidden: { opacity: 0, y: 12 },
+    69→  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    70→};
+    71→
+    72→const categoryLabels: Record<string, string> = {
+    73→  hook: 'Hook',
+    74→  engagement: 'Engage',
+    75→  shareability: 'Share',
+    76→  retention: 'Retain',
+    77→  originality: 'Original',
+    78→  audienceFit: 'Fit',
+    79→};
+    80→
+    81→const scoreBarColor = (value: number) => {
+    82→  if (value >= 70) return 'bg-green-400';
+    83→  if (value >= 45) return 'bg-amber-400';
+    84→  return 'bg-red-400';
+    85→};
+    86→
+    87→function SkeletonCard() {
+    88→  return (
+    89→    <Card className="glass animate-pulse">
+    90→      <CardContent className="p-4">
+    91→        <div className="flex items-start justify-between gap-2 mb-3">
+    92→          <div className="flex items-center gap-2 min-w-0 flex-1">
+    93→            <div className="h-4 w-4 rounded bg-white/[0.06] shrink-0" />
+    94→            <div className="h-4 w-3/4 rounded bg-white/[0.06]" />
+    95→          </div>
+    96→          <div className="h-6 w-10 rounded bg-white/[0.06] shrink-0" />
+    97→        </div>
+    98→        <div className="flex items-center justify-between">
+    99→          <div className="flex items-center gap-2">
+   100→            <div className="h-5 w-14 rounded bg-white/[0.06]" />
+   101→            <div className="h-4 w-20 rounded bg-white/[0.06]" />
+   102→          </div>
+   103→          <div className="h-7 w-7 rounded bg-white/[0.06]" />
+   104→        </div>
+   105→      </CardContent>
+   106→    </Card>
+   107→  );
+   108→}
+   109→
+   110→function CompareModal({
+   111→  analyses: selected,
+   112→  open,
+   113→  onOpenChange,
+   114→}: {
+   115→  analyses: SavedAnalysis[];
+   116→  open: boolean;
+   117→  onOpenChange: (open: boolean) => void;
+   118→}) {
+   119→  const scoreColor = (score: number) => {
+   120→    if (score >= 85) return 'text-emerald-400';
+   121→    if (score >= 65) return 'text-green-400';
+   122→    if (score >= 40) return 'text-amber-400';
+   123→    return 'text-red-400';
+   124→  };
+   125→
+   126→  const bestCategoryLabels: Record<string, string> = {
+   127→    hook: 'Hook',
+   128→    engagement: 'Engagement',
+   129→    shareability: 'Shareability',
+   130→    retention: 'Retention',
+   131→    originality: 'Originality',
+   132→    audienceFit: 'Audience Fit',
+   133→    emotionalImpact: 'Emotional',
+   134→    contentQuality: 'Quality',
+   135→    trendAlignment: 'Trend',
+   136→  };
+   137→
+   138→  // Compute best category per analysis
+   139→  const getBestCategory = (a: SavedAnalysis) => {
+   140→    if (!a.scores) return null;
+   141→    const entries = Object.entries(a.scores).filter(([, v]) => typeof v === 'number');
+   142→    if (entries.length === 0) return null;
+   143→    entries.sort(([, a], [, b]) => (b as number) - (a as number));
+   144→    const [key, value] = entries[0];
+   145→    return { label: bestCategoryLabels[key] || key, value: value as number };
+   146→  };
+   147→
+   148→  // Find winner IDs
+   149→  const scoreWinnerId = selected.reduce<string | null>((
+   150→    best,
+   151→    a,
+   152→  ) => {
+   153→    const bestScore = selected.find((s) => s.id === best)?.overallScore ?? -1;
+   154→    return a.overallScore > bestScore ? a.id : best;
+   155→  }, selected[0]?.id ?? null);
+   156→
+   157→  const bestCategories = selected.map((a) => ({ id: a.id, best: getBestCategory(a) }));
+   158→  const bestCategoryWinnerId = bestCategories.reduce<string | null>((
+   159→    best,
+   160→    curr,
+   161→  ) => {
+   162→    if (!curr.best) return best;
+   163→    const bestVal = bestCategories.find((b) => b.id === best)?.best?.value ?? -1;
+   164→    return curr.best.value > bestVal ? curr.id : best;
+   165→  }, bestCategories[0]?.id ?? null);
+   166→
+   167→  return (
+   168→    <Dialog open={open} onOpenChange={onOpenChange}>
+   169→      <DialogContent className="bg-viralyze-black border-white/[0.08] max-w-3xl max-h-[80vh] overflow-y-auto">
+   170→        <DialogHeader>
+   171→          <DialogTitle className="text-viralyze-white flex items-center gap-2">
+   172→            <GitCompareArrows className="h-5 w-5 text-wine-accent" />
+   173→            Compare Analyses
+   174→          </DialogTitle>
+   175→          <DialogDescription className="text-viralyze-muted">
+   176→            Side-by-side comparison of {selected.length} content analyses
+   177→          </DialogDescription>
+   178→        </DialogHeader>
+   179→        <div className="mt-4">
+   180→          <div className="overflow-x-auto">
+   181→            <table className="w-full text-sm">
+   182→              <thead>
+   183→                <tr className="border-b border-white/[0.08]">
+   184→                  <th className="text-left py-2.5 pr-4 text-viralyze-muted font-medium text-xs uppercase tracking-wider w-28">Field</th>
+   185→                  {selected.map((a) => (
+   186→                    <th key={a.id} className="text-left py-2.5 px-3 text-viralyze-white font-medium text-xs min-w-[180px]">
+   187→                      {a.title || 'Untitled'}
+   188→                    </th>
+   189→                  ))}
+   190→                </tr>
+   191→              </thead>
+   192→              <tbody className="divide-y divide-white/[0.04]">
+   193→                {/* Score */}
+   194→                <tr className="hover:glow-wine-sm transition-all">
+   195→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Score</td>
+   196→                  {selected.map((a) => (
+   197→                    <td key={a.id} className="py-3 px-3">
+   198→                      <span className={cn('text-lg font-bold tabular-nums', scoreColor(a.overallScore))}>
+   199→                        {a.overallScore}
+   200→                      </span>
+   201→                      {scoreWinnerId === a.id && <span className="ml-1.5">🏆</span>}
+   202→                    </td>
+   203→                  ))}
+   204→                </tr>
+   205→                {/* Classification */}
+   206→                <tr className="hover:glow-wine-sm transition-all">
+   207→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Classification</td>
+   208→                  {selected.map((a) => (
+   209→                    <td key={a.id} className="py-3 px-3">
+   210→                      <Badge
+   211→                        variant="outline"
+   212→                        className={cn('text-xs capitalize', classificationStyles[a.classification])}
+   213→                      >
+   214→                        {a.classification}
+   215→                      </Badge>
+   216→                    </td>
+   217→                  ))}
+   218→                </tr>
+   219→                {/* Platform */}
+   220→                <tr className="hover:glow-wine-sm transition-all">
+   221→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Platform</td>
+   222→                  {selected.map((a) => {
+   223→                    const PI = platformIcons[a.platform];
+   224→                    return (
+   225→                      <td key={a.id} className="py-3 px-3">
+   226→                        <div className="flex items-center gap-1.5 text-viralyze-white">
+   227→                          <PI className="h-3.5 w-3.5 text-viralyze-muted" />
+   228→                          <span className="text-xs capitalize">{a.platform}</span>
+   229→                        </div>
+   230→                      </td>
+   231→                    );
+   232→                  })}
+   233→                </tr>
+   234→                {/* Content Type */}
+   235→                <tr className="hover:glow-wine-sm transition-all">
+   236→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Content Type</td>
+   237→                  {selected.map((a) => (
+   238→                    <td key={a.id} className="py-3 px-3">
+   239→                      <span className="text-xs text-viralyze-white capitalize">{a.contentType}</span>
+   240→                    </td>
+   241→                  ))}
+   242→                </tr>
+   243→                {/* Date */}
+   244→                <tr className="hover:glow-wine-sm transition-all">
+   245→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Date</td>
+   246→                  {selected.map((a) => (
+   247→                    <td key={a.id} className="py-3 px-3">
+   248→                      <span className="text-xs text-viralyze-muted">
+   249→                        {new Date(a.createdAt).toLocaleDateString('en-US', {
+   250→                          month: 'short',
+   251→                          day: 'numeric',
+   252→                          year: 'numeric',
+   253→                        })}
+   254→                      </span>
+   255→                    </td>
+   256→                  ))}
+   257→                </tr>
+   258→                {/* Best Category */}
+   259→                <tr className="hover:glow-wine-sm transition-all">
+   260→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Best Category</td>
+   261→                  {bestCategories.map((bc) => (
+   262→                    <td key={bc.id} className="py-3 px-3">
+   263→                      {bc.best ? (
+   264→                        <div className="flex items-center gap-1.5">
+   265→                          <span className="text-xs text-viralyze-white font-medium">{bc.best.label}</span>
+   266→                          <span className={cn('text-xs font-bold tabular-nums', scoreColor(bc.best.value))}>
+   267→                            {bc.best.value}
+   268→                          </span>
+   269→                          {bestCategoryWinnerId === bc.id && <span>🏆</span>}
+   270→                        </div>
+   271→                      ) : (
+   272→                        <span className="text-xs text-viralyze-muted">N/A</span>
+   273→                      )}
+   274→                    </td>
+   275→                  ))}
+   276→                </tr>
+   277→                {/* Visual score bar */}
+   278→                <tr className="hover:glow-wine-sm transition-all">
+   279→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Score Bar</td>
+   280→                  {selected.map((a) => {
+   281→                    const barColor = a.overallScore >= 70 ? 'bg-green-400' : a.overallScore >= 50 ? 'bg-amber-400' : 'bg-red-400';
+   282→                    return (
+   283→                      <td key={a.id} className="py-3 px-3">
+   284→                        <div className="h-2.5 w-full max-w-[140px] rounded-full bg-white/[0.06] overflow-hidden">
+   285→                          <div
+   286→                            className={cn('h-full rounded-full transition-all duration-500', barColor)}
+   287→                            style={{ width: `${a.overallScore}%` }}
+   288→                          />
+   289→                        </div>
+   290→                      </td>
+   291→                    );
+   292→                  })}
+   293→                </tr>
+   294→              </tbody>
+   295→            </table>
+   296→          </div>
+   297→        </div>
+   298→      </DialogContent>
+   299→    </Dialog>
+   300→  );
+   301→}
+   302→
+   303→export default function LibraryView() {
+   304→  const { setSavedAnalyses, removeSavedAnalysis, setCurrentAnalysis, setCurrentView, user } = useAppStore();
+   305→  const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
+   306→  const [loading, setLoading] = useState(true);
+   307→  const [search, setSearch] = useState('');
+   308→  const [platformFilter, setPlatformFilter] = useState<string>('all');
+   309→  const [sort, setSort] = useState<string>('newest');
+   310→  const [deleting, setDeleting] = useState<string | null>(null);
+   311→  const [compareMode, setCompareMode] = useState(false);
+   312→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+   313→  const [compareOpen, setCompareOpen] = useState(false);
+   314→  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+   315→
+   316→  const fetchLibrary = useCallback(async () => {
+   317→    if (!user?.id) {
+   318→      setLoading(false);
+   319→      return;
+   320→    }
+   321→    try {
+   322→      setLoading(true);
+   323→      const res = await fetch(`/api/library?userId=${user.id}`);
+   324→      if (res.ok) {
+   325→        const data = await res.json();
+   326→        setAnalyses(data);
+   327→        setSavedAnalyses(data);
+   328→      }
+   329→    } catch {
+   330→      // Silently fail — use whatever is in local state
+   331→    } finally {
+   332→      setLoading(false);
+   333→    }
+   334→  }, [user?.id, setSavedAnalyses]);
+   335→
+   336→  useEffect(() => {
+   337→    fetchLibrary();
+   338→  }, [fetchLibrary]);
+   339→
+   340→  const filtered = analyses
+   341→    .filter((a) => {
+   342→      if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
+   343→      if (platformFilter !== 'all' && a.platform !== platformFilter) return false;
+   344→      return true;
+   345→    })
+   346→    .sort((a, b) => {
+   347→      if (sort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+   348→      if (sort === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+   349→      if (sort === 'score-high') return b.overallScore - a.overallScore;
+   350→      if (sort === 'score-low') return a.overallScore - b.overallScore;
+   351→      return 0;
+   352→    });
+   353→
+   354→  const handleDelete = async (e: React.MouseEvent, id: string) => {
+   355→    e.stopPropagation();
+   356→    if (!user?.id) return;
+   357→    if (confirmDeleteId !== id) {
+   358→      setConfirmDeleteId(id);
+   359→      setTimeout(() => setConfirmDeleteId(null), 2000);
+   360→      return;
+   361→    }
+   362→    setDeleting(id);
+   363→    try {
+   364→      const res = await fetch(`/api/library?id=${id}&userId=${user.id}`, { method: 'DELETE' });
+   365→      if (res.ok) {
+   366→        setAnalyses((prev) => prev.filter((a) => a.id !== id));
+   367→        removeSavedAnalysis(id);
+   368→        setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+   369→        toast.success('Removed from library');
+   370→      } else {
+   371→        toast.error('Failed to delete analysis');
+   372→      }
+   373→    } catch {
+   374→      toast.error('Failed to delete analysis');
+   375→    } finally {
+   376→      setDeleting(null);
+   377→    }
+   378→  };
+   379→
+   380→  const [viewingId, setViewingId] = useState<string | null>(null);
+   381→
+   382→  const handleCardClick = async (id: string) => {
+   383→    if (compareMode) {
+   384→      setSelectedIds((prev) => {
+   385→        const next = new Set(prev);
+   386→        if (next.has(id)) {
+   387→          next.delete(id);
+   388→        } else if (next.size < 3) {
+   389→          next.add(id);
+   390→        } else {
+   391→          toast.info('You can compare up to 3 items');
+   392→          return prev;
+   393→        }
+   394→        return next;
+   395→      });
+   396→    } else {
+   397→      try {
+   398→        setViewingId(id);
+   399→        const res = await fetch(`/api/library?id=${id}`);
+   400→        if (res.ok) {
+   401→          const data = await res.json();
+   402→          setCurrentAnalysis(data);
+   403→          setCurrentView('analysis');
+   404→        } else {
+   405→          toast.error('Failed to load analysis');
+   406→        }
+   407→      } catch {
+   408→        toast.error('Failed to load analysis');
+   409→      } finally {
+   410→        setViewingId(null);
+   411→      }
+   412→    }
+   413→  };
+   414→
+   415→  const selectedAnalyses = analyses.filter((a) => selectedIds.has(a.id));
+   416→
+   417→  const handleCompare = () => {
+   418→    if (selectedIds.size >= 2) {
+   419→      setCompareOpen(true);
+   420→    }
+   421→  };
+   422→
+   423→  const exitCompareMode = () => {
+   424→    setCompareMode(false);
+   425→    setSelectedIds(new Set());
+   426→  };
+   427→
+   428→  const isFilteredEmpty = !loading && filtered.length === 0 && analyses.length > 0;
+   429→  const isEmpty = !loading && analyses.length === 0;
+   430→
+   431→  const compareItems = compareMode && selectedIds.size === 2
+   432→    ? analyses.filter((a) => selectedIds.has(a.id))
+   433→    : [];
+   434→  const showComparePanel = compareItems.length === 2;
+   435→  const [compareA, compareB] = showComparePanel ? compareItems : [null, null];
+   436→  const compareScoreDiff = showComparePanel ? compareA!.overallScore - compareB!.overallScore : 0;
+   437→
+   438→  return (
+   439→    <motion.div
+   440→      variants={container}
+   441→      initial="hidden"
+   442→      animate="show"
+   443→      className="flex flex-col gap-4 max-w-4xl mx-auto"
+   444→    >
+   445→      {/* Header with count badge */}
+   446→      <motion.div variants={item} className="flex items-center gap-3">
+   447→        <div className="flex flex-col">
+   448→          <div className="flex items-center gap-2.5">
+   449→            <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   450→              Content Library
+   451→            </h2>
+   452→            {!loading && analyses.length > 0 && (
+   453→              <Badge
+   454→                variant="outline"
+   455→                className="text-xs border-wine-accent/30 text-wine-accent bg-wine-accent/10 tabular-nums"
+   456→              >
+   457→                {analyses.length}
+   458→              </Badge>
+   459→            )}
+   460→          </div>
+   461→          <p className="text-viralyze-muted mt-1">
+   462→            Your saved content analyses
+   463→          </p>
+   464→        </div>
+   465→      </motion.div>
+   466→
+   467→      {/* Filters */}
+   468→      <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
+   469→        <div className="relative flex-1">
+   470→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted" />
+   471→          <Input
+   472→            placeholder="Search analyses..."
+   473→            value={search}
+   474→            onChange={(e) => setSearch(e.target.value)}
+   475→            className="pl-9 bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent hover:border-white/[0.12] transition-colors"
+   476→          />
+   477→        </div>
+   478→        <Select value={platformFilter} onValueChange={setPlatformFilter}>
+   479→          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+   480→            <SelectValue placeholder="Platform" />
+   481→          </SelectTrigger>
+   482→          <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   483→            <SelectItem value="all" className="text-viralyze-white">All Platforms</SelectItem>
+   484→            <SelectItem value="instagram" className="text-viralyze-white">Instagram</SelectItem>
+   485→            <SelectItem value="youtube" className="text-viralyze-white">YouTube</SelectItem>
+   486→            <SelectItem value="tiktok" className="text-viralyze-white">TikTok</SelectItem>
+   487→            <SelectItem value="x" className="text-viralyze-white">X</SelectItem>
+   488→            <SelectItem value="linkedin" className="text-viralyze-white">LinkedIn</SelectItem>
+   489→          </SelectContent>
+   490→        </Select>
+   491→        <Select value={sort} onValueChange={setSort}>
+   492→          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+   493→            <SelectValue placeholder="Sort" />
+   494→          </SelectTrigger>
+   495→          <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   496→            <SelectItem value="newest" className="text-viralyze-white">Newest First</SelectItem>
+   497→            <SelectItem value="oldest" className="text-viralyze-white">Oldest First</SelectItem>
+   498→            <SelectItem value="score-high" className="text-viralyze-white">Score: High to Low</SelectItem>
+   499→            <SelectItem value="score-low" className="text-viralyze-white">Score: Low to High</SelectItem>
+   500→          </SelectContent>
+   501→        </Select>
+   502→      </motion.div>
+   503→
+   504→      {/* Compare controls */}
+   505→      {!loading && analyses.length > 1 && (
+   506→        <motion.div variants={item} className="flex items-center gap-2">
+   507→          <Button
+   508→            variant={compareMode ? 'default' : 'outline'}
+   509→            size="sm"
+   510→            onClick={() => {
+   511→              if (compareMode) {
+   512→                exitCompareMode();
+   513→              } else {
+   514→                setCompareMode(true);
+   515→              }
+   516→            }}
+   517→            className={cn(
+   518→              'gap-1.5 transition-all',
+   519→              compareMode
+   520→                ? 'bg-wine-accent hover:bg-wine-accent/80 text-white border-wine-accent'
+   521→                : 'border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20'
+   522→            )}
+   523→          >
+   524→            <GitCompareArrows className="h-3.5 w-3.5" />
+   525→            {compareMode ? 'Exit Compare' : 'Compare'}
+   526→          </Button>
+   527→          {compareMode && selectedIds.size > 0 && (
+   528→            <>
+   529→              <span className="text-xs text-viralyze-muted">
+   530→                {selectedIds.size}/3 selected
+   531→              </span>
+   532→              {selectedIds.size >= 2 && (
+   533→                <Button
+   534→                  size="sm"
+   535→                  onClick={handleCompare}
+   536→                  className="bg-wine-accent hover:bg-wine-accent/80 text-white gap-1.5"
+   537→                >
+   538→                  Compare Selected ({selectedIds.size})
+   539→                </Button>
+   540→              )}
+   541→              <Button
+   542→                size="sm"
+   543→                variant="ghost"
+   544→                onClick={() => setSelectedIds(new Set())}
+   545→                className="text-viralyze-muted hover:text-viralyze-white gap-1"
+   546→              >
+   547→                <X className="h-3 w-3" />
+   548→                Clear
+   549→              </Button>
+   550→            </>
+   551→          )}
+   552→        </motion.div>
+   553→      )}
+   554→
+   555→      {/* Inline Comparison Panel - shows when exactly 2 items selected */}
+   556→      <AnimatePresence>
+   557→        {showComparePanel && compareA && compareB && (
+   558→          <motion.div
+   559→            initial={{ opacity: 0, height: 0, y: -12 }}
+   560→            animate={{ opacity: 1, height: 'auto', y: 0 }}
+   561→            exit={{ opacity: 0, height: 0, y: -12 }}
+   562→            transition={{ duration: 0.35, ease: 'easeOut' }}
+   563→            className="overflow-hidden"
+   564→          >
+   565→            <Card className="glass glow-wine-sm mb-2">
+   566→              <CardContent className="p-5">
+   567→                <div className="flex items-center justify-between mb-4">
+   568→                  <div className="flex items-center gap-2">
+   569→                    <GitCompareArrows className="h-4 w-4 text-wine-accent" />
+   570→                    <span className="text-sm font-semibold text-viralyze-white">Comparison</span>
+   571→                  </div>
+   572→                  <Button
+   573→                    size="sm"
+   574→                    variant="ghost"
+   575→                    onClick={exitCompareMode}
+   576→                    className="text-viralyze-muted hover:text-viralyze-white gap-1 h-7 text-xs"
+   577→                  >
+   578→                    <X className="h-3 w-3" />
+   579→                    Clear Comparison
+   580→                  </Button>
+   581→                </div>
+   582→                <div className="grid grid-cols-2 gap-4">
+   583→                  {[compareA, compareB].map((item) => {
+   584→                    if (!item) return null;
+   585→                    const PI = platformIcons[item.platform];
+   586→                    return (
+   587→                      <div key={item.id} className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+   588→                        <div className="flex items-center gap-2 text-viralyze-white">
+   589→                          <PI className="h-4 w-4 text-viralyze-muted" />
+   590→                          <span className="text-sm font-medium capitalize">{item.platform}</span>
+   591→                        </div>
+   592→                        <QuickScoreWidget
+   593→                          score={item.overallScore}
+   594→                          size="lg"
+   595→                          classification={item.classification}
+   596→                        />
+   597→                        <p className="text-xs text-viralyze-white text-center font-medium leading-snug line-clamp-2">
+   598→                          {item.title || 'Untitled'}
+   599→                        </p>
+   600→                      </div>
+   601→                    );
+   602→                  })}
+   603→                </div>
+   604→                {/* Score difference */}
+   605→                <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
+   606→                  <span className="text-xs text-viralyze-muted">Score difference:</span>
+   607→                  {compareScoreDiff > 0 ? (
+   608→                    <span className="flex items-center gap-1 text-xs font-bold text-green-400">
+   609→                      <ArrowUp className="h-3 w-3" />
+   610→                      +{compareScoreDiff} for {compareA.title || 'Item 1'}
+   611→                    </span>
+   612→                  ) : compareScoreDiff < 0 ? (
+   613→                    <span className="flex items-center gap-1 text-xs font-bold text-red-400">
+   614→                      <ArrowDown className="h-3 w-3" />
+   615→                      +{Math.abs(compareScoreDiff)} for {compareB.title || 'Item 2'}
+   616→                    </span>
+   617→                  ) : (
+   618→                    <span className="text-xs font-bold text-viralyze-muted">Tied!</span>
+   619→                  )}
+   620→                </div>
+   621→              </CardContent>
+   622→            </Card>
+   623→          </motion.div>
+   624→        )}
+   625→      </AnimatePresence>
+   626→
+   627→      {/* Loading skeleton */}
+   628→      {loading && (
+   629→        <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   630→          {Array.from({ length: 4 }).map((_, i) => (
+   631→            <SkeletonCard key={i} />
+   632→          ))}
+   633→        </motion.div>
+   634→      )}
+   635→
+   636→      {/* Empty state — no analyses at all — animated dashed border */}
+   637→      {!loading && isEmpty && (
+   638→        <motion.div variants={item}>
+   639→          <div className="relative rounded-xl p-px animate-pulse-glow">
+   640→            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/[0.08]" />
+   641→            <Card className="glass relative z-0">
+   642→              <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+   643→                <motion.div
+   644→                  animate={{ y: [0, -8, 0], rotate: [0, 3, -3, 0] }}
+   645→                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+   646→                >
+   647→                  <Inbox className="h-10 w-10 text-viralyze-muted/40" />
+   648→                </motion.div>
+   649→                <p className="text-viralyze-muted text-sm">No analyses yet</p>
+   650→                <p className="text-viralyze-muted/60 text-xs">Your saved content predictions will appear here</p>
+   651→                <Button
+   652→                  onClick={() => useAppStore.getState().setCurrentView('predict')}
+   653→                  className="bg-gradient-wine hover:opacity-90 text-white mt-2 btn-shine"
+   654→                >
+   655→                  Analyze Content
+   656→                </Button>
+   657→              </CardContent>
+   658→            </Card>
+   659→          </div>
+   660→        </motion.div>
+   661→      )}
+   662→
+   663→      {/* Empty state — filtered results — animated dashed border */}
+   664→      {isFilteredEmpty && (
+   665→        <motion.div variants={item}>
+   666→          <div className="relative rounded-xl p-px">
+   667→            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/[0.08]" />
+   668→            <Card className="glass relative z-0">
+   669→              <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+   670→                <Search className="h-10 w-10 text-viralyze-muted/40" />
+   671→                <p className="text-viralyze-muted text-sm">No results found</p>
+   672→                <p className="text-viralyze-muted/60 text-xs">Try adjusting your search or filter</p>
+   673→                <Button
+   674→                  variant="outline"
+   675→                  onClick={() => { setSearch(''); setPlatformFilter('all'); }}
+   676→                  className="mt-2 border-white/10 text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-colors"
+   677→                >
+   678→                  Clear Filters
+   679→                </Button>
+   680→              </CardContent>
+   681→            </Card>
+   682→          </div>
+   683→        </motion.div>
+   684→      )}
+   685→
+   686→      {/* Results */}
+   687→      {!loading && filtered.length > 0 && (
+   688→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   689→          {filtered.map((analysis) => {
+   690→            const PIcon = platformIcons[analysis.platform];
+   691→            const isSelected = selectedIds.has(analysis.id);
+   692→
+   693→            // Compute top 3 score categories
+   694→            const scoreKeys = ['hook', 'engagement', 'shareability', 'retention', 'originality', 'audienceFit'] as const;
+   695→            const topScores = analysis.scores
+   696→              ? scoreKeys
+   697→                  .map((k) => ({ key: k, value: analysis.scores![k] ?? 50 }))
+   698→                  .sort((a, b) => b.value - a.value)
+   699→                  .slice(0, 3)
+   700→              : null;
+   701→
+   702→            return (
+   703→              <motion.div key={analysis.id} variants={item}>
+   704→                <Card
+   705→                  className={cn(
+   706→                    'glass group transition-all duration-300 cursor-pointer relative overflow-hidden',
+   707→                    compareMode && 'hover:bg-white/[0.03]',
+   708→                    !compareMode && 'hover:bg-white/[0.03] hover:glow-wine-sm',
+   709→                    isSelected && 'border-2 border-wine-accent/60 glow-wine-sm bg-wine-accent/[0.04]',
+   710→                    !isSelected && compareMode && 'hover:border-wine-accent/30'
+   711→                  )}
+   712→                  onClick={() => handleCardClick(analysis.id)}
+   713→                >
+   714→                  {/* Shimmer overlay on hover */}
+   715→                  <motion.div
+   716→                    className="absolute inset-0 z-10 pointer-events-none"
+   717→                    initial={{ opacity: 0 }}
+   718→                    whileHover={{ opacity: 1 }}
+   719→                    transition={{ duration: 0.3 }}
+   720→                  >
+   721→                    <motion.div
+   722→                      className="absolute inset-0"
+   723→                      style={{
+   724→                        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 60%)',
+   725→                      }}
+   726→                      initial={{ x: '-100%' }}
+   727→                      whileHover={{ x: '200%' }}
+   728→                      transition={{ duration: 0.8, ease: 'easeInOut' }}
+   729→                    />
+   730→                  </motion.div>
+   731→                  <CardContent className="p-4 relative z-20">
+   732→                    <div className="flex items-start justify-between gap-2 mb-3">
+   733→                      <div className="flex items-center gap-2 min-w-0">
+   734→                        {compareMode && (
+   735→                          <div className={cn(
+   736→                            'h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+   737→                            isSelected
+   738→                              ? 'bg-wine-accent border-wine-accent'
+   739→                              : 'border-white/20 group-hover:border-wine-accent/40'
+   740→                          )}>
+   741→                            {isSelected && (
+   742→                              <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+   743→                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+   744→                              </svg>
+   745→                            )}
+   746→                          </div>
+   747→                        )}
+   748→                        <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   749→                        <span className="text-sm font-medium text-viralyze-white truncate">
+   750→                          {analysis.title || 'Untitled'}
+   751→                        </span>
+   752→                      </div>
+   753→                      <div className="flex items-center gap-1.5">
+   754→                        <QuickScoreWidget
+   755→                          score={analysis.overallScore}
+   756→                          size="sm"
+   757→                          classification={analysis.classification}
+   758→                        />
+   759→                        {/* Trend indicator based on position in sorted array */}
+   760→                        {(() => {
+   761→                          const idx = filtered.findIndex((a) => a.id === analysis.id);
+   762→                          const mid = Math.floor(filtered.length / 2);
+   763→                          if (filtered.length < 2) return <Minus className="h-3 w-3 text-viralyze-muted/30" />;
+   764→                          if (idx < mid) return <ArrowDownRight className="h-3.5 w-3.5 text-red-400/70" />;
+   765→                          if (idx > mid) return <ArrowUpRight className="h-3.5 w-3.5 text-green-400/70" />;
+   766→                          return <Minus className="h-3 w-3 text-viralyze-muted/30" />;
+   767→                        })()}
+   768→                      </div>
+   769→                    </div>
+   770→                    {/* Score category sparklines */}
+   771→                    {topScores && (
+   772→                      <div className="flex items-center gap-2 mb-3">
+   773→                        {topScores.map(({ key, value }) => (
+   774→                          <div
+   775→                            key={key}
+   776→                            className="flex flex-col items-center gap-0.5 min-w-0"
+   777→                          >
+   778→                            <span className="text-[10px] leading-tight text-viralyze-muted/70 font-medium tabular-nums whitespace-nowrap">
+   779→                              {categoryLabels[key]}: {value}
+   780→                            </span>
+   781→                            <div className="h-[1.5px] w-10 rounded-full bg-white/[0.06] overflow-hidden">
+   782→                              <div
+   783→                                className={cn('h-full rounded-full', scoreBarColor(value))}
+   784→                                style={{ width: `${value}%` }}
+   785→                              />
+   786→                            </div>
+   787→                          </div>
+   788→                        ))}
+   789→                      </div>
+   790→                    )}
+   791→                    <div className="flex items-center justify-between">
+   792→                      <div className="flex items-center gap-2 text-xs text-viralyze-muted">
+   793→                        <Badge variant="outline" className="text-xs border-white/10 text-viralyze-muted">
+   794→                          {analysis.contentType}
+   795→                        </Badge>
+   796→                        <span>{new Date(analysis.createdAt).toLocaleDateString()}</span>
+   797→                      </div>
+   798→                      {confirmDeleteId === analysis.id ? (
+   799→                        <motion.button
+   800→                          initial={{ opacity: 0, scale: 0.9 }}
+   801→                          animate={{ opacity: 1, scale: 1 }}
+   802→                          className="text-xs text-red-400 font-medium hover:text-red-300 transition-colors"
+   803→                          onClick={(e) => handleDelete(e, analysis.id)}
+   804→                          disabled={deleting === analysis.id}
+   805→                        >
+   806→                          {deleting === analysis.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Confirm?'}
+   807→                        </motion.button>
+   808→                      ) : (
+   809→                        <Button
+   810→                          variant="ghost"
+   811→                          size="icon"
+   812→                          className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+   813→                          onClick={(e) => handleDelete(e, analysis.id)}
+   814→                          disabled={deleting === analysis.id}
+   815→                        >
+   816→                          {deleting === analysis.id ? (
+   817→                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   818→                          ) : (
+   819→                            <Trash2 className="h-3.5 w-3.5" />
+   820→                          )}
+   821→                        </Button>
+   822→                      )}
+   823→                    </div>
+   824→                  </CardContent>
+   825→                </Card>
+   826→              </motion.div>
+   827→            );
+   828→          })}
+   829→        </div>
+   830→      )}
+   831→
+   832→      {/* Compare Modal */}
+   833→      <CompareModal
+   834→        analyses={selectedAnalyses}
+   835→        open={compareOpen}
+   836→        onOpenChange={setCompareOpen}
+   837→      />
+   838→    </motion.div>
+   839→  );
+   840→}
+   841→

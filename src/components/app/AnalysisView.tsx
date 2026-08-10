@@ -26,6 +26,8 @@ import {
   ArrowUpRight,
   ShieldCheck,
   AlertTriangle,
+  AlertCircle,
+  Lightbulb,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -240,15 +242,27 @@ export default function AnalysisView() {
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline">Saved</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShare}
-            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            Share
-          </Button>
+          {/* Button group: Export + Share */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-r-none border-r-0"
+            >
+              <Download className="mr-2 h-3.5 w-3.5" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-none"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -257,15 +271,6 @@ export default function AnalysisView() {
           >
             <RefreshCw className="mr-2 h-3.5 w-3.5" />
             Re-analyze
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
-          >
-            <Download className="mr-2 h-3.5 w-3.5" />
-            Export
           </Button>
         </div>
       </motion.div>
@@ -311,7 +316,7 @@ export default function AnalysisView() {
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row items-center gap-8">
               {/* Score Ring with floating dots + tooltip on segments */}
-              <div className="relative flex-shrink-0">
+              <div className="relative flex-shrink-0 animate-pulse-glow" style={{ animationDuration: '3s', borderRadius: '50%' }}>
                 <div className="absolute -top-3 -left-3 w-2 h-2 rounded-full bg-wine-accent animate-pulse" />
                 <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-wine-accent/60 animate-pulse [animation-delay:0.5s]" />
                 <div className="absolute top-1/2 -right-4 w-1 h-1 rounded-full bg-wine-accent/40 animate-pulse [animation-delay:1s]" />
@@ -595,7 +600,7 @@ export default function AnalysisView() {
                     transition={{ delay: i * 0.06 }}
                     className="flex items-start gap-2 text-sm text-viralyze-white/80"
                   >
-                    <span className="text-green-400 mt-0.5 shrink-0">+</span>
+                    <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 shrink-0" />
                     <span>{s}</span>
                   </motion.div>
                 ))}
@@ -623,7 +628,7 @@ export default function AnalysisView() {
                     transition={{ delay: i * 0.06 }}
                     className="flex items-start gap-2 text-sm text-viralyze-white/80"
                   >
-                    <span className="text-amber-400 mt-0.5 shrink-0">!</span>
+                    <AlertCircle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                     <span>{w}</span>
                   </motion.div>
                 ))}
@@ -651,7 +656,7 @@ export default function AnalysisView() {
                     transition={{ delay: i * 0.06 }}
                     className="flex items-start gap-2 text-sm text-viralyze-white/80"
                   >
-                    <span className="text-wine-accent mt-0.5 shrink-0">→</span>
+                    <Lightbulb className="h-4 w-4 text-wine-accent mt-0.5 shrink-0" />
                     <span>{imp}</span>
                   </motion.div>
                 ))}
@@ -811,7 +816,7 @@ export default function AnalysisView() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1 }}
-                        className="glass-strong rounded-lg p-4 flex flex-col gap-2 hover:glow-wine-sm transition-all duration-300"
+                        className="group glass-strong rounded-lg p-4 flex flex-col gap-2 hover:glow-wine-sm transition-all duration-300 relative overflow-hidden"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -835,18 +840,6 @@ export default function AnalysisView() {
                               {v.score}/100
                             </span>
                             <Button
-                              size="sm"
-                              className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine"
-                              onClick={() => {
-                                setPrefilledIdea(v.content);
-                                setPredictMode('idea');
-                                setCurrentView('predict');
-                                toast.success('Variation loaded for re-analysis');
-                              }}
-                            >
-                              <Sparkles className="h-3 w-3" />
-                            </Button>
-                            <Button
                               variant="ghost"
                               size="sm"
                               className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
@@ -863,6 +856,24 @@ export default function AnalysisView() {
                         <p className="text-sm text-viralyze-white/80 leading-relaxed">
                           {v.content}
                         </p>
+                        {/* Hover-reveal action */}
+                        <motion.div
+                          className="flex justify-end opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 mt-1"
+                        >
+                          <Button
+                            size="sm"
+                            className="h-7 px-3 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine text-xs gap-1.5"
+                            onClick={() => {
+                              setPrefilledIdea(v.content);
+                              setPredictMode('idea');
+                              setCurrentView('predict');
+                              toast.success('Variation loaded for prediction');
+                            }}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Use for Prediction
+                          </Button>
+                        </motion.div>
                       </motion.div>
                     ))}
                   </motion.div>

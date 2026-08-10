@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, ChevronRight } from 'lucide-react';
+import { Menu, ChevronRight, Sparkles, Lightbulb, TrendingUp, BarChart3 } from 'lucide-react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { currentView, user, setSidebarOpen } = useAppStore();
+  const { currentView, user, setSidebarOpen, isLoggedIn, setCurrentView } = useAppStore();
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -111,7 +111,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             />
 
           {/* Content with subtle radial wine gradient + page transition */}
-          <main className="flex-1 p-4 md:p-6 overflow-auto bg-gradient-wine-radial">
+          <main className="flex-1 p-4 md:p-6 pb-16 overflow-auto bg-gradient-wine-radial">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentView}
@@ -124,6 +124,47 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </motion.div>
             </AnimatePresence>
           </main>
+
+          {/* Quick Actions floating bar */}
+          {isLoggedIn && currentView !== 'landing' && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
+              className="fixed bottom-0 left-0 right-0 z-20 md:left-[var(--sidebar-width,0px)]"
+            >
+              <div className="glass-strong border-t border-white/[0.06] px-4 py-2 flex items-center justify-center gap-4 sm:gap-6">
+                <button
+                  onClick={() => setCurrentView('predict')}
+                  className="flex flex-col items-center gap-0.5 text-viralyze-muted hover:text-wine-accent transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">New Prediction</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView('ideas')}
+                  className="flex flex-col items-center gap-0.5 text-viralyze-muted hover:text-wine-accent transition-colors"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">Generate Ideas</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView('trends')}
+                  className="flex flex-col items-center gap-0.5 text-viralyze-muted hover:text-wine-accent transition-colors"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">View Trends</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView('analytics')}
+                  className="flex flex-col items-center gap-0.5 text-viralyze-muted hover:text-wine-accent transition-colors"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">View Analytics</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </SidebarProvider>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import { User, CreditCard, LogOut, AlertTriangle, Trash2, Check, Sparkles, Bell, Mail, BarChart3, Camera, Upload, Loader2, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,14 +98,27 @@ export default function SettingsView() {
                   className="relative h-16 w-16 rounded-full border-2 border-dashed border-white/[0.12] bg-white/[0.03] flex items-center justify-center hover:border-wine-accent/40 hover:bg-wine-accent/[0.05] transition-all duration-200 group"
                   onClick={() => toast.info('Avatar upload coming soon!')}
                 >
+                  {/* Rotating conic-gradient ring */}
+                  <motion.div
+                    className="absolute -inset-[3px] rounded-full"
+                    style={{
+                      background: 'conic-gradient(from 0deg, #B8325A, #7F1D3A, #4A1024, #7F1D3A, #B8325A)',
+                      WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                      WebkitMaskComposite: 'xor',
+                      maskComposite: 'exclude',
+                      padding: '2px',
+                    }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                  />
                   {user?.name ? (
-                    <span className="text-xl font-bold text-wine-accent">
+                    <span className="text-xl font-bold text-wine-accent relative z-10">
                       {user.name.charAt(0).toUpperCase()}
                     </span>
                   ) : (
-                    <Camera className="h-5 w-5 text-viralyze-muted/40" />
+                    <Camera className="h-5 w-5 text-viralyze-muted/40 relative z-10" />
                   )}
-                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center z-10">
                     <Upload className="h-4 w-4 text-wine-accent/70" />
                   </div>
                 </motion.button>
@@ -148,7 +162,7 @@ export default function SettingsView() {
 
       {/* Plan & Usage */}
       <motion.div variants={item}>
-        <Card className="glass hover:border-white/[0.1] transition-colors">
+        <Card className="glass hover:bg-white/[0.03] hover:border-white/[0.08] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="h-4 w-4 text-wine-accent" />
@@ -191,7 +205,7 @@ export default function SettingsView() {
 
       {/* Plan Comparison Table */}
       <motion.div variants={item}>
-        <Card className="glass hover:border-white/[0.1] transition-colors">
+        <Card className="glass hover:bg-white/[0.03] hover:border-white/[0.08] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4 text-wine-accent" />
@@ -269,7 +283,7 @@ export default function SettingsView() {
 
       {/* Notification Preferences */}
       <motion.div variants={item}>
-        <Card className="glass hover:border-white/[0.1] transition-colors">
+        <Card className="glass hover:bg-white/[0.03] hover:border-white/[0.08] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Bell className="h-4 w-4 text-wine-accent" />
@@ -287,7 +301,12 @@ export default function SettingsView() {
                   <p className="text-xs text-viralyze-muted/50">Receive prediction results via email</p>
                 </div>
               </div>
-              <div className="rounded-full p-1 bg-wine-accent/10 animate-pulse-glow" style={{ animationDuration: '4s' }}>
+              <div className={cn(
+                'rounded-full p-1 transition-all duration-300',
+                notifications.email
+                  ? 'bg-wine-accent/10 animate-pulse-glow'
+                  : 'bg-white/[0.04]'
+              )} style={notifications.email ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
                 <Switch
                   checked={notifications.email}
                   onCheckedChange={(v) => setNotifications((n) => ({ ...n, email: v }))}
@@ -306,7 +325,12 @@ export default function SettingsView() {
                   <p className="text-xs text-viralyze-muted/50">Get a weekly summary of trending topics</p>
                 </div>
               </div>
-              <div className="rounded-full p-1 bg-wine-accent/10 animate-pulse-glow" style={{ animationDuration: '4s' }}>
+              <div className={cn(
+                'rounded-full p-1 transition-all duration-300',
+                notifications.weeklyDigest
+                  ? 'bg-wine-accent/10 animate-pulse-glow'
+                  : 'bg-white/[0.04]'
+              )} style={notifications.weeklyDigest ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
                 <Switch
                   checked={notifications.weeklyDigest}
                   onCheckedChange={(v) => setNotifications((n) => ({ ...n, weeklyDigest: v }))}
@@ -325,7 +349,12 @@ export default function SettingsView() {
                   <p className="text-xs text-viralyze-muted/50">Get notified when predictions are ready</p>
                 </div>
               </div>
-              <div className="rounded-full p-1 bg-wine-accent/10 animate-pulse-glow" style={{ animationDuration: '4s' }}>
+              <div className={cn(
+                'rounded-full p-1 transition-all duration-300',
+                notifications.predictionAlerts
+                  ? 'bg-wine-accent/10 animate-pulse-glow'
+                  : 'bg-white/[0.04]'
+              )} style={notifications.predictionAlerts ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
                 <Switch
                   checked={notifications.predictionAlerts}
                   onCheckedChange={(v) => setNotifications((n) => ({ ...n, predictionAlerts: v }))}
@@ -339,7 +368,7 @@ export default function SettingsView() {
 
       {/* Account Actions */}
       <motion.div variants={item}>
-        <Card className="glass hover:border-white/[0.1] transition-colors">
+        <Card className="glass hover:bg-white/[0.03] hover:border-white/[0.08] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-amber-400" />
@@ -361,8 +390,8 @@ export default function SettingsView() {
 
       {/* Danger Zone */}
       <motion.div variants={item}>
-        <div className="gradient-border rounded-xl">
-          <Card className="glass border-red-500/20 hover:border-red-500/30 transition-colors relative z-0">
+        <div className="rounded-xl">
+          <Card className="glass border-red-500/30 animate-pulse-glow relative z-0" style={{ animationDuration: '3s' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-red-400">
               <AlertTriangle className="h-4 w-4" />
