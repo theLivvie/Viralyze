@@ -22,6 +22,7 @@ import IdeasView from '@/components/app/IdeasView';
 import TrendsView from '@/components/app/TrendsView';
 import SettingsView from '@/components/app/SettingsView';
 import AnalyticsView from '@/components/app/AnalyticsView';
+import CalendarView from '@/components/app/CalendarView';
 
 const viewComponents: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -31,6 +32,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   ideas: IdeasView,
   trends: TrendsView,
   analytics: AnalyticsView,
+  calendar: CalendarView,
   settings: SettingsView,
 };
 

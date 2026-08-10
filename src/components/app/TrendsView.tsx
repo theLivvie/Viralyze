@@ -1,9 +1,10 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { Platform } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +29,7 @@ interface TrendCategory {
   trends: MockTrend[];
 }
 
-const trendData: TrendCategory[] = [
+const fallbackTrendData: TrendCategory[] = [
   {
     category: 'Technology',
     icon: Flame,
@@ -56,7 +57,6 @@ const trendData: TrendCategory[] = [
       { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'] },
       { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'] },
       { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'] },
-      { name: 'SaaS micro-startups', heat: 3, growth: '+72%', platforms: ['x', 'youtube'] },
     ],
   },
   {
@@ -64,19 +64,8 @@ const trendData: TrendCategory[] = [
     icon: Flame,
     trends: [
       { name: 'Nostalgia content (90s/2000s)', heat: 4, growth: '+134%', platforms: ['tiktok', 'instagram'] },
-      { name: 'Book review + life lesson format', heat: 3, growth: '+87%', platforms: ['youtube', 'tiktok'] },
       { name: 'POV-style educational content', heat: 4, growth: '+112%', platforms: ['tiktok', 'instagram'] },
       { name: 'Cultural commentary', heat: 3, growth: '+65%', platforms: ['youtube', 'x'] },
-    ],
-  },
-  {
-    category: 'Health & Wellness',
-    icon: TrendingUp,
-    trends: [
-      { name: 'Morning routine optimization', heat: 5, growth: '+176%', platforms: ['tiktok', 'instagram', 'youtube'] },
-      { name: 'Science-backed supplement reviews', heat: 3, growth: '+93%', platforms: ['youtube', 'tiktok'] },
-      { name: 'Mental health accountability', heat: 4, growth: '+145%', platforms: ['tiktok', 'instagram'] },
-      { name: 'Desk workout micro-content', heat: 3, growth: '+68%', platforms: ['tiktok', 'instagram'] },
     ],
   },
 ];
@@ -89,6 +78,25 @@ const emergingNiches = [
   { name: 'Rust Programming', growth: '+156%', heat: 3 },
   { name: 'Spatial Computing', growth: '+143%', heat: 3 },
 ];
+
+// Map category names to icons
+const categoryIconMap: Record<string, React.ElementType> = {
+  technology: Flame,
+  tech: Flame,
+  social: TrendingUp,
+  'social media': TrendingUp,
+  business: ArrowUpRight,
+  culture: Flame,
+  health: TrendingUp,
+  'health & wellness': TrendingUp,
+  wellness: TrendingUp,
+  entertainment: Flame,
+  politics: ArrowUpRight,
+  finance: ArrowUpRight,
+  education: TrendingUp,
+  lifestyle: Flame,
+  sports: Flame,
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -117,6 +125,46 @@ function HeatIndicator({ heat }: { heat: number }) {
 }
 
 export default function TrendsView() {
+  const [trendData, setTrendData] = useState<TrendCategory[]>(fallbackTrendData);
+  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [error, setError] = useState(false);
+
+  const fetchTrends = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await fetch('/api/trends');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      if (data.categories && Array.isArray(data.categories)) {
+        // Map API response to our TrendCategory format
+        const mapped: TrendCategory[] = data.categories.map(
+          (cat: { category: string; trends: { name: string; growth: string; heat: number; platforms: string[] }[] }) => ({
+            category: cat.category,
+            icon: categoryIconMap[cat.category.toLowerCase()] || TrendingUp,
+            trends: cat.trends.map((t) => ({
+              name: t.name,
+              heat: t.heat,
+              growth: t.growth,
+              platforms: (t.platforms || []).filter((p: string) => p in platformIcons) as Platform[],
+            })),
+          })
+        );
+        setTrendData(mapped);
+        setLastUpdated(new Date());
+      } else {
+        // Keep fallback data
+        setTrendData(fallbackTrendData);
+      }
+    } catch {
+      setError(true);
+      // Keep current data (fallback or previously fetched)
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return (
     <motion.div
       variants={container}
@@ -124,11 +172,40 @@ export default function TrendsView() {
       animate="show"
       className="flex flex-col gap-8 max-w-5xl mx-auto"
     >
-      {/* Header */}
-      <motion.div variants={item}>
-        <p className="text-viralyze-muted text-sm mb-1">
-          Real-time trending topics across platforms
-        </p>
+      {/* Header with refresh and last updated */}
+      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <p className="text-viralyze-muted text-sm">
+              Real-time trending topics across platforms
+            </p>
+            {lastUpdated && (
+              <span className="text-xs text-viralyze-muted/50">
+                &middot; Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          {error && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <AlertCircle className="h-3 w-3 text-amber-400" />
+              <span className="text-xs text-amber-400/80">Failed to fetch live trends — showing cached data</span>
+            </div>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchTrends}
+          disabled={loading}
+          className="w-fit border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-colors gap-2"
+        >
+          {loading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3.5 w-3.5" />
+          )}
+          {loading ? 'Fetching...' : 'Refresh Trends'}
+        </Button>
       </motion.div>
 
       {/* Category Sections */}
@@ -213,7 +290,9 @@ export default function TrendsView() {
       {/* Disclaimer */}
       <motion.div variants={item} className="text-center pb-4">
         <p className="text-xs text-viralyze-muted/50">
-          Trend data is illustrative. Real-time trend integration coming soon.
+          {lastUpdated
+            ? 'Trend data powered by AI analysis. Click refresh for latest trends.'
+            : 'Trend data is illustrative. Click refresh for AI-powered live trends.'}
         </p>
       </motion.div>
     </motion.div>

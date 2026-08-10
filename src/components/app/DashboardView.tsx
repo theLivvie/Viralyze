@@ -36,6 +36,45 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
+function scoreBarColor(score: number): string {
+  if (score >= 70) return 'bg-green-400';
+  if (score >= 50) return 'bg-amber-400';
+  return 'bg-red-400';
+}
+
+function ScoreHistory({ scores }: { scores: number[] }) {
+  if (scores.length === 0) return null;
+
+  // Take last 10 scores
+  const recent = scores.slice(-10);
+  const maxScore = 100;
+
+  return (
+    <div className="flex items-end gap-1 h-12">
+      {recent.map((score, i) => {
+        const height = Math.max(4, (score / maxScore) * 100);
+        return (
+          <motion.div
+            key={i}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: `${height}%`, opacity: 1 }}
+            transition={{
+              duration: 0.5,
+              delay: i * 0.06,
+              ease: 'easeOut',
+            }}
+            className={cn(
+              'flex-1 rounded-sm min-w-[6px] max-w-[24px]',
+              scoreBarColor(score)
+            )}
+            title={`Score: ${score}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DashboardView() {
   const { savedAnalyses, setCurrentView, setCurrentAnalysis } = useAppStore();
 
@@ -50,6 +89,7 @@ export default function DashboardView() {
       : 0;
 
   const recentAnalyses = savedAnalyses.slice(0, 5);
+  const scoreHistory = savedAnalyses.map((a) => a.overallScore);
 
   return (
     <motion.div
@@ -127,7 +167,7 @@ export default function DashboardView() {
         </div>
       </motion.div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats with Score History */}
       <motion.div variants={item}>
         <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
           Quick Stats
@@ -161,6 +201,41 @@ export default function DashboardView() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Score History Mini Bar Chart */}
+        {scoreHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mt-4"
+          >
+            <Card className="glass">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+                    Score History
+                  </span>
+                  <div className="flex items-center gap-3 text-[10px] text-viralyze-muted/60">
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-sm bg-green-400" />
+                      70+
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-sm bg-amber-400" />
+                      50-69
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-sm bg-red-400" />
+                      &lt;50
+                    </div>
+                  </div>
+                </div>
+                <ScoreHistory scores={scoreHistory} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Recent Analyses */}

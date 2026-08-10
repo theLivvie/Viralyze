@@ -100,24 +100,6 @@ Stage Summary:
 - Zero lint errors
 
 ---
-
-## Current Status
-- **Phase**: MVP Complete
-- **Working Features**: Landing page, Auth, Dashboard, Predict, Analysis, Library, Ideas, Trends, Settings
-- **AI Integration**: LLM-powered content prediction and idea generation
-- **Database**: SQLite with Prisma ORM, users and content analyses
-
-## Unresolved / Next Steps
-1. ~~Analytics view (currently redirects to sidebar but no dedicated view)~~ ✓ Done in 3-a
-2. ~~Content library actual API integration (fetch on mount from DB)~~ ✓ Done in 3-a
-3. Predicted vs actual performance tracking
-4. More polished mobile animations
-5. Sound/haptic feedback on interactions
-6. Rate limiting on API routes
-7. Google OAuth integration
-8. Content variation pre-fill in predict form from Ideas page
-
----
 Task ID: 3-a
 Agent: Main
 Task: Create AnalyticsView, fix LibraryView API integration, wire analytics route
@@ -170,6 +152,121 @@ Work Log:
 Stage Summary:
 - All 8 components improved with visual polish and micro-interactions
 - No style-jsx tags used (all animations via CSS classes or Framer Motion)
+- Dev server compiles cleanly
+
+---
+Task ID: 5-a
+Agent: Main
+Task: Improve styling with more details across 5 app components
+
+Work Log:
+- **AppLayout.tsx**:
+  - Added `bg-gradient-wine-radial` class to main content area for subtle wine radial gradient
+  - Added `glow-line bg-gradient-wine` div below header as wine-accent glow separator line
+  - Added usage counter Badge next to avatar showing `predictionsUsed/predictionsLimit` with hover color transition
+  - Removed unused `Menu` import
+- **AppSidebar.tsx**:
+  - Added vertical glow-line indicator on left edge of active nav item (wine gradient, pulse-glow animated)
+  - Added pulsing dot indicator (`animate-pulse-glow` wine-accent dot) next to 'Predict' nav item when not active
+  - Added usage bar above footer showing predictions used vs limit with thin wine-gradient progress bar
+  - Progress bar gets `animate-pulse-glow` when usage >= 80%
+  - Usage count text turns wine-accent color when near limit
+- **SettingsView.tsx**:
+  - Wrapped profile Card in `gradient-border` div for animated conic-gradient rotating border
+  - Added plan comparison mini-table (Free vs Creator vs Pro) with Check icons for features
+  - Added 'Danger Zone' section at bottom with red-tinted glass card and delete account button (shows toast)
+  - Added hover effects on all cards (`hover:border-white/[0.1]`), inputs (`hover:border-white/[0.12]`), and buttons
+  - Added `toast` import from sonner
+- **IdeasView.tsx**:
+  - Wrapped input Card in `gradient-border` div for animated rotating border
+  - Added `focus-glow-wine` wrapper div around topic Textarea for wine-accent glow on focus
+  - Replaced spinner loading state with shimmer skeleton grid (4 ShimmerCard components)
+  - Added `hover:glow-wine-sm` on idea cards with `transition-all duration-300`
+  - Made Analyze button opacity-0 by default, opacity-100 on group hover
+  - Added `btn-shine` class on Generate Ideas button
+  - Added hover border transition on audience Input
+- **LibraryView.tsx**:
+  - Added count Badge next to 'Content Library' header (wine-accent styled, shows total analyses count)
+  - Added `hover:glow-wine-sm` on library cards with `transition-all duration-300`
+  - Improved empty state with animated dashed border (border-dashed + animate-pulse-glow wrapper)
+  - Added floating animation on Inbox icon in empty state (Framer Motion y: [0, -6, 0])
+  - Added `btn-shine` on empty state CTA button
+  - Added `hover:border-white/[0.12]` transition on filter inputs and selects
+
+Stage Summary:
+- 5 files modified with enhanced visual details and micro-interactions
+- All existing utility classes used: gradient-border, glow-line, glow-wine-sm, bg-gradient-wine-radial, focus-glow-wine, animate-pulse-glow, btn-shine
+- No new files created
 - All existing functionality preserved
 - Zero lint errors
 - Dev server compiles cleanly
+
+---
+Task ID: 6
+Agent: Main (orchestrator)
+Task: QA assessment, critical bug fix, styling & feature development coordination
+
+Work Log:
+- Read worklog.md to assess current state — MVP was complete but AnalysisView.tsx was missing from filesystem
+- Discovered critical build error: `Module not found: Can't resolve '@/components/app/AnalysisView'` (500 error on all routes)
+- Recreated AnalysisView.tsx with full feature set:
+  - ScoreRing with floating decorative dots (3 animated pulse dots)
+  - Scan-line animation across the score header card
+  - Predicted engagement stats grid (likes, comments, shares, saves) with platform-colored icons
+  - Emotional breakdown tags (sorted by percentage, top 6)
+  - Category scores with animated ScoreBar components
+  - Platform fit grid (5 platforms with emoji icons and color-coded scores)
+  - Strengths/Weaknesses/Improvements cards with gradient accent lines (green/amber/wine)
+  - AI-optimized content section with glow-line separator (title, hook, caption) with copy-to-clipboard
+  - Content variations with glass-strong cards, score badges, and copy buttons
+  - Export analysis as JSON file (Download button in top bar)
+  - Auto-saved indicator (since predict API auto-saves to DB)
+- Fixed unused import (Platform type, Loader2, Bookmark, BookmarkCheck, Clock)
+- Fixed AppLayout viewTitles missing 'calendar' entry
+- Coordinated two parallel subagents:
+  - Agent 5-a: Styling improvements across 5 components (AppLayout, AppSidebar, Settings, Ideas, Library)
+  - Agent 5-b: 4 new features (real-time trends API, content calendar, library compare, dashboard score history)
+- Full QA via agent-browser:
+  - Landing page: all 10 sections render correctly
+  - Auth: login/signup modal works
+  - Dashboard: CTA cards, stats, empty state, score history
+  - Predict: form with tabs, platform selector, content type, submit
+  - Library: search, filter, sort, delete, compare mode, count badge
+  - Ideas: topic input, platform selector, generate, results grid
+  - Analytics: all 5 chart types render with dark theme
+  - Trends: static fallback data + refresh button for AI-powered live trends
+  - Calendar: weekly grid, add/remove content slots, week navigation, localStorage persistence
+  - Settings: profile with gradient border, plan comparison table, danger zone
+  - Mobile: responsive nav with Sheet menu, viewport 375x812
+  - No console errors detected
+
+Stage Summary:
+- Critical build error fixed (missing AnalysisView.tsx)
+- AppLayout viewTitles fixed (added 'calendar')
+- Export analysis feature added to AnalysisView
+- 5 components received styling improvements
+- 4 new features implemented
+- Total new files: CalendarView.tsx, /api/trends/route.ts
+- Total modified files: ~12
+- Zero lint errors
+- All routes compile and render correctly
+- Full QA passed via agent-browser
+
+## Current Status
+- **Phase**: Post-MVP Enhancement (Round 2)
+- **Working Features**: Landing page, Auth, Dashboard (with score history), Predict, Analysis (with export), Library (with compare), Ideas, Trends (with AI refresh), Analytics, Calendar, Settings (with plan comparison + danger zone)
+- **AI Integration**: LLM-powered content prediction, idea generation, trend analysis
+- **Database**: SQLite with Prisma ORM, users and content analyses
+- **New in this round**: Content calendar, library compare, score history sparkline, real-time trends, export analysis
+
+## Unresolved / Next Steps
+1. Predicted vs actual performance tracking (post-publish feedback loop)
+2. Google OAuth integration
+3. Content variation pre-fill from Ideas page → Predict form (partially working via setPrefilledIdea)
+4. Rate limiting on API routes
+5. More polished mobile animations
+6. Sound/haptic feedback on interactions
+7. Analytics view should fetch real data from DB instead of mock data
+8. Calendar slots could be linked to actual predictions
+9. User profile editing (name update)
+10. Email notifications for scheduled calendar content
