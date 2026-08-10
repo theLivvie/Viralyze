@@ -92,9 +92,30 @@ export interface SavedAnalysis {
   title: string;
   platform: Platform;
   contentType: ContentType;
+  contentText: string;
+  ideaText?: string;
+  audience?: string;
   overallScore: number;
+  confidence: Confidence;
   classification: Classification;
   createdAt: string;
+  // Full analysis fields (populated when fetched individually)
+  scores?: CategoryScores;
+  platformFit?: PlatformFitScore[];
+  strengths?: string[];
+  weaknesses?: string[];
+  improvements?: string[];
+  optimizedHook?: string;
+  optimizedCaption?: string;
+  optimizedTitle?: string;
+  variations?: ContentVariation[];
+  emotionalBreakdown?: Record<string, number>;
+  predictedEngagement?: {
+    likes: string;
+    comments: string;
+    shares: string;
+    saves: string;
+  };
 }
 
 export interface IdeaSuggestion {

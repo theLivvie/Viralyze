@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart3,
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useAppStore } from '@/lib/store';
 import type { Platform, Classification } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +36,25 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+// --- Types for analytics data ---
+interface AnalyticsData {
+  totalAnalyses: number;
+  avgScore: number;
+  bestScore: number;
+  predictionAccuracy: number;
+  scoreDistribution: { range: string; count: number }[];
+  platformPerformance: { platform: string; score: number }[];
+  weeklyTrend: { week: string; score: number }[];
+  categoryBreakdown: { category: string; score: number }[];
+  topContent: {
+    id: string;
+    title: string;
+    platform: string;
+    score: number;
+    date: string;
+  }[];
+}
+
 // --- Animation variants (same pattern as DashboardView) ---
 const container = {
   hidden: { opacity: 0 },
@@ -43,51 +65,6 @@ const item = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
-
-// --- Mock data ---
-const scoreDistribution = [
-  { range: '0-20', count: 1 },
-  { range: '21-40', count: 2 },
-  { range: '41-60', count: 3 },
-  { range: '61-80', count: 4 },
-  { range: '81-100', count: 2 },
-];
-
-const platformPerformance = [
-  { platform: 'Instagram', score: 82 },
-  { platform: 'YouTube', score: 78 },
-  { platform: 'TikTok', score: 85 },
-  { platform: 'X', score: 71 },
-  { platform: 'LinkedIn', score: 68 },
-];
-
-const weeklyTrend = [
-  { week: 'Wk 1', score: 65 },
-  { week: 'Wk 2', score: 72 },
-  { week: 'Wk 3', score: 68 },
-  { week: 'Wk 4', score: 78 },
-  { week: 'Wk 5', score: 82 },
-  { week: 'Wk 6', score: 75 },
-  { week: 'Wk 7', score: 88 },
-  { week: 'Wk 8', score: 84 },
-];
-
-const categoryBreakdown = [
-  { category: 'Audience Fit', score: 86 },
-  { category: 'Hook', score: 84 },
-  { category: 'Shareability', score: 81 },
-  { category: 'Engagement', score: 79 },
-  { category: 'Retention', score: 76 },
-  { category: 'Originality', score: 72 },
-];
-
-const topContent = [
-  { id: '1', title: '5 Unwritten Rules of Instagram Reels', platform: 'instagram' as Platform, score: 94, date: 'Dec 15, 2024' },
-  { id: '2', title: 'Why Most TikToks Fail in the First Second', platform: 'tiktok' as Platform, score: 91, date: 'Dec 12, 2024' },
-  { id: '3', title: 'The Hook Formula That Changed Everything', platform: 'youtube' as Platform, score: 88, date: 'Dec 10, 2024' },
-  { id: '4', title: 'Stop Posting Without a Strategy', platform: 'linkedin' as Platform, score: 85, date: 'Dec 8, 2024' },
-  { id: '5', title: 'Viral Thread Blueprint for X Creators', platform: 'x' as Platform, score: 82, date: 'Dec 5, 2024' },
-];
 
 // --- Helpers ---
 const platformIcons: Record<Platform, React.ElementType> = {
@@ -139,15 +116,223 @@ const tooltipLabelStyle = {
   letterSpacing: '0.05em',
 };
 
-// --- Overview stat cards ---
-const overviewStats = [
-  { icon: BarChart3, value: '12', label: 'Total Analyses', accent: false },
-  { icon: TrendingUp, value: '78', label: 'Avg Score', accent: false },
-  { icon: Sparkles, value: '94', label: 'Highest Score', accent: true },
-  { icon: Target, value: '87%', label: 'Prediction Accuracy', accent: false },
-];
+// --- Skeleton Loader ---
+function SkeletonCard() {
+  return (
+    <Card className="glass">
+      <CardContent className="p-4">
+        <div className="animate-pulse flex flex-col items-center gap-2">
+          <div className="h-5 w-5 rounded bg-white/[0.06]" />
+          <div className="h-7 w-12 rounded bg-white/[0.06]" />
+          <div className="h-3 w-20 rounded bg-white/[0.04]" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
+function SkeletonChart() {
+  return (
+    <Card className="glass">
+      <CardHeader className="pb-2">
+        <div className="animate-pulse h-5 w-40 rounded bg-white/[0.06]" />
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="animate-pulse h-56 w-full rounded-lg bg-white/[0.03]" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function SkeletonList() {
+  return (
+    <Card className="glass">
+      <CardHeader className="pb-2">
+        <div className="animate-pulse h-5 w-28 rounded bg-white/[0.06]" />
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="animate-pulse flex items-center gap-3">
+              <div className="h-4 w-4 rounded bg-white/[0.06] shrink-0" />
+              <div className="h-4 flex-1 rounded bg-white/[0.04]" />
+              <div className="h-5 w-20 rounded bg-white/[0.06] shrink-0" />
+              <div className="h-3 w-24 rounded bg-white/[0.04] shrink-0 hidden sm:block" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// --- Empty State ---
+function EmptyState() {
+  const setCurrentView = useAppStore((s) => s.setCurrentView);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="flex flex-col items-center justify-center py-16 px-4"
+    >
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <div className="h-16 w-16 rounded-2xl bg-wine-accent/10 flex items-center justify-center mb-4">
+          <BarChart3 className="h-8 w-8 text-wine-accent" />
+        </div>
+      </motion.div>
+      <h3 className="text-lg font-semibold text-viralyze-white mb-1">
+        No analytics yet
+      </h3>
+      <p className="text-sm text-viralyze-muted text-center max-w-sm mb-6">
+        Run some content predictions to see your performance analytics, score trends, and category breakdowns here.
+      </p>
+      <Button
+        onClick={() => setCurrentView('predict')}
+        className="bg-wine-accent hover:bg-wine-accent/80 text-white btn-shine"
+      >
+        <Sparkles className="h-4 w-4 mr-2" />
+        Run Your First Prediction
+      </Button>
+    </motion.div>
+  );
+}
+
+// --- Main Component ---
 export default function AnalyticsView() {
+  const user = useAppStore((s) => s.user);
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchAnalytics() {
+      try {
+        const res = await fetch(`/api/analytics?userId=${user.id}`);
+        if (!res.ok) throw new Error('Failed to fetch analytics');
+        const json = await res.json();
+        if (cancelled) return;
+        setData(json);
+      } catch (err) {
+        if (!cancelled) setError('Failed to load analytics. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchAnalytics();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col gap-6 max-w-5xl mx-auto"
+      >
+        <motion.div variants={item}>
+          <div className="animate-pulse h-8 w-40 rounded bg-white/[0.06]" />
+          <div className="animate-pulse h-4 w-72 rounded bg-white/[0.04] mt-2" />
+        </motion.div>
+        <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </motion.div>
+        <motion.div variants={item}>
+          <SkeletonChart />
+        </motion.div>
+        <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SkeletonChart />
+          <SkeletonChart />
+        </motion.div>
+        <motion.div variants={item}>
+          <SkeletonChart />
+        </motion.div>
+        <motion.div variants={item}>
+          <SkeletonList />
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // Error state
+  if (error || !user) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-6 max-w-5xl mx-auto"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">Analytics</h2>
+        <Card className="glass">
+          <CardContent className="p-8 flex flex-col items-center gap-4 text-center">
+            <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center">
+              <BarChart3 className="h-6 w-6 text-red-400" />
+            </div>
+            <p className="text-sm text-viralyze-muted">{error || 'Sign in to view your analytics.'}</p>
+            {!user && (
+              <Button
+                onClick={() => useAppStore.getState().setAuthModal(true, 'login')}
+                className="bg-wine-accent hover:bg-wine-accent/80 text-white"
+              >
+                Sign In
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  // Empty state (user has no analyses)
+  if (data && data.totalAnalyses === 0) {
+    return (
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col gap-6 max-w-5xl mx-auto"
+      >
+        <motion.div variants={item}>
+          <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">Analytics</h2>
+          <p className="text-viralyze-muted mt-1">
+            Track your content performance and viral potential trends
+          </p>
+        </motion.div>
+        <motion.div variants={item}>
+          <EmptyState />
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // Guard: no data
+  if (!data) return null;
+
+  // --- Derived data ---
+  const overviewStats = [
+    { icon: BarChart3, value: String(data.totalAnalyses), label: 'Total Analyses', accent: false },
+    { icon: TrendingUp, value: String(data.avgScore), label: 'Avg Score', accent: false },
+    { icon: Sparkles, value: String(data.bestScore), label: 'Highest Score', accent: true },
+    { icon: Target, value: `${data.predictionAccuracy}%`, label: 'Prediction Accuracy', accent: false },
+  ];
+
   return (
     <motion.div
       variants={container}
@@ -194,7 +379,7 @@ export default function AnalyticsView() {
           <CardContent className="pt-0">
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={scoreDistribution} barCategoryGap="20%">
+                <BarChart data={data.scoreDistribution} barCategoryGap="20%">
                   <XAxis
                     dataKey="range"
                     tick={{ fill: '#A1A1AA', fontSize: 12 }}
@@ -230,35 +415,41 @@ export default function AnalyticsView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={platformPerformance} outerRadius="70%">
-                  <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                  <PolarAngleAxis
-                    dataKey="platform"
-                    tick={{ fill: '#A1A1AA', fontSize: 11 }}
-                  />
-                  <PolarRadiusAxis
-                    angle={90}
-                    domain={[0, 100]}
-                    tick={{ fill: '#A1A1AA', fontSize: 10 }}
-                    axisLine={false}
-                  />
-                  <Radar
-                    name="Score"
-                    dataKey="score"
-                    stroke="#B8325A"
-                    fill="#B8325A"
-                    fillOpacity={0.25}
-                    strokeWidth={2}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
+            {data.platformPerformance.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={data.platformPerformance} outerRadius="70%">
+                    <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                    <PolarAngleAxis
+                      dataKey="platform"
+                      tick={{ fill: '#A1A1AA', fontSize: 11 }}
+                    />
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, 100]}
+                      tick={{ fill: '#A1A1AA', fontSize: 10 }}
+                      axisLine={false}
+                    />
+                    <Radar
+                      name="Score"
+                      dataKey="score"
+                      stroke="#B8325A"
+                      fill="#B8325A"
+                      fillOpacity={0.25}
+                      strokeWidth={2}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      labelStyle={tooltipLabelStyle}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-sm text-viralyze-muted">
+                No platform data yet
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -270,42 +461,48 @@ export default function AnalyticsView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={categoryBreakdown}
-                  layout="vertical"
-                  barCategoryGap="20%"
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.05)"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    domain={[0, 100]}
-                    tick={{ fill: '#A1A1AA', fontSize: 11 }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="category"
-                    tick={{ fill: '#A1A1AA', fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={100}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                  />
-                  <Bar dataKey="score" fill="#B8325A" radius={[0, 4, 4, 0]} name="Score" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {data.categoryBreakdown.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.categoryBreakdown}
+                    layout="vertical"
+                    barCategoryGap="20%"
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.05)"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      domain={[0, 100]}
+                      tick={{ fill: '#A1A1AA', fontSize: 11 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="category"
+                      tick={{ fill: '#A1A1AA', fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={110}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      labelStyle={tooltipLabelStyle}
+                      cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                    />
+                    <Bar dataKey="score" fill="#B8325A" radius={[0, 4, 4, 0]} name="Score" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-sm text-viralyze-muted">
+                No category data yet
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -319,46 +516,52 @@ export default function AnalyticsView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={weeklyTrend}>
-                  <defs>
-                    <linearGradient id="wineGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#B8325A" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#B8325A" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.05)"
-                  />
-                  <XAxis
-                    dataKey="week"
-                    tick={{ fill: '#A1A1AA', fontSize: 12 }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fill: '#A1A1AA', fontSize: 12 }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="score"
-                    stroke="#B8325A"
-                    strokeWidth={2}
-                    fill="url(#wineGradient)"
-                    name="Score"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {data.weeklyTrend.length > 0 ? (
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.weeklyTrend}>
+                    <defs>
+                      <linearGradient id="wineGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#B8325A" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#B8325A" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.05)"
+                    />
+                    <XAxis
+                      dataKey="week"
+                      tick={{ fill: '#A1A1AA', fontSize: 12 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fill: '#A1A1AA', fontSize: 12 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      labelStyle={tooltipLabelStyle}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="score"
+                      stroke="#B8325A"
+                      strokeWidth={2}
+                      fill="url(#wineGradient)"
+                      name="Score"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-56 flex items-center justify-center text-sm text-viralyze-muted">
+                Need more than one week of data to show trends
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -372,41 +575,40 @@ export default function AnalyticsView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex flex-col divide-y divide-white/[0.06]">
-              {topContent.map((content) => {
-                const PIcon = platformIcons[content.platform];
-                const cls = getClassification(content.score);
-                return (
-                  <div
-                    key={content.id}
-                    className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-                  >
-                    <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
-                    <span className="text-sm text-viralyze-white flex-1 truncate">
-                      {content.title}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={cn('text-xs shrink-0', getScoreColor(content.score))}
+            {data.topContent.length > 0 ? (
+              <div className="flex flex-col divide-y divide-white/[0.06]">
+                {data.topContent.map((content) => {
+                  const PIcon = platformIcons[content.platform as Platform] || BarChart3;
+                  const cls = getClassification(content.score);
+                  return (
+                    <div
+                      key={content.id}
+                      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
                     >
-                      {content.score} — {cls}
-                    </Badge>
-                    <span className="text-xs text-viralyze-muted hidden sm:block shrink-0">
-                      {content.date}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                      <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+                      <span className="text-sm text-viralyze-white flex-1 truncate">
+                        {content.title}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn('text-xs shrink-0', getScoreColor(content.score))}
+                      >
+                        {content.score} — {cls}
+                      </Badge>
+                      <span className="text-xs text-viralyze-muted hidden sm:block shrink-0">
+                        {content.date}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 flex items-center justify-center text-sm text-viralyze-muted">
+                No content yet
+              </div>
+            )}
           </CardContent>
         </Card>
-      </motion.div>
-
-      {/* Disclaimer */}
-      <motion.div variants={item} className="text-center pb-4">
-        <p className="text-xs text-viralyze-muted/50">
-          Analytics are based on mock data. Real historical data will appear as you run more predictions.
-        </p>
       </motion.div>
     </motion.div>
   );

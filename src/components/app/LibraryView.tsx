@@ -226,7 +226,7 @@ function CompareModal({
 }
 
 export default function LibraryView() {
-  const { setSavedAnalyses, removeSavedAnalysis, user } = useAppStore();
+  const { setSavedAnalyses, removeSavedAnalysis, setCurrentAnalysis, setCurrentView, user } = useAppStore();
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -296,7 +296,9 @@ export default function LibraryView() {
     }
   };
 
-  const handleCardClick = (id: string) => {
+  const [viewingId, setViewingId] = useState<string | null>(null);
+
+  const handleCardClick = async (id: string) => {
     if (compareMode) {
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -311,7 +313,21 @@ export default function LibraryView() {
         return next;
       });
     } else {
-      toast.info('Full analysis requires re-running prediction');
+      try {
+        setViewingId(id);
+        const res = await fetch(`/api/library?id=${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentAnalysis(data);
+          setCurrentView('analysis');
+        } else {
+          toast.error('Failed to load analysis');
+        }
+      } catch {
+        toast.error('Failed to load analysis');
+      } finally {
+        setViewingId(null);
+      }
     }
   };
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, Check } from 'lucide-react';
+import { Sparkles, Loader2, Check, Timer } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,7 @@ export default function PredictView() {
   const [hashtags, setHashtags] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [charCount, setCharCount] = useState(0);
 
   const isIdea = predictMode === 'idea';
   const mainText = isIdea ? ideaText : contentText;
@@ -140,8 +141,11 @@ export default function PredictView() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="max-w-2xl mx-auto flex flex-col gap-6"
+      className="max-w-2xl mx-auto flex flex-col gap-6 relative"
     >
+      {/* Gradient mesh background — 2 blurred circles */}
+      <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-wine-accent/[0.08] blur-[100px] pointer-events-none" aria-hidden="true" />
+      <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-wine/[0.1] blur-[80px] pointer-events-none" aria-hidden="true" />
       {/* Mode Tabs */}
       <Tabs
         value={predictMode}
@@ -167,11 +171,21 @@ export default function PredictView() {
       <div className="gradient-border rounded-xl">
         <Card className="glass rounded-xl relative z-0">
           <CardContent className="p-6 flex flex-col gap-5">
-            {/* Main textarea with focus glow */}
+            {/* Main textarea with focus glow and typing indicator */}
             <div className="flex flex-col gap-2 focus-glow-wine rounded-lg transition-all duration-300">
-              <Label className="text-viralyze-muted text-sm">
-                {isIdea ? 'Describe your content idea' : 'Paste your content/caption'}
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-viralyze-muted text-sm">
+                  {isIdea ? 'Describe your content idea' : 'Paste your content/caption'}
+                </Label>
+                <motion.div
+                  className="flex items-center gap-1.5 text-viralyze-muted/40"
+                  animate={{ opacity: mainText.length > 0 ? 0 : [0.4, 0.8, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Timer className="h-3 w-3" />
+                  <span className="text-[10px] tracking-wide">typing...</span>
+                </motion.div>
+              </div>
               <Textarea
                 placeholder={
                   isIdea
@@ -180,18 +194,28 @@ export default function PredictView() {
                 }
                 rows={textareaRows}
                 value={mainText}
-                onChange={(e) => setMainText(e.target.value)}
+                onChange={(e) => { setMainText(e.target.value); setCharCount(e.target.value.length); }}
                 className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent resize-none rounded-lg"
               />
+              <motion.div
+                className="flex items-center justify-end"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: charCount > 0 ? 1 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <span className="text-[10px] tabular-nums text-viralyze-muted/30">{charCount}</span>
+              </motion.div>
             </div>
 
-            {/* Platform */}
+            {/* Platform — with scale micro-animation on click */}
             <div className="flex flex-col gap-2">
               <Label className="text-viralyze-muted text-sm">Platform</Label>
-              <PlatformSelector
-                value={predictPlatform}
-                onChange={setPredictPlatform}
-              />
+              <div className="[&>div>button]:active:scale-95 [&>div>button]:transition-transform [&>div>button]:duration-100">
+                <PlatformSelector
+                  value={predictPlatform}
+                  onChange={setPredictPlatform}
+                />
+              </div>
             </div>
 
             {/* Content Type */}
@@ -201,7 +225,7 @@ export default function PredictView() {
                 value={predictContentType}
                 onValueChange={(v) => setPredictContentType(v as ContentType)}
               >
-                <SelectTrigger className="bg-white/[0.05] border-white/[0.08] text-viralyze-white">
+                <SelectTrigger className="bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-wine-accent/30 hover:shadow-[0_0_12px_rgba(127,29,58,0.15)] transition-all duration-200">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
@@ -259,7 +283,7 @@ export default function PredictView() {
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-gradient-wine hover:opacity-90 text-white font-semibold h-12 w-full text-base mt-2"
+              className="bg-gradient-wine hover:opacity-90 text-white font-semibold h-12 w-full text-base mt-2 btn-shine"
             >
               {loading ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />

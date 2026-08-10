@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Platform } from '@/lib/types';
@@ -124,11 +124,31 @@ function HeatIndicator({ heat }: { heat: number }) {
   );
 }
 
+function HeatBar({ heat }: { heat: number }) {
+  return (
+    <div className="h-1 rounded-full bg-white/[0.06] w-full overflow-hidden">
+      <motion.div
+        className="h-full rounded-full bg-gradient-to-r from-wine-accent via-orange-400 to-wine-accent"
+        initial={{ width: 0 }}
+        animate={{ width: `${(heat / 5) * 100}%` }}
+        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+      />
+    </div>
+  );
+}
+
 export default function TrendsView() {
   const [trendData, setTrendData] = useState<TrendCategory[]>(fallbackTrendData);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState(false);
+  const [liveClock, setLiveClock] = useState(new Date());
+
+  // Live clock tick
+  useEffect(() => {
+    const interval = setInterval(() => setLiveClock(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchTrends = useCallback(async () => {
     setLoading(true);
@@ -170,15 +190,21 @@ export default function TrendsView() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-8 max-w-5xl mx-auto"
+      className="flex flex-col gap-8 max-w-5xl mx-auto noise-bg relative"
     >
-      {/* Header with refresh and last updated */}
+      {/* Header with refresh and last updated — live clock feel */}
       <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <p className="text-viralyze-muted text-sm">
               Real-time trending topics across platforms
             </p>
+            <div className="flex items-center gap-1 text-viralyze-muted/30">
+              <Clock className="h-3 w-3" />
+              <span className="text-[10px] font-mono tabular-nums">
+                {liveClock.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
             {lastUpdated && (
               <span className="text-xs text-viralyze-muted/50">
                 &middot; Updated {lastUpdated.toLocaleTimeString()}
@@ -221,7 +247,7 @@ export default function TrendsView() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {cat.trends.map((trend, i) => (
-                <Card key={i} className="glass hover:bg-white/[0.03] transition-colors">
+                <Card key={i} className="glass hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -233,6 +259,10 @@ export default function TrendsView() {
                           <span className="text-xs font-medium text-green-400">
                             {trend.growth}
                           </span>
+                        </div>
+                        {/* Animated heat bar */}
+                        <div className="mt-2">
+                          <HeatBar heat={trend.heat} />
                         </div>
                         <div className="flex gap-1.5 mt-2">
                           {trend.platforms.map((p) => {

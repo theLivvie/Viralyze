@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, name } = await request.json();
+
+    if (!id || !name) {
+      return NextResponse.json({ error: 'User ID and name are required' }, { status: 400 });
+    }
+
+    const user = await db.user.update({
+      where: { id },
+      data: { name },
+    });
+
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+      predictionsUsed: user.predictionsUsed,
+      predictionsLimit: user.predictionsLimit,
+    });
+  } catch (error) {
+    console.error('Auth PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { action, email, name, password } = await request.json();

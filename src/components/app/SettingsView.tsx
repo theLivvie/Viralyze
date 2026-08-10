@@ -1,12 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, CreditCard, LogOut, AlertTriangle, Trash2, Check, Sparkles } from 'lucide-react';
+import { User, CreditCard, LogOut, AlertTriangle, Trash2, Check, Sparkles, Bell, Mail, BarChart3, Camera, Upload, Loader2, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { useAppStore } from '@/lib/store';
 import { toast } from 'sonner';
 
@@ -27,7 +29,37 @@ const plans = [
 ] as const;
 
 export default function SettingsView() {
-  const { user, logout } = useAppStore();
+  const { user, logout, login } = useAppStore();
+  const [nameValue, setNameValue] = useState(user?.name || '');
+  const [saving, setSaving] = useState(false);
+  const [notifications, setNotifications] = useState({
+    email: true,
+    weeklyDigest: false,
+    predictionAlerts: true,
+  });
+
+  const handleSaveName = async () => {
+    if (!user || !nameValue.trim() || nameValue.trim() === user.name) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, name: nameValue.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        login({ ...user, name: data.name });
+        toast.success('Profile updated successfully');
+      } else {
+        toast.error(data.error || 'Failed to update name');
+      }
+    } catch {
+      toast.error('Failed to update name');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDeleteAccount = () => {
     toast.error('Account deletion is not available in the demo. Stay with us! 🍷');
@@ -40,7 +72,7 @@ export default function SettingsView() {
       animate="show"
       className="flex flex-col gap-6 max-w-2xl mx-auto"
     >
-      {/* Profile — with gradient border */}
+      {/* Profile — with gradient border and avatar upload zone */}
       <motion.div variants={item}>
         <div className="gradient-border rounded-xl">
           <Card className="glass relative z-0">
@@ -51,13 +83,50 @@ export default function SettingsView() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+              {/* Avatar upload zone */}
+              <div className="flex items-center gap-4">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative h-16 w-16 rounded-full border-2 border-dashed border-white/[0.12] bg-white/[0.03] flex items-center justify-center hover:border-wine-accent/40 hover:bg-wine-accent/[0.05] transition-all duration-200 group"
+                  onClick={() => toast.info('Avatar upload coming soon!')}
+                >
+                  {user?.name ? (
+                    <span className="text-xl font-bold text-wine-accent">
+                      {user.name.charAt(0).toUpperCase()}
+                    </span>
+                  ) : (
+                    <Camera className="h-5 w-5 text-viralyze-muted/40" />
+                  )}
+                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <Upload className="h-4 w-4 text-wine-accent/70" />
+                  </div>
+                </motion.button>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-viralyze-white">Profile Photo</p>
+                  <p className="text-xs text-viralyze-muted/50">Click to upload an avatar</p>
+                </div>
+              </div>
+              <Separator className="bg-white/[0.06]" />
               <div className="flex flex-col gap-2">
                 <Label className="text-viralyze-muted text-sm">Name</Label>
-                <Input
-                  value={user?.name || ''}
-                  readOnly
-                  className="bg-white/[0.03] border-white/[0.06] text-viralyze-white/60 cursor-not-allowed hover:border-white/[0.12] transition-colors"
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={nameValue}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    placeholder="Enter your name"
+                    className="flex-1 bg-white/[0.03] border-white/[0.06] text-viralyze-white hover:border-white/[0.12] focus:border-wine-accent/40 transition-colors"
+                  />
+                  <Button
+                    onClick={handleSaveName}
+                    disabled={saving || !nameValue.trim() || nameValue.trim() === (user?.name || '')}
+                    size="icon"
+                    className="h-9 w-9 shrink-0 bg-wine-accent hover:bg-wine-accent/90 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-viralyze-muted text-sm">Email</Label>
@@ -142,7 +211,7 @@ export default function SettingsView() {
                   </tr>
                 </thead>
                 <tbody className="text-viralyze-muted">
-                  <tr className="border-b border-white/[0.04]">
+                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Predictions</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3 text-xs tabular-nums">
@@ -150,7 +219,7 @@ export default function SettingsView() {
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-white/[0.04]">
+                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Analytics</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3">
@@ -162,7 +231,7 @@ export default function SettingsView() {
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-white/[0.04]">
+                  <tr className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Export Data</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3">
@@ -174,7 +243,7 @@ export default function SettingsView() {
                       </td>
                     ))}
                   </tr>
-                  <tr>
+                  <tr className="hover:bg-white/[0.03] transition-colors">
                     <td className="py-2.5 pr-4 text-viralyze-white/70 text-xs">Priority Support</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="text-center py-2.5 px-3">
@@ -188,6 +257,70 @@ export default function SettingsView() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Notification Preferences */}
+      <motion.div variants={item}>
+        <Card className="glass hover:border-white/[0.1] transition-colors">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bell className="h-4 w-4 text-wine-accent" />
+              Notification Preferences
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                  <Mail className="h-4 w-4 text-viralyze-muted" />
+                </div>
+                <div>
+                  <p className="text-sm text-viralyze-white font-medium">Email Notifications</p>
+                  <p className="text-xs text-viralyze-muted/50">Receive prediction results via email</p>
+                </div>
+              </div>
+              <Switch
+                checked={notifications.email}
+                onCheckedChange={(v) => setNotifications((n) => ({ ...n, email: v }))}
+                className="data-[state=checked]:bg-wine-accent"
+              />
+            </div>
+            <Separator className="bg-white/[0.06]" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-viralyze-muted" />
+                </div>
+                <div>
+                  <p className="text-sm text-viralyze-white font-medium">Weekly Digest</p>
+                  <p className="text-xs text-viralyze-muted/50">Get a weekly summary of trending topics</p>
+                </div>
+              </div>
+              <Switch
+                checked={notifications.weeklyDigest}
+                onCheckedChange={(v) => setNotifications((n) => ({ ...n, weeklyDigest: v }))}
+                className="data-[state=checked]:bg-wine-accent"
+              />
+            </div>
+            <Separator className="bg-white/[0.06]" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-viralyze-muted" />
+                </div>
+                <div>
+                  <p className="text-sm text-viralyze-white font-medium">Prediction Alerts</p>
+                  <p className="text-xs text-viralyze-muted/50">Get notified when predictions are ready</p>
+                </div>
+              </div>
+              <Switch
+                checked={notifications.predictionAlerts}
+                onCheckedChange={(v) => setNotifications((n) => ({ ...n, predictionAlerts: v }))}
+                className="data-[state=checked]:bg-wine-accent"
+              />
             </div>
           </CardContent>
         </Card>

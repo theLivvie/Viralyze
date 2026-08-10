@@ -58,7 +58,7 @@ export default function AppSidebar() {
   const isNearLimit = usagePercent >= 80;
 
   return (
-    <Sidebar collapsible="none" className="bg-viralyze-black border-r border-white/[0.06]">
+    <Sidebar collapsible="offcanvas" className="bg-viralyze-black border-r border-white/[0.06]">
       <SidebarHeader className="px-4 py-5">
         <button
           onClick={() => setCurrentView('dashboard')}

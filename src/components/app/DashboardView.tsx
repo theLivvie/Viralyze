@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, FileText, BarChart3, TrendingUp, Inbox, ArrowRight, Instagram, Youtube, Tv, Twitter, Linkedin, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -76,7 +77,7 @@ function ScoreHistory({ scores }: { scores: number[] }) {
 }
 
 export default function DashboardView() {
-  const { savedAnalyses, setCurrentView, setCurrentAnalysis } = useAppStore();
+  const { savedAnalyses, setCurrentView, setCurrentAnalysis, user } = useAppStore();
 
   const totalAnalyses = savedAnalyses.length;
   const avgScore =
@@ -88,8 +89,26 @@ export default function DashboardView() {
       ? Math.max(...savedAnalyses.map((a) => a.overallScore))
       : 0;
 
+  const [viewingId, setViewingId] = useState<string | null>(null);
+
   const recentAnalyses = savedAnalyses.slice(0, 5);
   const scoreHistory = savedAnalyses.map((a) => a.overallScore);
+
+  const handleAnalysisClick = async (id: string) => {
+    try {
+      setViewingId(id);
+      const res = await fetch(`/api/library?id=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentAnalysis(data);
+        setCurrentView('analysis');
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setViewingId(null);
+    }
+  };
 
   return (
     <motion.div
@@ -279,10 +298,7 @@ export default function DashboardView() {
                 <Card
                   key={analysis.id}
                   className="glass cursor-pointer hover:bg-white/[0.03] transition-colors"
-                  onClick={() => {
-                    setCurrentAnalysis(null);
-                    setCurrentView('library');
-                  }}
+                  onClick={() => handleAnalysisClick(analysis.id)}
                 >
                   <CardContent className="p-3 px-4 flex items-center gap-3">
                     <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />

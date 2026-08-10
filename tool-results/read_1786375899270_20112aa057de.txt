@@ -1,0 +1,448 @@
+     1→# Viralyze — Work Log
+     2→
+     3→---
+     4→Task ID: 0
+     5→Agent: Main
+     6→Task: Foundation setup — theme, Prisma schema, types, Zustand store, layout, API routes
+     7→
+     8→Work Log:
+     9→- Created custom wine/maroon + black dark theme in globals.css with custom utility classes (glass, glow-wine, text-gradient-wine, etc.)
+    10→- Updated Prisma schema with User and ContentAnalysis models
+    11→- Created TypeScript types (types.ts) for the entire app
+    12→- Created Zustand store (store.ts) for app state management
+    13→- Updated layout.tsx with Viralyze branding and metadata
+    14→- Created /api/predict route with LLM integration for content analysis
+    15→- Created /api/library route for CRUD operations on saved analyses
+    16→- Created /api/ideas route for AI-powered idea generation
+    17→- Created /api/auth route for login/signup (demo mode)
+    18→- Pushed Prisma schema to SQLite database
+    19→
+    20→Stage Summary:
+    21→- Complete backend infrastructure ready
+    22→- AI prediction engine with multi-strategy JSON parsing
+    23→- Database models for users and content analyses
+    24→
+    25→---
+    26→Task ID: 1
+    27→Agent: full-stack-developer (subagent 1)
+    28→Task: Build all 10 landing page components
+    29→
+    30→Work Log:
+    31→- Created LandingNav.tsx — Sticky glass nav with mobile Sheet menu
+    32→- Created HeroSection.tsx — Full viewport hero with floating particles, animated dashboard mockup, stats
+    33→- Created SocialProofSection.tsx — Brand names with scroll animations
+    34→- Created ProblemSection.tsx — Side-by-side Create→Post→Hope vs Analyze→Optimize→Publish
+    35→- Created DemoSection.tsx — Interactive cosmetic demo with typing animation and counting score
+    36→- Created FeaturesSection.tsx — 3 engine cards + 6 feature grid
+    37→- Created HowItWorksSection.tsx — 5-step timeline with connecting line
+    38→- Created PricingSection.tsx — 3 plans (Free/Creator/Pro) with highlighted Creator plan
+    39→- Created CTASection.tsx — Final CTA with wine gradient
+    40→- Created LandingFooter.tsx — Dark footer with links and social icons
+    41→
+    42→Stage Summary:
+    43→- Complete landing page with 10 sections
+    44→- All sections have scroll-triggered Framer Motion animations
+    45→- Premium dark theme with wine accents throughout
+    46→
+    47→---
+    48→Task ID: 2
+    49→Agent: full-stack-developer (subagent 2)
+    50→Task: Build shared components and all app view components
+    51→
+    52→Work Log:
+    53→- Created ScoreRing.tsx — Animated SVG circle with count-up number
+    54→- Created ScoreBar.tsx — Animated horizontal score bar
+    55→- Created AuthModal.tsx — 3-mode Dialog (login/signup/forgot)
+    56→- Created PlatformSelector.tsx — Platform icon row selector
+    57→- Created AppSidebar.tsx — Sidebar navigation with 7 nav items
+    58→- Created AppLayout.tsx — Main app layout with sidebar and top bar
+    59→- Created DashboardView.tsx — Welcome, CTA cards, quick stats, recent analyses
+    60→- Created PredictView.tsx — New Idea/Existing Content modes with loading animation
+    61→- Created AnalysisView.tsx — Full analysis with ScoreRing, ScoreBars, platform fit, strengths/weaknesses/improvements, optimized content, variations
+    62→- Created LibraryView.tsx — Saved analyses with search and filter
+    63→- Created IdeasView.tsx — AI-powered idea generator with results grid
+    64→- Created TrendsView.tsx — Static trend radar with 5 categories
+    65→- Created SettingsView.tsx — Profile info, plan, logout
+    66→
+    67→Stage Summary:
+    68→- Complete app with 13 components across shared and app directories
+    69→- Full prediction flow: form → loading → analysis → save
+    70→- All views animated with Framer Motion
+    71→
+    72→---
+    73→Task ID: 9
+    74→Agent: Main
+    75→Task: Bug fixes, QA, and polish
+    76→
+    77→Work Log:
+    78→- Fixed duplicate Sparkles import in AppSidebar.tsx
+    79→- Fixed CrystalBall icon (doesn't exist in lucide-react) → replaced with Sparkles
+    80→- Fixed AuthModal login call (data.user → data)
+    81→- Fixed page.tsx null return when logged in + landing view
+    82→- Improved JSON parsing in /api/predict with 3 extraction strategies
+    83→- Rewrote system prompt for more explicit JSON structure
+    84→- Added response normalization in /api/predict
+    85→- Fixed IdeasView data.ideas vs array response handling
+    86→- Rewrote /api/ideas with better JSON extraction and normalization
+    87→- Removed unused imports (useEffect, useCallback, AnimatePresence, motion)
+    88→- Verified with agent-browser: landing page, login, dashboard, predict, analysis, ideas, mobile responsive
+    89→- All lint checks pass clean
+    90→
+    91→Stage Summary:
+    92→- Full end-to-end flow verified working
+    93→- Landing page: all 10 sections render correctly
+    94→- Auth: login/signup modal works
+    95→- Dashboard: CTA cards, stats, empty state
+    96→- Predict: form submission, loading animation, AI analysis
+    97→- Analysis: score ring, score bars, platform fit, strengths/weaknesses, optimized content, variations, save
+    98→- Ideas: topic input, AI generation, results grid
+    99→- Mobile: responsive nav with Sheet menu
+   100→- Zero lint errors
+   101→
+   102→---
+   103→Task ID: 3-a
+   104→Agent: Main
+   105→Task: Create AnalyticsView, fix LibraryView API integration, wire analytics route
+   106→
+   107→Work Log:
+   108→- Created AnalyticsView.tsx — Comprehensive analytics dashboard with 6 sections:
+   109→  - Overview Stats: 4 glass cards (Total Analyses: 12, Avg Score: 78, Highest Score: 94, Prediction Accuracy: 87%)
+   110→  - Score Distribution: BarChart showing score ranges (0-20, 21-40, 41-60, 61-80, 81-100) with wine accent bars
+   111→  - Platform Performance: RadarChart showing avg scores for Instagram(82), YouTube(78), TikTok(85), X(71), LinkedIn(68)
+   112→  - Score Trend: AreaChart with wine gradient fill showing 8-week trend (65→72→68→78→82→75→88→84)
+   113→  - Category Breakdown: Horizontal BarChart for Hook(84), Engagement(79), Shareability(81), Retention(76), Originality(72), Audience Fit(86)
+   114→  - Top Content: List of 5 mock analyses with platform icon, title, colored score badge, date
+   115→  - All charts dark-themed with glass-strong tooltip styling
+   116→  - Framer Motion staggered entry animations (same container/item pattern as DashboardView)
+   117→- Fixed LibraryView.tsx:
+   118→  - Fetches data from GET /api/library?userId=USER_ID on mount (uses store's user.id)
+   119→  - Shows loading skeleton (4 pulse-animated cards) while fetching
+   120→  - Search input filters displayed list client-side
+   121→  - Platform filter dropdown filters by platform
+   122→  - Delete button calls DELETE /api/library?id=ID&userId=USER_ID with loading spinner
+   123→  - Clicking a card shows toast 'Full analysis requires re-running prediction'
+   124→  - Separate empty states: no analyses at all vs filtered to nothing (with Clear Filters button)
+   125→  - Local state management for analyses list, synced to store via setSavedAnalyses
+   126→- Updated page.tsx:
+   127→  - Added AnalyticsView import
+   128→  - Added `analytics: AnalyticsView` to viewComponents map
+   129→
+   130→Stage Summary:
+   131→- Analytics view fully functional with mock data and 5 recharts chart types
+   132→- Library view now properly fetches from DB and handles all CRUD operations
+   133→- Zero lint errors
+   134→- Dev server compiles cleanly
+   135→
+   136→---
+   137→Task ID: 3-b
+   138→Agent: Main
+   139→Task: Visual polish and micro-interactions across the entire application
+   140→
+   141→Work Log:
+   142→- **globals.css**: Added 4 new keyframes (shine, scan-line, blink-cursor, gradient-rotate), @property for --gradient-angle, and 6 new utility classes (btn-shine, glow-line, scan-line-animated, blink-cursor, gradient-border with conic-gradient animation, focus-glow-wine)
+   143→- **HeroSection.tsx**: Removed style-jsx (replaced with CSS-only floating particles), added animated gradient border (conic-gradient rotating) on dashboard mockup card, added pulsing glow effect behind the '87' score number, implemented parallax effect using Framer Motion useScroll+useTransform on the mockup (moves up slower on scroll), added green ArrowUpRight trend arrows next to each stat number (50K+, 94%, 2.8x)
+   144→- **FeaturesSection.tsx**: Added wine-accent box-shadow glow on hover for 3 main engine cards (transitioned), added numbered circle badges ('01'-'06') on each sub-feature card icon, added animated gradient line separator between main engines and sub-features
+   145→- **HowItWorksSection.tsx**: Improved connecting line animation (1.2s duration, higher opacity gradient), added wine-accent border + glow effect on desktop step circles that activates when in view, added brief one-line descriptions under each step title (both desktop and mobile)
+   146→- **PricingSection.tsx**: Added pulse-glow animation to 'Popular' badge, added Sparkles icon next to Creator plan name, added 'Most Popular' watermark text behind Creator card, made price number larger (text-5xl font-extrabold)
+   147→- **DemoSection.tsx**: Added scanning line animation (horizontal line moving top to bottom) across the entire demo card, replaced pulse cursor with proper blink-cursor CSS animation that only shows while typing
+   148→- **DashboardView.tsx**: Added gradient mesh background (2 blurred colored circles) behind CTA cards, improved empty state with dashed border card, Search icon composition, and better copy, added hover lift effect (translateY -2px + shadow) on CTA cards using motion.div whileHover
+   149→- **PredictView.tsx**: Added animated gradient border (conic-gradient rotating) around the form card using gradient-border wrapper, added focus-glow-wine class on textarea wrapper for wine-accent glow on focus
+   150→- **AnalysisView.tsx**: Added floating decorative dots (3 animated dots with different timing) behind the ScoreRing, added gradient accent lines at top of Strengths (green), Weaknesses (amber), and Improvements (wine) cards, added btn-shine class on 'Save to Library' button for shimmer sweep effect on hover
+   151→
+   152→Stage Summary:
+   153→- All 8 components improved with visual polish and micro-interactions
+   154→- No style-jsx tags used (all animations via CSS classes or Framer Motion)
+   155→- Dev server compiles cleanly
+   156→
+   157→---
+   158→Task ID: 5-a
+   159→Agent: Main
+   160→Task: Improve styling with more details across 5 app components
+   161→
+   162→Work Log:
+   163→- **AppLayout.tsx**:
+   164→  - Added `bg-gradient-wine-radial` class to main content area for subtle wine radial gradient
+   165→  - Added `glow-line bg-gradient-wine` div below header as wine-accent glow separator line
+   166→  - Added usage counter Badge next to avatar showing `predictionsUsed/predictionsLimit` with hover color transition
+   167→  - Removed unused `Menu` import
+   168→- **AppSidebar.tsx**:
+   169→  - Added vertical glow-line indicator on left edge of active nav item (wine gradient, pulse-glow animated)
+   170→  - Added pulsing dot indicator (`animate-pulse-glow` wine-accent dot) next to 'Predict' nav item when not active
+   171→  - Added usage bar above footer showing predictions used vs limit with thin wine-gradient progress bar
+   172→  - Progress bar gets `animate-pulse-glow` when usage >= 80%
+   173→  - Usage count text turns wine-accent color when near limit
+   174→- **SettingsView.tsx**:
+   175→  - Wrapped profile Card in `gradient-border` div for animated conic-gradient rotating border
+   176→  - Added plan comparison mini-table (Free vs Creator vs Pro) with Check icons for features
+   177→  - Added 'Danger Zone' section at bottom with red-tinted glass card and delete account button (shows toast)
+   178→  - Added hover effects on all cards (`hover:border-white/[0.1]`), inputs (`hover:border-white/[0.12]`), and buttons
+   179→  - Added `toast` import from sonner
+   180→- **IdeasView.tsx**:
+   181→  - Wrapped input Card in `gradient-border` div for animated rotating border
+   182→  - Added `focus-glow-wine` wrapper div around topic Textarea for wine-accent glow on focus
+   183→  - Replaced spinner loading state with shimmer skeleton grid (4 ShimmerCard components)
+   184→  - Added `hover:glow-wine-sm` on idea cards with `transition-all duration-300`
+   185→  - Made Analyze button opacity-0 by default, opacity-100 on group hover
+   186→  - Added `btn-shine` class on Generate Ideas button
+   187→  - Added hover border transition on audience Input
+   188→- **LibraryView.tsx**:
+   189→  - Added count Badge next to 'Content Library' header (wine-accent styled, shows total analyses count)
+   190→  - Added `hover:glow-wine-sm` on library cards with `transition-all duration-300`
+   191→  - Improved empty state with animated dashed border (border-dashed + animate-pulse-glow wrapper)
+   192→  - Added floating animation on Inbox icon in empty state (Framer Motion y: [0, -6, 0])
+   193→  - Added `btn-shine` on empty state CTA button
+   194→  - Added `hover:border-white/[0.12]` transition on filter inputs and selects
+   195→
+   196→Stage Summary:
+   197→- 5 files modified with enhanced visual details and micro-interactions
+   198→- All existing utility classes used: gradient-border, glow-line, glow-wine-sm, bg-gradient-wine-radial, focus-glow-wine, animate-pulse-glow, btn-shine
+   199→- No new files created
+   200→- All existing functionality preserved
+   201→- Zero lint errors
+   202→- Dev server compiles cleanly
+   203→
+   204→---
+   205→Task ID: 6
+   206→Agent: Main (orchestrator)
+   207→Task: QA assessment, critical bug fix, styling & feature development coordination
+   208→
+   209→Work Log:
+   210→- Read worklog.md to assess current state — MVP was complete but AnalysisView.tsx was missing from filesystem
+   211→- Discovered critical build error: `Module not found: Can't resolve '@/components/app/AnalysisView'` (500 error on all routes)
+   212→- Recreated AnalysisView.tsx with full feature set:
+   213→  - ScoreRing with floating decorative dots (3 animated pulse dots)
+   214→  - Scan-line animation across the score header card
+   215→  - Predicted engagement stats grid (likes, comments, shares, saves) with platform-colored icons
+   216→  - Emotional breakdown tags (sorted by percentage, top 6)
+   217→  - Category scores with animated ScoreBar components
+   218→  - Platform fit grid (5 platforms with emoji icons and color-coded scores)
+   219→  - Strengths/Weaknesses/Improvements cards with gradient accent lines (green/amber/wine)
+   220→  - AI-optimized content section with glow-line separator (title, hook, caption) with copy-to-clipboard
+   221→  - Content variations with glass-strong cards, score badges, and copy buttons
+   222→  - Export analysis as JSON file (Download button in top bar)
+   223→  - Auto-saved indicator (since predict API auto-saves to DB)
+   224→- Fixed unused import (Platform type, Loader2, Bookmark, BookmarkCheck, Clock)
+   225→- Fixed AppLayout viewTitles missing 'calendar' entry
+   226→- Coordinated two parallel subagents:
+   227→  - Agent 5-a: Styling improvements across 5 components (AppLayout, AppSidebar, Settings, Ideas, Library)
+   228→  - Agent 5-b: 4 new features (real-time trends API, content calendar, library compare, dashboard score history)
+   229→- Full QA via agent-browser:
+   230→  - Landing page: all 10 sections render correctly
+   231→  - Auth: login/signup modal works
+   232→  - Dashboard: CTA cards, stats, empty state, score history
+   233→  - Predict: form with tabs, platform selector, content type, submit
+   234→  - Library: search, filter, sort, delete, compare mode, count badge
+   235→  - Ideas: topic input, platform selector, generate, results grid
+   236→  - Analytics: all 5 chart types render with dark theme
+   237→  - Trends: static fallback data + refresh button for AI-powered live trends
+   238→  - Calendar: weekly grid, add/remove content slots, week navigation, localStorage persistence
+   239→  - Settings: profile with gradient border, plan comparison table, danger zone
+   240→  - Mobile: responsive nav with Sheet menu, viewport 375x812
+   241→  - No console errors detected
+   242→
+   243→Stage Summary:
+   244→- Critical build error fixed (missing AnalysisView.tsx)
+   245→- AppLayout viewTitles fixed (added 'calendar')
+   246→- Export analysis feature added to AnalysisView
+   247→- 5 components received styling improvements
+   248→- 4 new features implemented
+   249→- Total new files: CalendarView.tsx, /api/trends/route.ts
+   250→- Total modified files: ~12
+   251→- Zero lint errors
+   252→- All routes compile and render correctly
+   253→- Full QA passed via agent-browser
+   254→
+   255→## Current Status
+   256→- **Phase**: Post-MVP Enhancement (Round 2)
+   257→- **Working Features**: Landing page, Auth, Dashboard (with score history), Predict, Analysis (with export), Library (with compare), Ideas, Trends (with AI refresh), Analytics, Calendar, Settings (with plan comparison + danger zone)
+   258→- **AI Integration**: LLM-powered content prediction, idea generation, trend analysis
+   259→- **Database**: SQLite with Prisma ORM, users and content analyses
+   260→- **New in this round**: Content calendar, library compare, score history sparkline, real-time trends, export analysis
+   261→
+   262→## Unresolved / Next Steps
+   263→1. Predicted vs actual performance tracking (post-publish feedback loop)
+   264→2. Google OAuth integration
+   265→3. Content variation pre-fill from Ideas page → Predict form (partially working via setPrefilledIdea)
+   266→4. Rate limiting on API routes
+   267→5. More polished mobile animations
+   268→6. Sound/haptic feedback on interactions
+   269→7. Analytics view should fetch real data from DB instead of mock data
+   270→8. Calendar slots could be linked to actual predictions
+   271→9. User profile editing (name update)
+   272→10. Email notifications for scheduled calendar content
+   273→
+   274→---
+   275→Task ID: 4a
+   276→Agent: styling-landing
+   277→Task: Landing page styling enhancements — SocialProof, Problem, HowItWorks, CTA sections
+   278→
+   279→Work Log:
+   280→- **SocialProofSection.tsx**:
+   281→  - Added "As Seen On" label above main heading (text-[10px], tracking-[0.25em], muted/40)
+   282→  - Split brands into two rows (row1: 4 brands, row2: 4 brands)
+   283→  - Added animated glow-line separator between rows (glow-line bg-gradient-wine, max-w-md, scales in from center)
+   284→  - Improved brand text from font-semibold to font-bold, hover transitions from opacity to full color+duration
+   285→  - Separators changed from bg-white/10 to bg-white/[0.06] for subtlety
+   286→- **ProblemSection.tsx**:
+   287→  - Replaced flat bg cards with glass-strong class on both columns
+   288→  - Added subtle gradient accent line at top of each card (white/[0.06] for old way, wine-accent/40 for new way)
+   289→  - Improved connecting arrows: replaced bare ArrowRight with a thin horizontal line + ArrowRight composition
+   290→  - Old Way arrows: bg-white/[0.06] line + text-white/[0.08] icon
+   291→  - New Way arrows: bg-gradient-to-r wine-accent/40→20 line + text-wine-accent/50 icon
+   292→  - Increased visual contrast: Old Way labels/text at muted/40, New Way at wine-accent with font-semibold
+   293→  - Old Way description bg: white/[0.015] with muted/35 text; New Way: wine-accent/[0.07] with wine-accent/90 text
+   294→  - New Way card gets glow-wine-sm class for subtle wine glow
+   295→  - Icon containers: Old Way bg-white/[0.04], New Way bg-wine-accent/15 with border-wine-accent/20
+   296→- **HowItWorksSection.tsx**:
+   297→  - Extracted StepCircle component with useState for hover state
+   298→  - On hover: step circle border transitions from wine-accent/30 to wine-accent/60 with intensified box-shadow (3 layers)
+   299→  - On hover: expanding ring animation (scale 0.85→1.15, opacity 0.6→0) for ripple effect
+   300→  - Step number typography: added font-mono font-extrabold tabular-nums for a cleaner monospace look
+   301→  - "STEP" label: changed to "Step" with smaller size (9px), uppercase, tracking-[0.2em]
+   302→  - Mobile dashed connecting line: replaced solid border-l with border-dashed border-wine-accent/25, animated scaleY draw-in
+   303→  - Mobile dot glow enhanced: added second shadow layer (0 0 24px rgba wine-accent 0.15)
+   304→  - Mobile icon container: added border border-wine-accent/15 for definition
+   305→  - Mobile step numbers: same font-mono font-extrabold tabular-nums treatment
+   306→- **CTASection.tsx**:
+   307→  - Added animated radial glow behind CTA text (radial-gradient circle, scales from 0.6→1 with 1.5s ease-out)
+   308→  - Added 8 floating glass particle dots at various positions with staggered float animations (opacity + y oscillation, infinite loop, 5-8s durations)
+   309→  - Particles use glass class for subtle glass-morphism appearance
+   310→  - Button upgraded: bg-gradient-to-r from-viralyze-white via-white to-viralyze-white for stronger gradient
+   311→  - Button gets btn-shine class for shimmer sweep on hover
+   312→  - Button text upgraded to font-bold, added shadow-lg shadow-white/10 and hover:shadow-xl hover:shadow-white/20
+   313→  - Removed unused border-white/20 from old bg-viralyze-white solid background
+   314→
+   315→Stage Summary:
+   316→- 4 files modified with premium micro-interaction enhancements
+   317→- All existing utility classes leveraged (glass, glass-strong, glow-wine-sm, glow-line, bg-gradient-wine, btn-shine, animate-pulse-glow, text-gradient-wine)
+   318→- No new CSS keyframes or utility classes added to globals.css
+   319→- Framer Motion used for all animations (hover states, entry animations, floating particles, radial glow)
+   320→- All existing functionality preserved
+   321→- Zero lint errors
+   322→- Dev server compiles cleanly
+   323→
+   324→---
+   325→Task ID: 4b
+   326→Agent: styling-app
+   327→Task: App views styling enhancements — PredictView, TrendsView, CalendarView, SettingsView
+   328→
+   329→Work Log:
+   330→- **PredictView.tsx**:
+   331→  - Added gradient mesh background behind form (2 blurred circles: wine-accent top-left, wine bottom-right, both with blur-[80-100px])
+   332→  - Added micro-animation on platform selector buttons (active:scale-95 with transition-transform via descendant selector)
+   333→  - Improved content type dropdown with hover glow (hover:border-wine-accent/30 + wine-accent shadow on hover)
+   334→  - Added typing indicator animation in textarea area (pulsing Timer icon + "typing..." text that fades away when text is entered, Framer Motion opacity oscillation)
+   335→  - Added live character count below textarea (fades in/out with Framer Motion)
+   336→  - Added btn-shine class on submit button
+   337→- **TrendsView.tsx**:
+   338→  - Added noise-bg texture overlay on entire section (with relative positioning)
+   339→  - Added animated trend heat bars (HeatBar component: thin 1px horizontal bar fills with wine gradient based on heat value, Framer Motion width animation)
+   340→  - Added live clock timestamp in header (updates every second, font-mono tabular-nums, HH:MM:SS format)
+   341→  - Added hover:glow-wine-sm on trend cards with transition-all duration-300
+   342→- **CalendarView.tsx**:
+   343→  - Added subtle time-of-day gradient to day headers (Mon/Tue=amber warm, Wed/Thu=neutral, Fri/Sat/Sun=wine)
+   344→  - Added hover lift animation on calendar slots (hover:-translate-y-0.5 + hover:shadow-lg)
+   345→  - Improved 'Add content' button: pulsing border when slot is empty (animate-pulse-glow)
+   346→  - Added 'Today' indicator pill in week navigation (animated wine-accent pill)
+   347→- **SettingsView.tsx**:
+   348→  - Added avatar upload zone with dashed border and hover effect (Framer Motion whileHover/whileTap scale)
+   349→  - Added Notification Preferences section with 3 toggles (Email, Weekly Digest, Prediction Alerts) using Switch with wine-accent color
+   350→  - Improved plan comparison table with hover:bg-white/[0.03] on all rows
+   351→  - Added separators between notification toggles
+   352→
+   353→Stage Summary:
+   354→- 4 files modified with premium visual enhancements
+   355→- All existing CSS utility classes leveraged: glass, glow-wine-sm, noise-bg, animate-pulse-glow, btn-shine, focus-glow-wine, gradient-border
+   356→- Framer Motion used for all animations (typing indicator, heat bars, live clock, hover scale, nav pills)
+   357→- No new CSS keyframes or utility classes added to globals.css
+   358→- No new files created
+   359→- All existing functionality preserved
+   360→- Zero lint errors
+   361→- Dev server compiles cleanly
+   362→
+   363→---
+   364→Task ID: 5a
+   365→Agent: analytics-real-data
+   366→Task: Replace mock data in AnalyticsView with real database data via dedicated analytics API endpoint
+   367→
+   368→Work Log:
+   369→- Created `/api/analytics/route.ts` (GET endpoint):
+   370→  - Accepts `userId` query parameter
+   371→  - Fetches ALL ContentAnalysis records for the user via Prisma
+   372→  - Computes server-side: totalAnalyses, avgScore, bestScore, predictionAccuracy (87 placeholder)
+   373→  - Computes score distribution across 5 ranges (0-20, 21-40, 41-60, 61-80, 81-100)
+   374→  - Computes platform performance (average score per platform, sorted desc)
+   375→  - Computes weekly trend (ISO week grouping, last 12 weeks, average score per week)
+   376→  - Computes category breakdown (average of 9 score dimensions: hook, engagement, shareability, retention, originality, audienceFit, emotionalImpact, contentQuality, trendAlignment)
+   377→  - Computes top 5 content by overallScore with formatted dates
+   378→  - Returns empty analytics (zeros/empty arrays) when user has no analyses
+   379→- Rewrote `AnalyticsView.tsx`:
+   380→  - Removed all hardcoded mock data (scoreDistribution, platformPerformance, weeklyTrend, categoryBreakdown, topContent, overviewStats)
+   381→  - Added `AnalyticsData` TypeScript interface matching API response
+   382→  - Added `useEffect` to fetch from `GET /api/analytics?userId=XXX` on mount using `useAppStore` user
+   383→  - Added full loading skeleton UI (pulse-animated stat cards, chart placeholders, list placeholders)
+   384→  - Added error state with red icon and sign-in CTA
+   385→  - Added friendly empty state with floating animated icon and 'Run Your First Prediction' button navigating to Predict view
+   386→  - Added graceful per-chart empty states (e.g., 'Need more than one week of data' for trend chart)
+   387→  - All chart data now driven entirely by API response
+   388→  - Preserved all existing wine/maroon dark theme styling, glass cards, recharts tooltip styles, Framer Motion staggered animations
+   389→  - Removed mock data disclaimer from footer
+   390→  - Removed unused imports
+   391→
+   392→Stage Summary:
+   393→- Analytics view now fetches real data from database via dedicated /api/analytics endpoint
+   394→- Server-side computation avoids N+1 fetches — single API call returns all chart data
+   395→- Proper loading, error, and empty states for excellent UX
+   396→- Zero lint errors
+   397→- Dev server compiles cleanly
+   398→
+   399→---
+   400→Task ID: 5c-d
+   401→Agent: features
+   402→Task: Onboarding overlay, keyboard shortcuts, profile editing
+   403→
+   404→Work Log:
+   405→- **OnboardingOverlay.tsx** (new):
+   406→  - 3-step first-time tour overlay: Welcome → Predict Flow → Explore & Analyze
+   407→  - Checks localStorage key `viralyze_onboarded`; only shows if not set
+   408→  - Each step has icon (Sparkles/Zap/BarChart3), title, description, step counter
+   409→  - Framer Motion slide transitions (custom direction-aware variants) between steps
+   410→  - Wine-accent progress dots at bottom (active dot wider with bg-wine-accent, past dots wine-accent/40, future dots white/10)
+   411→  - Next/Skip/Back buttons; Skip dismisses early, Next advances, final Next says 'Get Started'
+   412→  - Close X button in top-right corner; backdrop click also dismisses
+   413→  - glass-strong card with border, z-[100] fixed overlay, backdrop-blur
+   414→  - Sets localStorage `viralyze_onboarded = 'true'` on completion
+   415→- **KeyboardShortcuts.tsx** (new):
+   416→  - Fixed floating help button (bottom-right, '?' icon, glass-strong styling)
+   417→  - Opens Dialog showing all keyboard shortcuts in a grid
+   418→  - Shortcuts: Ctrl+K → Predict, Ctrl+L → Library, Ctrl+I → Ideas, Ctrl+/ → Toggle dialog
+   419→  - useEffect keydown listener with input guard (skips when focus in INPUT/TEXTAREA/SELECT)
+   420→  - Uses `useCallback` for navigateTo function
+   421→  - Kbd-styled shortcut keys with wine-accent hover effects
+   422→  - Each shortcut row is clickable (runs action + closes dialog)
+   423→  - Framer Motion entrance animation on the floating button (scale + opacity with 1s delay)
+   424→- **SettingsView.tsx** (modified):
+   425→  - Name input changed from readOnly to editable (local state `nameValue`)
+   426→  - Added Save button (wine-accent, icon size) next to name input
+   427→  - Save calls PUT /api/auth with { id, name }
+   428→  - Loading state with Loader2 spinner while saving
+   429→  - Button disabled when: saving, empty name, or name unchanged
+   430→  - On success: updates Zustand store via `login({...user, name})`, shows success toast
+   431→  - On error: shows error toast
+   432→  - Added Loader2, Save imports; added `login` from store
+   433→- **api/auth/route.ts** (modified):
+   434→  - Added PUT handler: accepts { id, name }, validates, updates via Prisma `db.user.update`
+   435→  - Returns updated user object (id, email, name, plan, predictionsUsed, predictionsLimit)
+   436→  - Error handling with appropriate status codes
+   437→- **page.tsx** (modified):
+   438→  - Imported OnboardingOverlay and KeyboardShortcuts
+   439→  - Rendered both inside AppLayout (OnboardingOverlay above children, KeyboardShortcuts alongside)
+   440→
+   441→Stage Summary:
+   442→- 3 new features implemented: onboarding overlay, keyboard shortcuts, profile editing
+   443→- 2 new files: OnboardingOverlay.tsx, KeyboardShortcuts.tsx
+   444→- 3 modified files: SettingsView.tsx, api/auth/route.ts, page.tsx
+   445→- All components use 'use client', existing shadcn/ui, glass-strong/glass classes, Framer Motion
+   446→- Zero lint errors
+   447→- Dev server compiles cleanly
+   448→

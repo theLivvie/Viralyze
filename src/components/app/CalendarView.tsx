@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +69,17 @@ function formatDayLabel(d: Date): string {
   if (diff === -1) return 'Yesterday';
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+// Time-of-day gradient for day headers based on weekday position
+const dayHeaderGradients = [
+  'from-amber-900/20 to-transparent',   // Mon - morning warm
+  'from-orange-900/15 to-transparent',  // Tue - morning warm
+  'from-viralyze-muted/10 to-transparent', // Wed - noon neutral
+  'from-viralyze-muted/10 to-transparent', // Thu - noon neutral
+  'from-wine-accent/20 to-transparent',  // Fri - evening wine
+  'from-wine-deep/25 to-transparent',   // Sat - evening wine
+  'from-wine/30 to-transparent',          // Sun - evening wine
+];
 
 function isToday(d: Date): boolean {
   const today = new Date();
@@ -199,15 +210,31 @@ export default function CalendarView() {
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          {weekOffset !== 0 && (
+          {/* Today indicator pill */}
+          <motion.div
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25"
+            animate={{ opacity: weekOffset !== 0 ? 1 : 0, scale: weekOffset !== 0 ? 1 : 0.8 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CalendarDays className="h-3 w-3 text-wine-accent" />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setWeekOffset(0)}
-              className="text-wine-accent hover:text-wine-accent hover:bg-wine-accent/10 text-xs"
+              className="text-wine-accent hover:text-wine-accent hover:bg-wine-accent/10 text-xs h-auto p-0"
             >
               Today
             </Button>
+          </motion.div>
+          {weekOffset === 0 && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25 text-wine-accent text-xs font-medium"
+            >
+              <CalendarDays className="h-3 w-3" />
+              Today
+            </motion.span>
           )}
         </div>
       </motion.div>
@@ -224,12 +251,12 @@ export default function CalendarView() {
             <motion.div key={key} variants={item}>
               <Card
                 className={cn(
-                  'glass transition-all duration-200',
+                  'glass transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-wine-accent/[0.05]',
                   isDayToday && 'border-wine-accent/30',
                   isActive && 'border-wine-accent/50 glow-wine-sm',
                 )}
               >
-                <CardHeader className="p-3 pb-2">
+                <CardHeader className={cn('p-3 pb-2 bg-gradient-to-br rounded-t-xl', dayHeaderGradients[day.getDay() === 0 ? 6 : day.getDay() - 1])}>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xs font-semibold text-viralyze-white">
                       {day.toLocaleDateString('en-US', { weekday: 'short' })}
@@ -344,7 +371,12 @@ export default function CalendarView() {
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           onClick={() => setActiveDay(key)}
-                          className="flex items-center justify-center gap-1 py-1.5 rounded-md border border-dashed border-white/[0.08] text-viralyze-muted/60 hover:text-wine-accent hover:border-wine-accent/30 transition-colors text-[11px]"
+                          className={cn(
+                            'flex items-center justify-center gap-1 py-1.5 rounded-md border text-viralyze-muted/60 hover:text-wine-accent transition-all text-[11px]',
+                            daySlots.length === 0
+                              ? 'border-dashed border-wine-accent/25 animate-pulse-glow'
+                              : 'border-dashed border-white/[0.08] hover:border-wine-accent/30'
+                          )}
                         >
                           <Plus className="h-3 w-3" />
                           {daySlots.length === 0 ? 'Add content' : 'Add more'}

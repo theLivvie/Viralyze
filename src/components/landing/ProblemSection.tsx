@@ -41,64 +41,88 @@ export default function ProblemSection() {
         </motion.div>
 
         <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-          {/* Old Way */}
+          {/* Old Way — glass-strong, dimmer */}
           <motion.div
             {...fadeInUp(0.15)}
-            className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8"
+            className="relative rounded-2xl glass-strong p-6 sm:p-8"
           >
-            <div className="mb-6 flex items-center gap-2">
-              <Frown className="h-5 w-5 text-viralyze-muted/50" />
-              <span className="text-sm font-medium text-viralyze-muted/60">The Old Way</span>
+            {/* Subtle top gradient accent line (dim gray) */}
+            <div className="absolute left-6 right-6 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+            <div className="mb-6 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+                <Frown className="h-4 w-4 text-viralyze-muted/40" />
+              </div>
+              <span className="text-sm font-semibold uppercase tracking-wider text-viralyze-muted/40">
+                The Old Way
+              </span>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
               {oldSteps.map((step, i) => (
                 <div key={step.label} className="flex flex-1 items-center gap-3 sm:gap-4">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.03] text-2xl">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/[0.04] bg-white/[0.02] text-2xl">
                       {step.icon}
                     </div>
-                    <span className="text-xs font-medium text-viralyze-muted/50">{step.label}</span>
+                    <span className="text-xs font-medium text-viralyze-muted/40">
+                      {step.label}
+                    </span>
                   </div>
                   {i < oldSteps.length - 1 && (
-                    <ArrowRight className="mt-[-16px] h-4 w-4 shrink-0 text-white/10" />
+                    <div className="mt-[-16px] flex shrink-0 flex-col items-center gap-0.5">
+                      <div className="h-px w-6 bg-white/[0.06]" />
+                      <ArrowRight className="-my-0.5 h-3 w-3 text-white/[0.08]" />
+                    </div>
                   )}
                 </div>
               ))}
             </div>
-            <div className="mt-6 rounded-lg bg-white/[0.02] p-3">
-              <p className="text-xs leading-relaxed text-viralyze-muted/40">
+            <div className="mt-6 rounded-xl border border-white/[0.04] bg-white/[0.015] p-3.5">
+              <p className="text-xs leading-relaxed text-viralyze-muted/35">
                 Create content based on intuition, post it, then cross your fingers
                 and wait. Most posts flop silently.
               </p>
             </div>
           </motion.div>
 
-          {/* New Way */}
+          {/* New Way — glass-strong with wine accents, brighter */}
           <motion.div
             {...fadeInUp(0.3)}
-            className="relative rounded-2xl border border-wine-accent/20 bg-gradient-wine-subtle p-6 sm:p-8"
+            className="relative rounded-2xl glass-strong p-6 sm:p-8 glow-wine-sm"
           >
-            <div className="mb-6 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-wine-accent" />
-              <span className="text-sm font-medium text-wine-accent">The Viralyze Way</span>
+            {/* Wine gradient accent line at top */}
+            <div className="absolute left-6 right-6 top-0 h-px bg-gradient-to-r from-transparent via-wine-accent/40 to-transparent" />
+
+            <div className="mb-6 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-wine-accent/15">
+                <Sparkles className="h-4 w-4 text-wine-accent" />
+              </div>
+              <span className="text-sm font-semibold uppercase tracking-wider text-wine-accent">
+                The Viralyze Way
+              </span>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
               {newSteps.map((step, i) => (
                 <div key={step.label} className="flex flex-1 items-center gap-3 sm:gap-4">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-wine-accent/10 text-2xl glow-wine-sm">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-wine-accent/20 bg-wine-accent/10 text-2xl glow-wine-sm">
                       {step.icon}
                     </div>
-                    <span className="text-xs font-medium text-wine-accent">{step.label}</span>
+                    <span className="text-xs font-semibold text-wine-accent">
+                      {step.label}
+                    </span>
                   </div>
                   {i < newSteps.length - 1 && (
-                    <ArrowRight className="mt-[-16px] h-4 w-4 shrink-0 text-wine-accent/60" />
+                    <div className="mt-[-16px] flex shrink-0 flex-col items-center gap-0.5">
+                      <div className="h-px w-6 bg-gradient-to-r from-wine-accent/40 to-wine-accent/20" />
+                      <ArrowRight className="-my-0.5 h-3 w-3 text-wine-accent/50" />
+                    </div>
                   )}
                 </div>
               ))}
             </div>
-            <div className="mt-6 rounded-lg bg-wine-accent/10 p-3">
-              <p className="text-xs leading-relaxed text-wine-accent/80">
+            <div className="mt-6 rounded-xl border border-wine-accent/15 bg-wine-accent/[0.07] p-3.5">
+              <p className="text-xs leading-relaxed text-wine-accent/90">
                 Analyze your idea first with AI, optimize based on data-driven insights,
                 then publish knowing it has viral potential.
               </p>

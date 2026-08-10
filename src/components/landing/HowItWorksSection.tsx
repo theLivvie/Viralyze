@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { ClipboardList, Cpu, BarChart3, Wand2, Rocket } from 'lucide-react';
 
 const steps = [
@@ -42,12 +42,81 @@ const steps = [
   },
 ];
 
+function StepCircle({
+  step,
+  index,
+  isInView,
+}: {
+  step: (typeof steps)[0];
+  index: number;
+  isInView: boolean;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <motion.div
+      key={step.num}
+      initial={{ opacity: 0, y: 24 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay: 0.2 + index * 0.15 }}
+      className="relative flex flex-col items-center text-center"
+    >
+      {/* Step Circle with pulsing glow on hover */}
+      <motion.div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        initial={{ boxShadow: '0 0 0 rgba(184, 50, 90, 0)' }}
+        animate={
+          isInView
+            ? hovered
+              ? {
+                  boxShadow:
+                    '0 0 24px rgba(184, 50, 90, 0.5), 0 0 48px rgba(184, 50, 90, 0.2), 0 0 80px rgba(127, 29, 58, 0.1)',
+                }
+              : { boxShadow: '0 0 20px rgba(184, 50, 90, 0.3), 0 0 40px rgba(184, 50, 90, 0.1)' }
+            : {}
+        }
+        transition={{ duration: hovered ? 0.3 : 0.6, delay: hovered ? 0 : 0.3 + index * 0.15 }}
+        className="relative z-10 mb-4 flex h-[104px] w-[104px] cursor-default items-center justify-center rounded-full border bg-viralyze-black transition-colors duration-300 border-wine-accent/30 hover:border-wine-accent/60"
+      >
+        {/* Inner pulsing ring on hover */}
+        {hovered && (
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0.6 }}
+            animate={{ scale: 1.15, opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="absolute inset-0 rounded-full border-2 border-wine-accent/30"
+          />
+        )}
+        <div className="relative flex flex-col items-center gap-1">
+          <step.icon className="h-6 w-6 text-wine-accent" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-viralyze-muted/50">
+            Step
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Step Number - improved typography */}
+      <span className="mb-1 font-mono text-xs font-extrabold tabular-nums text-wine-accent">
+        {step.num}
+      </span>
+      <h3 className="mb-1 text-sm font-semibold text-viralyze-white">
+        {step.title}
+      </h3>
+      <p className="max-w-[180px] text-xs text-viralyze-muted/70">{step.brief}</p>
+    </motion.div>
+  );
+}
+
 export default function HowItWorksSection() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section className="relative py-20 sm:py-28 bg-viralyze-soft-black" id="how-it-works">
+    <section
+      className="relative bg-viralyze-soft-black py-20 sm:py-28"
+      id="how-it-works"
+    >
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -76,39 +145,23 @@ export default function HowItWorksSection() {
 
             <div className="grid grid-cols-5 gap-4">
               {steps.map((step, i) => (
-                <motion.div
-                  key={step.num}
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: 0.2 + i * 0.15 }}
-                  className="relative flex flex-col items-center text-center"
-                >
-                  {/* Step Circle with glow when in view */}
-                  <motion.div
-                    initial={{ boxShadow: '0 0 0 rgba(184, 50, 90, 0)' }}
-                    animate={isInView ? { boxShadow: '0 0 20px rgba(184, 50, 90, 0.3), 0 0 40px rgba(184, 50, 90, 0.1)' } : {}}
-                    transition={{ duration: 0.6, delay: 0.3 + i * 0.15 }}
-                    className="relative z-10 mb-4 flex h-[104px] w-[104px] items-center justify-center rounded-full border border-wine-accent/30 bg-viralyze-black"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <step.icon className="h-6 w-6 text-wine-accent" />
-                      <span className="text-[10px] font-bold text-viralyze-muted/60">STEP</span>
-                    </div>
-                  </motion.div>
-
-                  {/* Step Number */}
-                  <span className="mb-1 text-xs font-bold text-wine-accent">{step.num}</span>
-                  <h3 className="mb-1 text-sm font-semibold text-viralyze-white">{step.title}</h3>
-                  <p className="text-xs text-viralyze-muted/70 max-w-[180px]">{step.brief}</p>
-                </motion.div>
+                <StepCircle key={step.num} step={step} index={i} isInView={isInView} />
               ))}
             </div>
           </div>
         </div>
 
-        {/* Mobile: Vertical Timeline */}
+        {/* Mobile: Vertical Timeline with dashed line */}
         <div className="md:hidden">
-          <div className="relative ml-6 border-l border-white/10 pl-8">
+          <div className="relative ml-6 pl-8">
+            {/* Dashed connecting line */}
+            <motion.div
+              initial={{ scaleY: 0 }}
+              animate={isInView ? { scaleY: 1 } : {}}
+              transition={{ duration: 1.0, delay: 0.3, ease: 'easeOut' }}
+              className="absolute left-0 top-0 bottom-0 w-px origin-top border-l border-dashed border-wine-accent/25"
+            />
+
             {steps.map((step, i) => (
               <motion.div
                 key={step.num}
@@ -120,7 +173,14 @@ export default function HowItWorksSection() {
                 {/* Dot on line with glow */}
                 <motion.div
                   initial={{ boxShadow: '0 0 0 rgba(184, 50, 90, 0)' }}
-                  animate={isInView ? { boxShadow: '0 0 12px rgba(184, 50, 90, 0.4)' } : {}}
+                  animate={
+                    isInView
+                      ? {
+                          boxShadow:
+                            '0 0 12px rgba(184, 50, 90, 0.4), 0 0 24px rgba(184, 50, 90, 0.15)',
+                        }
+                      : {}
+                  }
                   transition={{ duration: 0.5, delay: 0.2 + i * 0.12 }}
                   className="absolute -left-[41px] top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-wine-accent bg-viralyze-black"
                 >
@@ -128,12 +188,16 @@ export default function HowItWorksSection() {
                 </motion.div>
 
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-wine-accent/10">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-wine-accent/15 bg-wine-accent/10">
                     <step.icon className="h-5 w-5 text-wine-accent" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-wine-accent">{step.num}</span>
-                    <h3 className="mt-0.5 text-sm font-semibold text-viralyze-white">{step.title}</h3>
+                    <span className="font-mono text-xs font-extrabold tabular-nums text-wine-accent">
+                      {step.num}
+                    </span>
+                    <h3 className="mt-0.5 text-sm font-semibold text-viralyze-white">
+                      {step.title}
+                    </h3>
                     <p className="mt-0.5 text-xs text-viralyze-muted/70">{step.brief}</p>
                     <p className="mt-1 text-xs leading-relaxed text-viralyze-muted">
                       {step.description}

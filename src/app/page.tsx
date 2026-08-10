@@ -23,6 +23,8 @@ import TrendsView from '@/components/app/TrendsView';
 import SettingsView from '@/components/app/SettingsView';
 import AnalyticsView from '@/components/app/AnalyticsView';
 import CalendarView from '@/components/app/CalendarView';
+import OnboardingOverlay from '@/components/app/OnboardingOverlay';
+import KeyboardShortcuts from '@/components/app/KeyboardShortcuts';
 
 const viewComponents: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -44,6 +46,8 @@ function AppRouter() {
 
   return (
     <AppLayout>
+      <OnboardingOverlay />
+      <KeyboardShortcuts />
       <ViewComponent />
     </AppLayout>
   );
