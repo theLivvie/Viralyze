@@ -53,7 +53,7 @@ const trendData: TrendCategory[] = [
     category: 'Business',
     icon: ArrowUpRight,
     trends: [
-      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'twitter'] },
+      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'] },
       { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'] },
       { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'] },
       { name: 'SaaS micro-startups', heat: 3, growth: '+72%', platforms: ['x', 'youtube'] },

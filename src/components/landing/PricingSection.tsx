@@ -2,7 +2,7 @@
 
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
@@ -99,27 +99,40 @@ export default function PricingSection() {
                 plan.highlighted
                   ? 'border-wine-accent/40 bg-gradient-wine-subtle glow-wine'
                   : 'border-white/5 bg-white/[0.02]'
-              } border`}
+              } border overflow-hidden`}
             >
+              {/* Popular badge with pulse animation */}
               {plan.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-wine-accent text-white border-0 px-3 py-0.5">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <Badge className="bg-wine-accent text-white border-0 px-3 py-0.5 animate-pulse-glow">
                     Popular
                   </Badge>
                 </div>
               )}
 
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-viralyze-white">{plan.name}</h3>
+              {/* Watermark behind Creator card */}
+              {plan.highlighted && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[80px] font-black text-wine-accent/[0.04] select-none uppercase tracking-wider">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="mb-6 relative z-10">
+                <h3 className="text-lg font-bold text-viralyze-white flex items-center gap-2">
+                  {plan.name}
+                  {plan.highlighted && <Sparkles className="h-4 w-4 text-wine-accent" />}
+                </h3>
                 <p className="mt-1 text-xs text-viralyze-muted">{plan.description}</p>
               </div>
 
-              <div className="mb-6 flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-viralyze-white">{plan.price}</span>
+              <div className="mb-6 flex items-baseline gap-1 relative z-10">
+                <span className="text-5xl font-extrabold text-viralyze-white">{plan.price}</span>
                 <span className="text-sm text-viralyze-muted">{plan.period}</span>
               </div>
 
-              <ul className="mb-8 flex-1 space-y-3">
+              <ul className="mb-8 flex-1 space-y-3 relative z-10">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2.5">
                     <Check className={`mt-0.5 h-4 w-4 shrink-0 ${
@@ -133,7 +146,7 @@ export default function PricingSection() {
               <Button
                 onClick={handleSelectPlan}
                 variant={plan.highlighted ? 'default' : 'outline'}
-                className={`w-full ${
+                className={`w-full relative z-10 ${
                   plan.highlighted
                     ? 'bg-gradient-wine border-0 text-viralyze-white hover:opacity-90 transition-opacity'
                     : 'border-white/10 bg-transparent text-viralyze-white hover:bg-white/5 hover:text-viralyze-white'

@@ -34,7 +34,7 @@ const item = {
 };
 
 export default function IdeasView() {
-  const { predictPlatform, setPredictPlatform, setPredictContentType, setPredictMode, setCurrentView, setAnalysisLoading } = useAppStore();
+  const { predictPlatform, setPredictPlatform, setPredictContentType, setPredictMode, setCurrentView, setAnalysisLoading, setPrefilledIdea } = useAppStore();
 
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('');
@@ -80,7 +80,7 @@ export default function IdeasView() {
     setPredictMode('idea');
     setPredictPlatform(idea.platform);
     setPredictContentType(idea.contentType);
-    // Pre-fill is handled via store; navigate to predict view
+    setPrefilledIdea(idea.title + '. ' + idea.description);
     toast.success('Idea loaded — customize and analyze!');
     setCurrentView('predict');
   };

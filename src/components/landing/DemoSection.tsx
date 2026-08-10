@@ -43,10 +43,12 @@ function CountUpNumber({ target, delay, isInView }: { target: number; delay: num
 
 function TypingText({ text, delay, isInView }: { text: string; delay: number; isInView: boolean }) {
   const [displayed, setDisplayed] = useState('');
+  const [typing, setTyping] = useState(false);
 
   useEffect(() => {
     if (!isInView) return;
     const timeout = setTimeout(() => {
+      setTyping(true);
       let i = 0;
       const interval = setInterval(() => {
         if (i < text.length) {
@@ -54,6 +56,7 @@ function TypingText({ text, delay, isInView }: { text: string; delay: number; is
           i++;
         } else {
           clearInterval(interval);
+          setTyping(false);
         }
       }, 20);
       return () => clearInterval(interval);
@@ -61,7 +64,12 @@ function TypingText({ text, delay, isInView }: { text: string; delay: number; is
     return () => clearTimeout(timeout);
   }, [isInView, text, delay]);
 
-  return <>{displayed}<span className="animate-pulse text-wine-accent">|</span></>;
+  return (
+    <>
+      {displayed}
+      {typing && <span className="blink-cursor" />}
+    </>
+  );
 }
 
 export default function DemoSection() {
@@ -90,8 +98,13 @@ export default function DemoSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="glass-strong mx-auto max-w-3xl rounded-2xl p-5 sm:p-8"
+          className="glass-strong mx-auto max-w-3xl rounded-2xl p-5 sm:p-8 relative overflow-hidden"
         >
+          {/* Scanning line animation across the result card */}
+          {isInView && (
+            <div className="scan-line-animated" />
+          )}
+
           {/* Platform Selector */}
           <div className="mb-4 flex flex-wrap gap-2">
             {platforms.map((p) => (

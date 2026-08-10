@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Sparkles, FileText, BarChart3, TrendingUp, Inbox, ArrowRight, Instagram, Youtube, Tv, Twitter, Linkedin } from 'lucide-react';
+import { Sparkles, FileText, BarChart3, TrendingUp, Inbox, ArrowRight, Instagram, Youtube, Tv, Twitter, Linkedin, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
@@ -68,47 +68,63 @@ export default function DashboardView() {
         </p>
       </motion.div>
 
-      {/* CTA Cards */}
-      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card
-          className="glass border-wine-accent/30 cursor-pointer group hover:border-wine-accent/60 transition-all duration-300 hover:glow-wine-sm"
-          onClick={() => setCurrentView('predict')}
-        >
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-gradient-wine flex items-center justify-center shrink-0">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
-                Predict New Content
-              </h3>
-              <p className="text-sm text-viralyze-muted mt-0.5">
-                Analyze your idea before publishing
-              </p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
-          </CardContent>
-        </Card>
+      {/* CTA Cards with gradient mesh background and hover lift */}
+      <motion.div variants={item} className="relative">
+        {/* Gradient mesh background */}
+        <div className="absolute -inset-8 pointer-events-none">
+          <div className="absolute top-0 left-1/4 h-40 w-40 rounded-full bg-wine-accent/[0.07] blur-[80px]" />
+          <div className="absolute bottom-0 right-1/4 h-32 w-32 rounded-full bg-wine/[0.05] blur-[60px]" />
+        </div>
 
-        <Card
-          className="glass border-white/[0.06] cursor-pointer group hover:border-white/15 transition-all duration-300"
-          onClick={() => setCurrentView('predict')}
-        >
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0">
-              <FileText className="h-6 w-6 text-viralyze-muted" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
-                Analyze Existing Content
-              </h3>
-              <p className="text-sm text-viralyze-muted mt-0.5">
-                Score your drafted posts & captions
-              </p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
-          </CardContent>
-        </Card>
+        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4">
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <Card
+              className="glass border-wine-accent/30 cursor-pointer group hover:border-wine-accent/60 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(127,29,58,0.2)] h-full"
+              onClick={() => setCurrentView('predict')}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-gradient-wine flex items-center justify-center shrink-0">
+                  <Sparkles className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
+                    Predict New Content
+                  </h3>
+                  <p className="text-sm text-viralyze-muted mt-0.5">
+                    Analyze your idea before publishing
+                  </p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <Card
+              className="glass border-white/[0.06] cursor-pointer group hover:border-white/15 transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] h-full"
+              onClick={() => setCurrentView('predict')}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0">
+                  <FileText className="h-6 w-6 text-viralyze-muted" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
+                    Analyze Existing Content
+                  </h3>
+                  <p className="text-sm text-viralyze-muted mt-0.5">
+                    Score your drafted posts & captions
+                  </p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </motion.div>
 
       {/* Quick Stats */}
@@ -164,11 +180,20 @@ export default function DashboardView() {
         </div>
 
         {recentAnalyses.length === 0 ? (
-          <Card className="glass">
-            <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
-              <Inbox className="h-10 w-10 text-viralyze-muted/40" />
-              <p className="text-viralyze-muted text-sm">No analyses yet</p>
-              <p className="text-viralyze-muted/60 text-xs">Your recent content predictions will appear here</p>
+          <Card className="border-dashed border-2 border-white/[0.08] bg-transparent">
+            <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
+              <div className="relative">
+                <Search className="h-12 w-12 text-viralyze-muted/20" />
+                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-wine-accent/20" />
+              </div>
+              <div>
+                <p className="text-viralyze-muted text-sm font-medium">No analyses yet</p>
+                <p className="text-viralyze-muted/50 text-xs mt-1">
+                  Your recent content predictions will appear here.
+                  <br />
+                  Start by analyzing your first piece of content.
+                </p>
+              </div>
             </CardContent>
           </Card>
         ) : (

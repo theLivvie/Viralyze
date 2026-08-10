@@ -3,9 +3,17 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
+import {
   CheckCircle2,
   AlertTriangle,
-  Rocket,
   Copy,
   ChevronDown,
   ChevronUp,
@@ -20,7 +28,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppStore } from '@/lib/store';
 import ScoreRing from '@/components/shared/ScoreRing';
@@ -36,15 +43,6 @@ const platformIcons: Record<Platform, React.ElementType> = {
   linkedin: Linkedin,
 };
 
-const categoryLabels: Record<string, string> = {
-  hook: 'Hook',
-  engagement: 'Engagement',
-  shareability: 'Shareability',
-  retention: 'Retention',
-  originality: 'Originality',
-  audienceFit: 'Audience Fit',
-};
-
 const container = {
   hidden: { opacity: 0 },
   show: {
@@ -57,6 +55,54 @@ const item = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
+
+function FloatingDots() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <motion.div
+        className="absolute h-1.5 w-1.5 rounded-full bg-wine-accent/40"
+        style={{ top: '20%', left: '25%' }}
+        animate={{
+          y: [-4, 4, -4],
+          x: [2, -2, 2],
+          opacity: [0.3, 0.6, 0.3],
+        }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute h-1 w-1 rounded-full bg-wine-accent/30"
+        style={{ top: '35%', right: '20%' }}
+        animate={{
+          y: [3, -5, 3],
+          x: [-3, 2, -3],
+          opacity: [0.2, 0.5, 0.2],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+      />
+      <motion.div
+        className="absolute h-1 w-1 rounded-full bg-wine/[0.4]"
+        style={{ bottom: '25%', left: '30%' }}
+        animate={{
+          y: [-3, 6, -3],
+          x: [4, -1, 4],
+          opacity: [0.2, 0.5, 0.2],
+        }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+      />
+    </div>
+  );
+}
+
+function GlowAccentLine({ color }: { color: string }) {
+  return (
+    <div
+      className="glow-line w-full"
+      style={{
+        background: color,
+      }}
+    />
+  );
+}
 
 export default function AnalysisView() {
   const { currentAnalysis, setCurrentView, addSavedAnalysis, user } = useAppStore();
@@ -109,9 +155,10 @@ export default function AnalysisView() {
     >
       {/* LEFT COLUMN - 60% */}
       <motion.div variants={item} className="lg:col-span-3 flex flex-col gap-6">
-        {/* Score Ring */}
-        <Card className="glass">
-          <CardContent className="p-6 flex flex-col items-center gap-2">
+        {/* Score Ring with floating dots */}
+        <Card className="glass relative overflow-hidden">
+          <FloatingDots />
+          <CardContent className="p-6 flex flex-col items-center gap-2 relative z-10">
             <ScoreRing
               score={currentAnalysis.overallScore}
               size={180}
@@ -135,6 +182,54 @@ export default function AnalysisView() {
             <ScoreBar label="Retention" score={scores.retention} delay={0.3} />
             <ScoreBar label="Originality" score={scores.originality} delay={0.4} />
             <ScoreBar label="Audience Fit" score={scores.audienceFit} delay={0.5} />
+          </CardContent>
+        </Card>
+
+        {/* Emotional Impact Radar */
+        <Card className="glass">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-viralyze-muted uppercase tracking-wider">
+              Emotional Impact
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={(() => {
+                  const bd = currentAnalysis.emotionalBreakdown || {};
+                  return Object.entries(bd).map(([key, val]) => ({ emotion: key.charAt(0).toUpperCase() + key.slice(1), value: Number(val) }));
+                })()}>
+                  <PolarGrid stroke="rgba(255,255,255,0.06)" />
+                  <PolarAngleAxis
+                    dataKey="emotion"
+                    tick={{ fill: '#A1A1AA', fontSize: 11 }}
+                  />
+                  <PolarRadiusAxis
+                    angle={30}
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={false}
+                  />
+                  <Radar
+                    name="Impact"
+                    dataKey="value"
+                    stroke="#B8325A"
+                    fill="#B8325A"
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#121214',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      color: '#FAFAF9',
+                      fontSize: '12px',
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -180,7 +275,8 @@ export default function AnalysisView() {
       {/* RIGHT COLUMN - 40% */}
       <motion.div variants={item} className="lg:col-span-2 flex flex-col gap-6">
         {/* Strengths */}
-        <Card className="glass">
+        <Card className="glass overflow-hidden">
+          <GlowAccentLine color="linear-gradient(90deg, transparent, #22C55E, transparent)" />
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-green-400 uppercase tracking-wider">
               What&apos;s Working
@@ -197,7 +293,8 @@ export default function AnalysisView() {
         </Card>
 
         {/* Weaknesses */}
-        <Card className="glass">
+        <Card className="glass overflow-hidden">
+          <GlowAccentLine color="linear-gradient(90deg, transparent, #F59E0B, transparent)" />
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-amber-400 uppercase tracking-wider">
               What&apos;s Holding It Back
@@ -214,7 +311,8 @@ export default function AnalysisView() {
         </Card>
 
         {/* Improvements */}
-        <Card className="glass">
+        <Card className="glass overflow-hidden">
+          <GlowAccentLine color="linear-gradient(90deg, transparent, #B8325A, transparent)" />
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-wine-accent uppercase tracking-wider">
               How to Improve
@@ -374,11 +472,11 @@ export default function AnalysisView() {
           </Card>
         )}
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Save with shine effect */}
         <div className="flex gap-3">
           <Button
             onClick={handleSave}
-            className="flex-1 bg-gradient-wine hover:opacity-90 text-white font-medium"
+            className="flex-1 bg-gradient-wine hover:opacity-90 text-white font-medium btn-shine"
           >
             Save to Library
           </Button>

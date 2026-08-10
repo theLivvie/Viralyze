@@ -103,16 +103,26 @@ export default function FeaturesSection() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15 + i * 0.12 }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 transition-colors hover:border-wine-accent/30 sm:p-8"
+              className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8 transition-all duration-300 hover:border-wine-accent/30 hover:shadow-[0_0_30px_rgba(127,29,58,0.25)]"
             >
               <div className="mb-4 text-4xl">{feature.emoji}</div>
               <h3 className="mb-1 text-xl font-bold text-viralyze-white">{feature.title}</h3>
               <p className="mb-3 text-sm font-medium text-wine-accent">{feature.subtitle}</p>
               <p className="text-sm leading-relaxed text-viralyze-muted">{feature.description}</p>
-              <div className="absolute inset-0 rounded-2xl opacity-0 transition-opacity group-hover:opacity-100 glow-wine-sm pointer-events-none" />
             </motion.div>
           ))}
         </div>
+
+        {/* Gradient Line Separator */}
+        <motion.div
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={isInView ? { scaleX: 1, opacity: 1 } : {}}
+          transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
+          className="glow-line mb-12 origin-left"
+          style={{
+            background: 'linear-gradient(90deg, transparent, #B8325A, #7F1D3A, transparent)',
+          }}
+        />
 
         {/* Sub Feature Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -121,12 +131,16 @@ export default function FeaturesSection() {
               key={feature.title}
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.5 + i * 0.08 }}
+              transition={{ duration: 0.5, delay: 0.7 + i * 0.08 }}
               whileHover={{ x: 4, transition: { duration: 0.2 } }}
               className="flex gap-4 rounded-xl border border-white/5 bg-white/[0.01] p-4 transition-colors hover:border-white/10 hover:bg-white/[0.03]"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-wine-accent/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-wine-accent/10 relative">
                 <feature.icon className="h-5 w-5 text-wine-accent" />
+                {/* Number badge */}
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-wine-accent/80 text-[8px] font-bold text-white">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
               </div>
               <div>
                 <h4 className="mb-1 text-sm font-semibold text-viralyze-white">{feature.title}</h4>

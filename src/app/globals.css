@@ -88,6 +88,12 @@
   --sidebar-ring: #B8325A;
 }
 
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -171,6 +177,67 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
   }
+  .btn-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    animation: shine 0s ease forwards;
+    pointer-events: none;
+  }
+  .btn-shine:hover::after {
+    animation: shine 0.6s ease forwards;
+  }
+  .glow-line {
+    height: 2px;
+    border-radius: 1px;
+    opacity: 0.6;
+  }
+  .scan-line-animated {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(184, 50, 90, 0.6), transparent);
+    animation: scan-line 2.5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .blink-cursor::after {
+    content: '|';
+    animation: blink-cursor 0.8s step-end infinite;
+    color: #B8325A;
+    font-weight: 100;
+    margin-left: 1px;
+  }
+  .gradient-border {
+    position: relative;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from var(--gradient-angle, 0deg), #B8325A, #7F1D3A, #4A1024, #7F1D3A, #B8325A);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: gradient-rotate 4s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .focus-glow-wine:focus-within {
+    box-shadow: 0 0 0 2px rgba(184, 50, 90, 0.3), 0 0 20px rgba(184, 50, 90, 0.1);
+    border-color: rgba(184, 50, 90, 0.5);
+  }
 }
 
 @keyframes fadeIn {
@@ -188,4 +255,22 @@
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 20px rgba(127, 29, 58, 0.3); }
   50% { box-shadow: 0 0 40px rgba(127, 29, 58, 0.5), 0 0 60px rgba(184, 50, 90, 0.2); }
+}
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+@keyframes scan-line {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes gradient-rotate {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
 }

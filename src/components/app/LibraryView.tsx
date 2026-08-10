@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -11,6 +11,7 @@ import {
   Tv,
   Twitter,
   Linkedin,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAppStore } from '@/lib/store';
-import type { Platform, Classification } from '@/lib/types';
+import type { Platform, Classification, SavedAnalysis } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -53,29 +54,63 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
+function SkeletonCard() {
+  return (
+    <Card className="glass animate-pulse">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="h-4 w-4 rounded bg-white/[0.06] shrink-0" />
+            <div className="h-4 w-3/4 rounded bg-white/[0.06]" />
+          </div>
+          <div className="h-6 w-10 rounded bg-white/[0.06] shrink-0" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-14 rounded bg-white/[0.06]" />
+            <div className="h-4 w-20 rounded bg-white/[0.06]" />
+          </div>
+          <div className="h-7 w-7 rounded bg-white/[0.06]" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function LibraryView() {
-  const { savedAnalyses, setSavedAnalyses, removeSavedAnalysis, setCurrentAnalysis, setCurrentView, user } = useAppStore();
+  const { setSavedAnalyses, removeSavedAnalysis, user } = useAppStore();
+  const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [sort, setSort] = useState<string>('newest');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchLibrary = async () => {
-      if (!user?.id) return;
-      try {
-        const res = await fetch(`/api/library?userId=${user.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSavedAnalyses(data);
-        }
-      } catch {
-        // Silently fail — use local state
+  const fetchLibrary = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/library?userId=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyses(data);
+        setSavedAnalyses(data);
       }
-    };
-    fetchLibrary();
+    } catch {
+      // Silently fail — use whatever is in local state
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id, setSavedAnalyses]);
 
-  const filtered = savedAnalyses
+  useEffect(() => {
+    fetchLibrary();
+  }, [fetchLibrary]);
+
+  const filtered = analyses
     .filter((a) => {
       if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
       if (platformFilter !== 'all' && a.platform !== platformFilter) return false;
@@ -89,10 +124,32 @@ export default function LibraryView() {
       return 0;
     });
 
-  const handleDelete = (id: string) => {
-    removeSavedAnalysis(id);
-    toast.success('Removed from library');
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!user?.id) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/library?id=${id}&userId=${user.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAnalyses((prev) => prev.filter((a) => a.id !== id));
+        removeSavedAnalysis(id);
+        toast.success('Removed from library');
+      } else {
+        toast.error('Failed to delete analysis');
+      }
+    } catch {
+      toast.error('Failed to delete analysis');
+    } finally {
+      setDeleting(null);
+    }
   };
+
+  const handleCardClick = () => {
+    toast.info('Full analysis requires re-running prediction');
+  };
+
+  const isFilteredEmpty = !loading && filtered.length === 0 && analyses.length > 0;
+  const isEmpty = !loading && analyses.length === 0;
 
   return (
     <motion.div
@@ -101,6 +158,16 @@ export default function LibraryView() {
       animate="show"
       className="flex flex-col gap-4 max-w-4xl mx-auto"
     >
+      {/* Header */}
+      <motion.div variants={item}>
+        <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+          Content Library
+        </h2>
+        <p className="text-viralyze-muted mt-1">
+          Your saved content analyses
+        </p>
+      </motion.div>
+
       {/* Filters */}
       <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -138,15 +205,25 @@ export default function LibraryView() {
         </Select>
       </motion.div>
 
-      {/* Results */}
-      {filtered.length === 0 ? (
+      {/* Loading skeleton */}
+      {loading && (
+        <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </motion.div>
+      )}
+
+      {/* Empty state — no analyses at all */}
+      {!loading && isEmpty && (
         <motion.div variants={item}>
           <Card className="glass">
             <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
               <Inbox className="h-10 w-10 text-viralyze-muted/40" />
-              <p className="text-viralyze-muted text-sm">No analyses found</p>
+              <p className="text-viralyze-muted text-sm">No analyses yet</p>
+              <p className="text-viralyze-muted/60 text-xs">Your saved content predictions will appear here</p>
               <Button
-                onClick={() => setCurrentView('predict')}
+                onClick={() => useAppStore.getState().setCurrentView('predict')}
                 className="bg-gradient-wine hover:opacity-90 text-white mt-2"
               >
                 Analyze Content
@@ -154,13 +231,39 @@ export default function LibraryView() {
             </CardContent>
           </Card>
         </motion.div>
-      ) : (
+      )}
+
+      {/* Empty state — filtered results */}
+      {isFilteredEmpty && (
+        <motion.div variants={item}>
+          <Card className="glass">
+            <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+              <Search className="h-10 w-10 text-viralyze-muted/40" />
+              <p className="text-viralyze-muted text-sm">No results found</p>
+              <p className="text-viralyze-muted/60 text-xs">Try adjusting your search or filter</p>
+              <Button
+                variant="outline"
+                onClick={() => { setSearch(''); setPlatformFilter('all'); }}
+                className="mt-2 border-white/10 text-viralyze-white hover:bg-white/[0.05]"
+              >
+                Clear Filters
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Results */}
+      {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filtered.map((analysis) => {
             const PIcon = platformIcons[analysis.platform];
             return (
               <motion.div key={analysis.id} variants={item}>
-                <Card className="glass group hover:bg-white/[0.03] transition-colors cursor-pointer">
+                <Card
+                  className="glass group hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  onClick={handleCardClick}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2 min-w-0">
@@ -187,12 +290,14 @@ export default function LibraryView() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(analysis.id);
-                        }}
+                        onClick={(e) => handleDelete(e, analysis.id)}
+                        disabled={deleting === analysis.id}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        {deleting === analysis.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
                       </Button>
                     </div>
                   </CardContent>

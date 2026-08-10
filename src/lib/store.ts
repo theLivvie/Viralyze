@@ -32,6 +32,8 @@ interface AppState {
   setPredictContentType: (c: ContentType) => void;
   predictMode: 'idea' | 'post';
   setPredictMode: (m: 'idea' | 'post') => void;
+  prefilledIdea: string;
+  setPrefilledIdea: (idea: string) => void;
 
   // Mobile sidebar
   sidebarOpen: boolean;
@@ -91,4 +93,8 @@ export const useAppStore = create<AppState>((set) => ({
   // Landing scroll section
   scrollToSection: null,
   setScrollToSection: (section) => set({ scrollToSection: section }),
+
+  // Pre-filled idea from Ideas page
+  prefilledIdea: '',
+  setPrefilledIdea: (idea) => set({ prefilledIdea: idea }),
 }));

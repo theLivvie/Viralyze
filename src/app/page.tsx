@@ -21,6 +21,7 @@ import LibraryView from '@/components/app/LibraryView';
 import IdeasView from '@/components/app/IdeasView';
 import TrendsView from '@/components/app/TrendsView';
 import SettingsView from '@/components/app/SettingsView';
+import AnalyticsView from '@/components/app/AnalyticsView';
 
 const viewComponents: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -29,6 +30,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   library: LibraryView,
   ideas: IdeasView,
   trends: TrendsView,
+  analytics: AnalyticsView,
   settings: SettingsView,
 };
 

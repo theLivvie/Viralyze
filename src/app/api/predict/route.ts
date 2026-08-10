@@ -179,6 +179,9 @@ export async function POST(request: NextRequest) {
         audienceFit: analysis.scores?.audienceFit || 50,
       },
       platformFit: Array.isArray(analysis.platformFit) ? analysis.platformFit : [],
+      emotionalBreakdown: analysis.emotionalBreakdown && typeof analysis.emotionalBreakdown === 'object'
+        ? analysis.emotionalBreakdown
+        : { curiosity: 70, surprise: 60, excitement: 65, humor: 40, inspiration: 55, relatability: 70, controversy: 30, fear: 20 },
       strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
       weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
       improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],

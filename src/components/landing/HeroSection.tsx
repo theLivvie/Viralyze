@@ -1,9 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp, Zap, Target } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { ArrowRight, TrendingUp, Zap, Target, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/lib/store';
+import { useRef } from 'react';
 
 const container = {
   hidden: { opacity: 0 },
@@ -43,20 +44,6 @@ function FloatingParticles() {
           }}
         />
       ))}
-      <style jsx>{`
-        @keyframes float-0 {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-30px) translateX(15px); }
-        }
-        @keyframes float-1 {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(20px) translateX(-20px); }
-        }
-        @keyframes float-2 {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-15px) translateX(-10px); }
-        }
-      `}</style>
     </div>
   );
 }
@@ -69,69 +56,74 @@ function DashboardMockup() {
       transition={{ duration: 0.8, delay: 0.8, ease: 'easeOut' }}
       className="relative"
     >
-      <div className="glass-strong glow-wine-sm rounded-2xl p-5 sm:p-6">
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-viralyze-success" />
-            <span className="text-xs font-medium text-viralyze-muted">Live Analysis</span>
-          </div>
-          <span className="text-xs text-viralyze-muted">Instagram Reel</span>
-        </div>
-
-        {/* Score Circle */}
-        <div className="mb-5 flex flex-col items-center">
-          <div className="score-ring relative flex h-24 w-24 items-center justify-center">
-            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
-              <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
-              <circle
-                cx="48" cy="48" r="42" fill="none" stroke="#B8325A" strokeWidth="4" strokeLinecap="round"
-                strokeDasharray={`${87 * 2.64} ${264}`}
-              />
-            </svg>
-            <div className="text-center">
-              <span className="text-2xl font-bold text-viralyze-white">87</span>
-              <span className="text-sm text-viralyze-muted">/100</span>
+      {/* Animated gradient border wrapper */}
+      <div className="gradient-border rounded-2xl">
+        <div className="glass-strong rounded-2xl p-5 sm:p-6 relative z-0">
+          {/* Header */}
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-viralyze-success" />
+              <span className="text-xs font-medium text-viralyze-muted">Live Analysis</span>
             </div>
+            <span className="text-xs text-viralyze-muted">Instagram Reel</span>
           </div>
-          <div className="mt-2 rounded-full bg-wine-accent/20 px-3 py-0.5">
-            <span className="text-xs font-medium text-wine-accent">Viral Potential</span>
-          </div>
-        </div>
 
-        {/* Score Bars */}
-        <div className="space-y-3">
-          {scoreBars.map((bar) => (
-            <div key={bar.label}>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs text-viralyze-muted">{bar.label}</span>
-                <span className="text-xs font-medium text-viralyze-white">{bar.value}</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                <motion.div
-                  className={`h-full rounded-full ${bar.color}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${bar.value}%` }}
-                  transition={{ duration: 1, delay: 1.2, ease: 'easeOut' }}
+          {/* Score Circle */}
+          <div className="mb-5 flex flex-col items-center">
+            <div className="score-ring relative flex h-24 w-24 items-center justify-center">
+              {/* Pulsing glow behind the score */}
+              <div className="absolute inset-0 rounded-full animate-pulse-glow" style={{ filter: 'blur(8px)' }} />
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
+                <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+                <circle
+                  cx="48" cy="48" r="42" fill="none" stroke="#B8325A" strokeWidth="4" strokeLinecap="round"
+                  strokeDasharray={`${87 * 2.64} ${264}`}
                 />
+              </svg>
+              <div className="text-center relative z-10">
+                <span className="text-2xl font-bold text-viralyze-white">87</span>
+                <span className="text-sm text-viralyze-muted">/100</span>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Footer Stats */}
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          {[
-            { icon: Zap, label: 'Est. Likes', value: '24.5K' },
-            { icon: TrendingUp, label: 'Shares', value: '1.2K' },
-            { icon: Target, label: 'Saves', value: '3.8K' },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-lg bg-white/[0.03] p-2 text-center">
-              <stat.icon className="mx-auto mb-1 h-3 w-3 text-wine-accent" />
-              <p className="text-xs font-semibold text-viralyze-white">{stat.value}</p>
-              <p className="text-[10px] text-viralyze-muted">{stat.label}</p>
+            <div className="mt-2 rounded-full bg-wine-accent/20 px-3 py-0.5">
+              <span className="text-xs font-medium text-wine-accent">Viral Potential</span>
             </div>
-          ))}
+          </div>
+
+          {/* Score Bars */}
+          <div className="space-y-3">
+            {scoreBars.map((bar) => (
+              <div key={bar.label}>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-xs text-viralyze-muted">{bar.label}</span>
+                  <span className="text-xs font-medium text-viralyze-white">{bar.value}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                  <motion.div
+                    className={`h-full rounded-full ${bar.color}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${bar.value}%` }}
+                    transition={{ duration: 1, delay: 1.2, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer Stats */}
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {[
+              { icon: Zap, label: 'Est. Likes', value: '24.5K' },
+              { icon: TrendingUp, label: 'Shares', value: '1.2K' },
+              { icon: Target, label: 'Saves', value: '3.8K' },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg bg-white/[0.03] p-2 text-center">
+                <stat.icon className="mx-auto mb-1 h-3 w-3 text-wine-accent" />
+                <p className="text-xs font-semibold text-viralyze-white">{stat.value}</p>
+                <p className="text-[10px] text-viralyze-muted">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -140,9 +132,18 @@ function DashboardMockup() {
 
 export default function HeroSection() {
   const { setCurrentView, setScrollToSection, setAuthModal } = useAppStore();
+  const sectionRef = useRef<HTMLElement>(null);
+  const mockupRef = useRef<HTMLDivElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  });
+
+  const mockupY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 
   return (
-    <section className="noise-bg relative flex min-h-screen items-center overflow-hidden bg-gradient-wine-radial pt-16">
+    <section ref={sectionRef} className="noise-bg relative flex min-h-screen items-center overflow-hidden bg-gradient-wine-radial pt-16">
       <FloatingParticles />
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -196,27 +197,36 @@ export default function HeroSection() {
               </Button>
             </motion.div>
 
+            {/* Stats Row with trend arrows */}
             <motion.div variants={item} className="mt-10 flex items-center gap-6 sm:justify-center lg:justify-start">
               <div className="text-center">
-                <p className="text-xl font-bold text-viralyze-white">50K+</p>
+                <p className="text-xl font-bold text-viralyze-white flex items-center justify-center gap-1">
+                  50K+<ArrowUpRight className="h-4 w-4 text-viralyze-success" />
+                </p>
                 <p className="text-xs text-viralyze-muted">Predictions</p>
               </div>
               <div className="h-8 w-px bg-white/10" />
               <div className="text-center">
-                <p className="text-xl font-bold text-viralyze-white">94%</p>
+                <p className="text-xl font-bold text-viralyze-white flex items-center justify-center gap-1">
+                  94%<ArrowUpRight className="h-4 w-4 text-viralyze-success" />
+                </p>
                 <p className="text-xs text-viralyze-muted">Accuracy</p>
               </div>
               <div className="h-8 w-px bg-white/10" />
               <div className="text-center">
-                <p className="text-xl font-bold text-viralyze-white">2.8x</p>
+                <p className="text-xl font-bold text-viralyze-white flex items-center justify-center gap-1">
+                  2.8x<ArrowUpRight className="h-4 w-4 text-viralyze-success" />
+                </p>
                 <p className="text-xs text-viralyze-muted">Avg. Boost</p>
               </div>
             </motion.div>
           </motion.div>
 
-          {/* Right Mockup */}
+          {/* Right Mockup with parallax */}
           <div className="w-full max-w-sm flex-shrink-0 lg:max-w-md">
-            <DashboardMockup />
+            <motion.div ref={mockupRef} style={{ y: mockupY }}>
+              <DashboardMockup />
+            </motion.div>
           </div>
         </div>
       </div>
