@@ -95,7 +95,7 @@ export default function KeyboardShortcuts() {
           transition={{ delay: 1, duration: 0.3 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          className="fixed bottom-4 right-4 z-40 h-10 w-10 rounded-full glass-strong border border-white/[0.08] flex items-center justify-center text-viralyze-muted/60 hover:text-viralyze-white hover:border-wine-accent/30 transition-colors shadow-lg group"
+          className="fixed bottom-4 right-4 z-40 h-10 w-10 rounded-full glass-strong noise-bg border border-white/[0.08] flex items-center justify-center text-viralyze-muted/60 hover:text-viralyze-white hover:border-wine-accent/30 transition-colors shadow-lg group animate-pulse-glow"
           aria-label="Keyboard shortcuts"
         >
           <HelpCircle className="h-5 w-5" />
@@ -105,7 +105,9 @@ export default function KeyboardShortcuts() {
         </motion.button>
       </DialogTrigger>
 
-      <DialogContent className="glass-strong border-white/[0.08] max-w-sm mx-auto">
+      <DialogContent className="glass-strong border-white/[0.08] max-w-sm mx-auto p-0 overflow-hidden">
+        <div className="gradient-border rounded-lg">
+        <div className="p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-viralyze-white text-base">
             <Command className="h-4 w-4 text-wine-accent" />
@@ -120,7 +122,7 @@ export default function KeyboardShortcuts() {
                 shortcut.action();
                 setOpen(false);
               }}
-              className="flex items-center justify-between rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-wine-accent/20 hover:bg-white/[0.05] px-4 py-3 transition-all duration-200 group"
+              className="flex items-center justify-between rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-wine-accent/20 hover:bg-white/[0.05] hover:glow-wine-sm px-4 py-3 transition-all duration-200 group"
             >
               <span className="text-sm text-viralyze-muted group-hover:text-viralyze-white transition-colors">
                 {shortcut.label}
@@ -139,6 +141,8 @@ export default function KeyboardShortcuts() {
               </div>
             </button>
           ))}
+        </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -23,7 +23,7 @@ export default function CTASection() {
   const { setAuthModal } = useAppStore();
 
   return (
-    <section className="relative overflow-hidden py-20 sm:py-28">
+    <section className="relative overflow-hidden py-20 sm:py-28 noise-bg">
       {/* Wine Gradient Background */}
       <div className="absolute inset-0 bg-gradient-wine opacity-90" />
       <div className="absolute inset-0 bg-gradient-wine-radial" />
@@ -82,7 +82,9 @@ export default function CTASection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-viralyze-white">
+          <div className="glow-line mx-auto mb-8 max-w-xs" />
+
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-viralyze-white transition-transform duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]">
             <Sparkles className="h-3.5 w-3.5" />
             Free to start — No credit card required
           </div>
@@ -101,7 +103,7 @@ export default function CTASection() {
             <Button
               onClick={() => setAuthModal(true, 'signup')}
               size="lg"
-              className="btn-shine border-0 bg-gradient-to-r from-viralyze-white via-white to-viralyze-white font-bold text-wine-deep shadow-lg shadow-white/10 transition-all duration-300 hover:shadow-xl hover:shadow-white/20"
+              className="btn-shine border-0 bg-gradient-to-r from-viralyze-white via-white to-viralyze-white font-bold text-wine-deep shadow-lg shadow-white/10 transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)]"
             >
               Get Started Free
               <ArrowRight className="h-4 w-4" />

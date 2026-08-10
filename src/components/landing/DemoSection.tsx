@@ -79,13 +79,26 @@ export default function DemoSection() {
 
   return (
     <section className="relative py-20 sm:py-28 bg-viralyze-soft-black" id="demo">
-      <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Gradient mesh background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-wine-accent/20 blur-[120px]" />
+        <div className="absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-wine-deep/30 blur-[120px]" />
+      </div>
+
+      <div ref={ref} className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
           className="mb-12 text-center"
         >
+          <div className="mb-4 inline-flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-viralyze-muted">Live Demo</span>
+          </div>
           <h2 className="text-3xl font-bold tracking-tight text-viralyze-white sm:text-4xl lg:text-5xl">
             See It <span className="text-gradient-wine">In Action</span>
           </h2>
@@ -93,6 +106,9 @@ export default function DemoSection() {
             Watch how Viralyze analyzes a content idea in seconds and gives you a complete viral potential breakdown.
           </p>
         </motion.div>
+
+        {/* Glow line separator above demo card */}
+        <div className="glow-line mx-auto mb-8 max-w-xs" />
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -154,7 +170,7 @@ export default function DemoSection() {
               className="space-y-4"
             >
               {/* Overall Score */}
-              <div className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-transform duration-300 hover:scale-[1.02]">
                 <div className="score-ring flex h-16 w-16 shrink-0 items-center justify-center">
                   <svg className="absolute inset-0 -rotate-90" viewBox="0 0 64 64">
                     <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
@@ -182,7 +198,7 @@ export default function DemoSection() {
                     initial={{ opacity: 0, x: -12 }}
                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                     transition={{ delay: 3.2 + i * 0.12, duration: 0.4 }}
-                    className="rounded-lg border border-white/5 bg-white/[0.02] p-3"
+                    className="rounded-lg border border-white/5 bg-white/[0.02] p-3 transition-shadow duration-300 hover:glow-wine-sm"
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">

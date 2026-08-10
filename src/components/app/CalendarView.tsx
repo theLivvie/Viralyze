@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays, Bookmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import type { Platform } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 
 const platformIcons: Record<Platform, React.ElementType> = {
   instagram: Instagram,
@@ -128,6 +129,10 @@ export default function CalendarView() {
   const [newTitle, setNewTitle] = useState('');
   const [newPlatform, setNewPlatform] = useState<Platform>('instagram');
   const [newTime, setNewTime] = useState('09:00');
+  const [libraryDropdownOpen, setLibraryDropdownOpen] = useState(false);
+
+  const savedAnalyses = useAppStore((s) => s.savedAnalyses);
+  const recentAnalyses = savedAnalyses.slice(0, 5);
 
   const days = getWeekDays(weekOffset);
 
@@ -153,6 +158,22 @@ export default function CalendarView() {
     setNewPlatform('instagram');
   }, [activeDay, newTitle, newPlatform, newTime, slots, persistSlots]);
 
+  const addSlotFromAnalysis = useCallback((analysis: { title: string; platform: Platform }) => {
+    if (!activeDay) return;
+    const daySlots = slots[activeDay] || [];
+    if (daySlots.length >= SLOT_LIMIT) return;
+    const slot: CalendarSlot = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      title: analysis.title,
+      platform: analysis.platform,
+      time: newTime,
+    };
+    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
+    persistSlots(updated);
+    setLibraryDropdownOpen(false);
+    setActiveDay(null);
+  }, [activeDay, newTime, slots, persistSlots]);
+
   const removeSlot = useCallback((dayKey: string, slotId: string) => {
     const daySlots = (slots[dayKey] || []).filter((s) => s.id !== slotId);
     const updated = { ...slots, [dayKey]: daySlots };
@@ -175,6 +196,7 @@ export default function CalendarView() {
       <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-col">
           <div className="flex items-center gap-2.5">
+            <CalendarDays className="h-6 w-6 text-wine-accent/40" />
             <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
               Content Calendar
             </h2>
@@ -195,7 +217,7 @@ export default function CalendarView() {
             variant="outline"
             size="icon"
             onClick={() => setWeekOffset((w) => w - 1)}
-            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05]"
+            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:scale-105 transition-transform"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -206,7 +228,7 @@ export default function CalendarView() {
             variant="outline"
             size="icon"
             onClick={() => setWeekOffset((w) => w + 1)}
-            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05]"
+            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:scale-105 transition-transform"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -239,6 +261,14 @@ export default function CalendarView() {
         </div>
       </motion.div>
 
+      {/* Glow-line separator between header and grid */}
+      <div className="glow-line" />
+
+      {/* Gradient mesh background */}
+      <div className="relative">
+        <div className="pointer-events-none absolute -top-20 -right-20 h-[300px] w-[300px] rounded-full bg-wine-accent/[0.06] blur-[100px]" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-wine/[0.08] blur-[100px]" />
+
       {/* Calendar Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
         {days.map((day) => {
@@ -254,6 +284,7 @@ export default function CalendarView() {
                   'glass transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-wine-accent/[0.05]',
                   isDayToday && 'border-wine-accent/30',
                   isActive && 'border-wine-accent/50 glow-wine-sm',
+                  daySlots.length > 0 && !isActive && 'hover:glow-wine-sm',
                 )}
               >
                 <CardHeader className={cn('p-3 pb-2 bg-gradient-to-br rounded-t-xl', dayHeaderGradients[day.getDay() === 0 ? 6 : day.getDay() - 1])}>
@@ -363,6 +394,57 @@ export default function CalendarView() {
                               Cancel
                             </Button>
                           </div>
+                          {/* Link from Library */}
+                          {recentAnalyses.length > 0 && (
+                            <div className="relative mt-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setLibraryDropdownOpen(!libraryDropdownOpen)}
+                                className="h-6 text-[10px] border-dashed text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] w-full"
+                              >
+                                <Bookmark className="h-3 w-3 mr-1" />
+                                Link from Library
+                              </Button>
+                              {libraryDropdownOpen && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-viralyze-soft-black border border-white/[0.1] shadow-xl overflow-hidden"
+                                >
+                                  <div className="max-h-48 overflow-y-auto flex flex-col divide-y divide-white/[0.06]">
+                                    {recentAnalyses.map((analysis) => {
+                                      const PI = platformIcons[analysis.platform];
+                                      return (
+                                        <button
+                                          key={analysis.id}
+                                          onClick={() => addSlotFromAnalysis({ title: analysis.title, platform: analysis.platform })}
+                                          className="flex items-center gap-2 px-2.5 py-2 hover:bg-white/[0.05] transition-colors text-left w-full"
+                                        >
+                                          <PI className="h-3 w-3 text-viralyze-muted shrink-0" />
+                                          <span className="text-[11px] text-viralyze-white truncate flex-1">
+                                            {analysis.title}
+                                          </span>
+                                          <span className={cn(
+                                            'text-[9px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full shrink-0',
+                                            analysis.overallScore >= 70
+                                              ? 'bg-green-500/15 text-green-400'
+                                              : analysis.overallScore >= 45
+                                                ? 'bg-amber-500/15 text-amber-400'
+                                                : 'bg-red-500/15 text-red-400'
+                                          )}>
+                                            {analysis.overallScore}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </div>
+                          )}
                         </motion.div>
                       ) : (
                         <motion.button
@@ -393,6 +475,7 @@ export default function CalendarView() {
             </motion.div>
           );
         })}
+      </div>
       </div>
 
       {/* Empty state hint */}

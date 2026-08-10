@@ -124,6 +124,47 @@ function CompareModal({
     return 'text-red-400';
   };
 
+  const bestCategoryLabels: Record<string, string> = {
+    hook: 'Hook',
+    engagement: 'Engagement',
+    shareability: 'Shareability',
+    retention: 'Retention',
+    originality: 'Originality',
+    audienceFit: 'Audience Fit',
+    emotionalImpact: 'Emotional',
+    contentQuality: 'Quality',
+    trendAlignment: 'Trend',
+  };
+
+  // Compute best category per analysis
+  const getBestCategory = (a: SavedAnalysis) => {
+    if (!a.scores) return null;
+    const entries = Object.entries(a.scores).filter(([, v]) => typeof v === 'number');
+    if (entries.length === 0) return null;
+    entries.sort(([, a], [, b]) => (b as number) - (a as number));
+    const [key, value] = entries[0];
+    return { label: bestCategoryLabels[key] || key, value: value as number };
+  };
+
+  // Find winner IDs
+  const scoreWinnerId = selected.reduce<string | null>((
+    best,
+    a,
+  ) => {
+    const bestScore = selected.find((s) => s.id === best)?.overallScore ?? -1;
+    return a.overallScore > bestScore ? a.id : best;
+  }, selected[0]?.id ?? null);
+
+  const bestCategories = selected.map((a) => ({ id: a.id, best: getBestCategory(a) }));
+  const bestCategoryWinnerId = bestCategories.reduce<string | null>((
+    best,
+    curr,
+  ) => {
+    if (!curr.best) return best;
+    const bestVal = bestCategories.find((b) => b.id === best)?.best?.value ?? -1;
+    return curr.best.value > bestVal ? curr.id : best;
+  }, bestCategories[0]?.id ?? null);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-viralyze-black border-white/[0.08] max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -151,18 +192,19 @@ function CompareModal({
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
                 {/* Score */}
-                <tr>
+                <tr className="hover:glow-wine-sm transition-all">
                   <td className="py-3 pr-4 text-viralyze-muted text-xs">Score</td>
                   {selected.map((a) => (
                     <td key={a.id} className="py-3 px-3">
                       <span className={cn('text-lg font-bold tabular-nums', scoreColor(a.overallScore))}>
                         {a.overallScore}
                       </span>
+                      {scoreWinnerId === a.id && <span className="ml-1.5">🏆</span>}
                     </td>
                   ))}
                 </tr>
                 {/* Classification */}
-                <tr>
+                <tr className="hover:glow-wine-sm transition-all">
                   <td className="py-3 pr-4 text-viralyze-muted text-xs">Classification</td>
                   {selected.map((a) => (
                     <td key={a.id} className="py-3 px-3">
@@ -176,7 +218,7 @@ function CompareModal({
                   ))}
                 </tr>
                 {/* Platform */}
-                <tr>
+                <tr className="hover:glow-wine-sm transition-all">
                   <td className="py-3 pr-4 text-viralyze-muted text-xs">Platform</td>
                   {selected.map((a) => {
                     const PI = platformIcons[a.platform];
@@ -191,7 +233,7 @@ function CompareModal({
                   })}
                 </tr>
                 {/* Content Type */}
-                <tr>
+                <tr className="hover:glow-wine-sm transition-all">
                   <td className="py-3 pr-4 text-viralyze-muted text-xs">Content Type</td>
                   {selected.map((a) => (
                     <td key={a.id} className="py-3 px-3">
@@ -200,7 +242,7 @@ function CompareModal({
                   ))}
                 </tr>
                 {/* Date */}
-                <tr>
+                <tr className="hover:glow-wine-sm transition-all">
                   <td className="py-3 pr-4 text-viralyze-muted text-xs">Date</td>
                   {selected.map((a) => (
                     <td key={a.id} className="py-3 px-3">
@@ -214,8 +256,27 @@ function CompareModal({
                     </td>
                   ))}
                 </tr>
+                {/* Best Category */}
+                <tr className="hover:glow-wine-sm transition-all">
+                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Best Category</td>
+                  {bestCategories.map((bc) => (
+                    <td key={bc.id} className="py-3 px-3">
+                      {bc.best ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-viralyze-white font-medium">{bc.best.label}</span>
+                          <span className={cn('text-xs font-bold tabular-nums', scoreColor(bc.best.value))}>
+                            {bc.best.value}
+                          </span>
+                          {bestCategoryWinnerId === bc.id && <span>🏆</span>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-viralyze-muted">N/A</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
                 {/* Visual score bar */}
-                <tr>
+                <tr className="hover:glow-wine-sm transition-all">
                   <td className="py-3 pr-4 text-viralyze-muted text-xs">Score Bar</td>
                   {selected.map((a) => {
                     const barColor = a.overallScore >= 70 ? 'bg-green-400' : a.overallScore >= 50 ? 'bg-amber-400' : 'bg-red-400';

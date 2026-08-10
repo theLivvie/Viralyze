@@ -7,12 +7,14 @@ import {
   TrendingUp,
   Sparkles,
   Target,
+  Download,
   Instagram,
   Youtube,
   Tv,
   Twitter,
   Linkedin,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -209,6 +211,43 @@ export default function AnalyticsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const handleExportCSV = () => {
+    if (!data || !data.topContent.length) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const headers = ['Title', 'Platform', 'Content Type', 'Score', 'Classification', 'Confidence', 'Date'];
+    const rows = data.topContent.map((item) => [
+      item.title,
+      item.platform,
+      '',
+      String(item.score),
+      getClassification(item.score),
+      '',
+      item.date,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => {
+        const escaped = String(cell).replace(/"/g, '""');
+        return "${escaped}";
+      }).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `viralytics-analytics-${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Analytics exported as CSV');
+  };
+
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -341,13 +380,24 @@ export default function AnalyticsView() {
       className="flex flex-col gap-6 max-w-5xl mx-auto noise-bg"
     >
       {/* Header */}
-      <motion.div variants={item}>
-        <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
-          Analytics
-        </h2>
-        <p className="text-viralyze-muted mt-1">
-          Track your content performance and viral potential trends
-        </p>
+      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+            Analytics
+          </h2>
+          <p className="text-viralyze-muted mt-1">
+            Track your content performance and viral potential trends
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportCSV}
+          className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+        >
+          <Download className="h-4 w-4 mr-1.5" />
+          Export CSV
+        </Button>
       </motion.div>
 
       {/* Overview Stats */}

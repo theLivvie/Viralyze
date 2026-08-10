@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Zap, BarChart3, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'viralyze_onboarded';
 
@@ -95,6 +96,7 @@ export default function OnboardingOverlay() {
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={complete} />
 
         {/* Overlay card */}
+        <div className="gradient-border rounded-2xl p-[1px]">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -124,8 +126,11 @@ export default function OnboardingOverlay() {
                 className="flex flex-col items-center text-center gap-4 py-4"
               >
                 {/* Icon */}
-                <div className="h-16 w-16 rounded-2xl bg-wine-accent/15 border border-wine-accent/20 flex items-center justify-center">
-                  <IconComponent className="h-8 w-8 text-wine-accent" />
+                <div className="relative">
+                  <div className="absolute inset-0 -z-10 blur-2xl rounded-2xl bg-wine-accent/20" />
+                  <div className="h-16 w-16 rounded-2xl bg-wine-accent/15 border border-wine-accent/20 flex items-center justify-center">
+                    <IconComponent className="h-8 w-8 text-wine-accent" />
+                  </div>
                 </div>
 
                 {/* Step indicator */}
@@ -145,6 +150,9 @@ export default function OnboardingOverlay() {
               </motion.div>
             </AnimatePresence>
           </div>
+
+          {/* Glow-line separator */}
+          <div className="glow-line mb-4" />
 
           {/* Progress dots */}
           <div className="flex items-center justify-center gap-2 mt-2 mb-6">
@@ -169,7 +177,7 @@ export default function OnboardingOverlay() {
               <Button
                 variant="ghost"
                 onClick={goPrev}
-                className="flex-1 text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04]"
+                className="flex-1 text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.08]"
               >
                 Back
               </Button>
@@ -183,12 +191,16 @@ export default function OnboardingOverlay() {
             </Button>
             <Button
               onClick={goNext}
-              className="flex-1 bg-wine-accent hover:bg-wine-accent/90 text-white font-medium transition-colors"
+              className={cn(
+                'flex-1 bg-wine-accent hover:bg-wine-accent/90 text-white font-medium transition-colors',
+                currentStep === steps.length - 1 && 'btn-shine'
+              )}
             >
               {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
             </Button>
           </div>
         </motion.div>
+        </div>
       </motion.div>
     </AnimatePresence>
   );

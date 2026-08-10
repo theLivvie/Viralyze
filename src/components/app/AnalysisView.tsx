@@ -604,6 +604,18 @@ export default function AnalysisView() {
                         {v.score}/100
                       </span>
                       <Button
+                        size="sm"
+                        className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine"
+                        onClick={() => {
+                          setPrefilledIdea(v.content);
+                          setPredictMode('idea');
+                          setCurrentView('predict');
+                          toast.success('Variation loaded for re-analysis');
+                        }}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                      </Button>
+                      <Button
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"

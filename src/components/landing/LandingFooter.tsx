@@ -44,12 +44,15 @@ export default function LandingFooter() {
 
   return (
     <footer className="border-t border-white/5 bg-viralyze-black">
+      {/* Glow line at top of footer */}
+      <div className="glow-line mx-auto max-w-xs" />
+
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-wine">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-wine transition-colors duration-300 hover:bg-wine-accent/10">
                 <Sparkles className="h-4 w-4 text-viralyze-white" />
               </div>
               <span className="text-lg font-bold tracking-tight text-viralyze-white">Viralyze</span>
@@ -62,7 +65,7 @@ export default function LandingFooter() {
                 <button
                   key={social.label}
                   aria-label={social.label}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] text-viralyze-muted transition-colors hover:border-white/10 hover:text-viralyze-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] text-viralyze-muted transition-all duration-300 hover:border-white/10 hover:text-viralyze-white hover:glow-wine-sm"
                 >
                   <social.icon className="h-4 w-4" />
                 </button>
@@ -79,7 +82,7 @@ export default function LandingFooter() {
                   <li key={link.label}>
                     <button
                       onClick={() => handleLinkClick(link.section)}
-                      className="text-sm text-viralyze-muted transition-colors hover:text-viralyze-white"
+                      className="text-sm text-viralyze-muted transition-colors hover:text-wine-accent"
                     >
                       {link.label}
                     </button>

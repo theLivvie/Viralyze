@@ -87,6 +87,9 @@ export default function PricingSection() {
           </p>
         </motion.div>
 
+        {/* Animated gradient line above pricing grid */}
+        <div className="glow-line mx-auto mb-10 max-w-xs" />
+
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan, i) => (
             <motion.div
@@ -95,10 +98,10 @@ export default function PricingSection() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15 + i * 0.12 }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className={`relative flex flex-col rounded-2xl p-6 sm:p-8 ${
+              className={`relative flex flex-col rounded-2xl p-6 sm:p-8 transition-all duration-300 ${
                 plan.highlighted
                   ? 'border-wine-accent/40 bg-gradient-wine-subtle glow-wine'
-                  : 'border-white/5 bg-white/[0.02]'
+                  : 'border-white/5 bg-white/[0.02] hover:bg-wine-accent/[0.03] hover:glow-wine-sm'
               } border overflow-hidden`}
             >
               {/* Popular badge with pulse animation */}
@@ -133,13 +136,19 @@ export default function PricingSection() {
               </div>
 
               <ul className="mb-8 flex-1 space-y-3 relative z-10">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2.5">
+                {plan.features.map((feature, fi) => (
+                  <motion.li
+                    key={feature}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={isInView ? { opacity: 1, x: 0 } : {}}
+                    transition={{ delay: 0.4 + i * 0.12 + fi * 0.06, duration: 0.35 }}
+                    className="flex items-start gap-2.5"
+                  >
                     <Check className={`mt-0.5 h-4 w-4 shrink-0 ${
                       plan.highlighted ? 'text-wine-accent' : 'text-viralyze-muted'
                     }`} />
                     <span className="text-sm text-viralyze-muted">{feature}</span>
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
 
@@ -148,7 +157,7 @@ export default function PricingSection() {
                 variant={plan.highlighted ? 'default' : 'outline'}
                 className={`w-full relative z-10 ${
                   plan.highlighted
-                    ? 'bg-gradient-wine border-0 text-viralyze-white hover:opacity-90 transition-opacity'
+                    ? 'btn-shine bg-gradient-wine border-0 text-viralyze-white hover:opacity-90 transition-opacity'
                     : 'border-white/10 bg-transparent text-viralyze-white hover:bg-white/5 hover:text-viralyze-white'
                 }`}
               >

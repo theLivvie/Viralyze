@@ -1,0 +1,657 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useEffect, useCallback } from 'react';
+     4→     4→import { motion } from 'framer-motion';
+     5→     5→import {
+     6→     6→  Search,
+     7→     7→  Trash2,
+     8→     8→  Inbox,
+     9→     9→  Instagram,
+    10→    10→  Youtube,
+    11→    11→  Tv,
+    12→    12→  Twitter,
+    13→    13→  Linkedin,
+    14→    14→  Loader2,
+    15→    15→  GitCompareArrows,
+    16→    16→  X,
+    17→    17→} from 'lucide-react';
+    18→    18→import { Card, CardContent } from '@/components/ui/card';
+    19→    19→import { Button } from '@/components/ui/button';
+    20→    20→import { Input } from '@/components/ui/input';
+    21→    21→import { Badge } from '@/components/ui/badge';
+    22→    22→import {
+    23→    23→  Dialog,
+    24→    24→  DialogContent,
+    25→    25→  DialogHeader,
+    26→    26→  DialogTitle,
+    27→    27→  DialogDescription,
+    28→    28→} from '@/components/ui/dialog';
+    29→    29→import {
+    30→    30→  Select,
+    31→    31→  SelectContent,
+    32→    32→  SelectItem,
+    33→    33→  SelectTrigger,
+    34→    34→  SelectValue,
+    35→    35→} from '@/components/ui/select';
+    36→    36→import { useAppStore } from '@/lib/store';
+    37→    37→import type { Platform, Classification, SavedAnalysis } from '@/lib/types';
+    38→    38→import { cn } from '@/lib/utils';
+    39→    39→import { toast } from 'sonner';
+    40→    40→
+    41→    41→const platformIcons: Record<Platform, React.ElementType> = {
+    42→    42→  instagram: Instagram,
+    43→    43→  youtube: Youtube,
+    44→    44→  tiktok: Tv,
+    45→    45→  x: Twitter,
+    46→    46→  linkedin: Linkedin,
+    47→    47→};
+    48→    48→
+    49→    49→const classificationStyles: Record<Classification, string> = {
+    50→    50→  low: 'bg-red-500/20 text-red-400',
+    51→    51→  moderate: 'bg-amber-500/20 text-amber-400',
+    52→    52→  high: 'bg-green-500/20 text-green-400',
+    53→    53→  viral: 'bg-emerald-500/20 text-emerald-400',
+    54→    54→};
+    55→    55→
+    56→    56→const classificationBorderStyles: Record<Classification, string> = {
+    57→    57→  low: 'border-red-400',
+    58→    58→  moderate: 'border-amber-400',
+    59→    59→  high: 'border-green-400',
+    60→    60→  viral: 'border-emerald-400',
+    61→    61→};
+    62→    62→
+    63→    63→const container = {
+    64→    64→  hidden: { opacity: 0 },
+    65→    65→  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+    66→    66→};
+    67→    67→
+    68→    68→const item = {
+    69→    69→  hidden: { opacity: 0, y: 12 },
+    70→    70→  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    71→    71→};
+    72→    72→
+    73→    73→const categoryLabels: Record<string, string> = {
+    74→    74→  hook: 'Hook',
+    75→    75→  engagement: 'Engage',
+    76→    76→  shareability: 'Share',
+    77→    77→  retention: 'Retain',
+    78→    78→  originality: 'Original',
+    79→    79→  audienceFit: 'Fit',
+    80→    80→};
+    81→    81→
+    82→    82→const scoreBarColor = (value: number) => {
+    83→    83→  if (value >= 70) return 'bg-green-400';
+    84→    84→  if (value >= 45) return 'bg-amber-400';
+    85→    85→  return 'bg-red-400';
+    86→    86→};
+    87→    87→
+    88→    88→function SkeletonCard() {
+    89→    89→  return (
+    90→    90→    <Card className="glass animate-pulse">
+    91→    91→      <CardContent className="p-4">
+    92→    92→        <div className="flex items-start justify-between gap-2 mb-3">
+    93→    93→          <div className="flex items-center gap-2 min-w-0 flex-1">
+    94→    94→            <div className="h-4 w-4 rounded bg-white/[0.06] shrink-0" />
+    95→    95→            <div className="h-4 w-3/4 rounded bg-white/[0.06]" />
+    96→    96→          </div>
+    97→    97→          <div className="h-6 w-10 rounded bg-white/[0.06] shrink-0" />
+    98→    98→        </div>
+    99→    99→        <div className="flex items-center justify-between">
+   100→   100→          <div className="flex items-center gap-2">
+   101→   101→            <div className="h-5 w-14 rounded bg-white/[0.06]" />
+   102→   102→            <div className="h-4 w-20 rounded bg-white/[0.06]" />
+   103→   103→          </div>
+   104→   104→          <div className="h-7 w-7 rounded bg-white/[0.06]" />
+   105→   105→        </div>
+   106→   106→      </CardContent>
+   107→   107→    </Card>
+   108→   108→  );
+   109→   109→}
+   110→   110→
+   111→   111→function CompareModal({
+   112→   112→  analyses: selected,
+   113→   113→  open,
+   114→   114→  onOpenChange,
+   115→   115→}: {
+   116→   116→  analyses: SavedAnalysis[];
+   117→   117→  open: boolean;
+   118→   118→  onOpenChange: (open: boolean) => void;
+   119→   119→}) {
+   120→   120→  const scoreColor = (score: number) => {
+   121→   121→    if (score >= 85) return 'text-emerald-400';
+   122→   122→    if (score >= 65) return 'text-green-400';
+   123→   123→    if (score >= 40) return 'text-amber-400';
+   124→   124→    return 'text-red-400';
+   125→   125→  };
+   126→   126→
+   127→   127→  return (
+   128→   128→    <Dialog open={open} onOpenChange={onOpenChange}>
+   129→   129→      <DialogContent className="bg-viralyze-black border-white/[0.08] max-w-3xl max-h-[80vh] overflow-y-auto">
+   130→   130→        <DialogHeader>
+   131→   131→          <DialogTitle className="text-viralyze-white flex items-center gap-2">
+   132→   132→            <GitCompareArrows className="h-5 w-5 text-wine-accent" />
+   133→   133→            Compare Analyses
+   134→   134→          </DialogTitle>
+   135→   135→          <DialogDescription className="text-viralyze-muted">
+   136→   136→            Side-by-side comparison of {selected.length} content analyses
+   137→   137→          </DialogDescription>
+   138→   138→        </DialogHeader>
+   139→   139→        <div className="mt-4">
+   140→   140→          <div className="overflow-x-auto">
+   141→   141→            <table className="w-full text-sm">
+   142→   142→              <thead>
+   143→   143→                <tr className="border-b border-white/[0.08]">
+   144→   144→                  <th className="text-left py-2.5 pr-4 text-viralyze-muted font-medium text-xs uppercase tracking-wider w-28">Field</th>
+   145→   145→                  {selected.map((a) => (
+   146→   146→                    <th key={a.id} className="text-left py-2.5 px-3 text-viralyze-white font-medium text-xs min-w-[180px]">
+   147→   147→                      {a.title || 'Untitled'}
+   148→   148→                    </th>
+   149→   149→                  ))}
+   150→   150→                </tr>
+   151→   151→              </thead>
+   152→   152→              <tbody className="divide-y divide-white/[0.04]">
+   153→   153→                {/* Score */}
+   154→   154→                <tr>
+   155→   155→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Score</td>
+   156→   156→                  {selected.map((a) => (
+   157→   157→                    <td key={a.id} className="py-3 px-3">
+   158→   158→                      <span className={cn('text-lg font-bold tabular-nums', scoreColor(a.overallScore))}>
+   159→   159→                        {a.overallScore}
+   160→   160→                      </span>
+   161→   161→                    </td>
+   162→   162→                  ))}
+   163→   163→                </tr>
+   164→   164→                {/* Classification */}
+   165→   165→                <tr>
+   166→   166→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Classification</td>
+   167→   167→                  {selected.map((a) => (
+   168→   168→                    <td key={a.id} className="py-3 px-3">
+   169→   169→                      <Badge
+   170→   170→                        variant="outline"
+   171→   171→                        className={cn('text-xs capitalize', classificationStyles[a.classification])}
+   172→   172→                      >
+   173→   173→                        {a.classification}
+   174→   174→                      </Badge>
+   175→   175→                    </td>
+   176→   176→                  ))}
+   177→   177→                </tr>
+   178→   178→                {/* Platform */}
+   179→   179→                <tr>
+   180→   180→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Platform</td>
+   181→   181→                  {selected.map((a) => {
+   182→   182→                    const PI = platformIcons[a.platform];
+   183→   183→                    return (
+   184→   184→                      <td key={a.id} className="py-3 px-3">
+   185→   185→                        <div className="flex items-center gap-1.5 text-viralyze-white">
+   186→   186→                          <PI className="h-3.5 w-3.5 text-viralyze-muted" />
+   187→   187→                          <span className="text-xs capitalize">{a.platform}</span>
+   188→   188→                        </div>
+   189→   189→                      </td>
+   190→   190→                    );
+   191→   191→                  })}
+   192→   192→                </tr>
+   193→   193→                {/* Content Type */}
+   194→   194→                <tr>
+   195→   195→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Content Type</td>
+   196→   196→                  {selected.map((a) => (
+   197→   197→                    <td key={a.id} className="py-3 px-3">
+   198→   198→                      <span className="text-xs text-viralyze-white capitalize">{a.contentType}</span>
+   199→   199→                    </td>
+   200→   200→                  ))}
+   201→   201→                </tr>
+   202→   202→                {/* Date */}
+   203→   203→                <tr>
+   204→   204→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Date</td>
+   205→   205→                  {selected.map((a) => (
+   206→   206→                    <td key={a.id} className="py-3 px-3">
+   207→   207→                      <span className="text-xs text-viralyze-muted">
+   208→   208→                        {new Date(a.createdAt).toLocaleDateString('en-US', {
+   209→   209→                          month: 'short',
+   210→   210→                          day: 'numeric',
+   211→   211→                          year: 'numeric',
+   212→   212→                        })}
+   213→   213→                      </span>
+   214→   214→                    </td>
+   215→   215→                  ))}
+   216→   216→                </tr>
+   217→   217→                {/* Visual score bar */}
+   218→   218→                <tr>
+   219→   219→                  <td className="py-3 pr-4 text-viralyze-muted text-xs">Score Bar</td>
+   220→   220→                  {selected.map((a) => {
+   221→   221→                    const barColor = a.overallScore >= 70 ? 'bg-green-400' : a.overallScore >= 50 ? 'bg-amber-400' : 'bg-red-400';
+   222→   222→                    return (
+   223→   223→                      <td key={a.id} className="py-3 px-3">
+   224→   224→                        <div className="h-2.5 w-full max-w-[140px] rounded-full bg-white/[0.06] overflow-hidden">
+   225→   225→                          <div
+   226→   226→                            className={cn('h-full rounded-full transition-all duration-500', barColor)}
+   227→   227→                            style={{ width: `${a.overallScore}%` }}
+   228→   228→                          />
+   229→   229→                        </div>
+   230→   230→                      </td>
+   231→   231→                    );
+   232→   232→                  })}
+   233→   233→                </tr>
+   234→   234→              </tbody>
+   235→   235→            </table>
+   236→   236→          </div>
+   237→   237→        </div>
+   238→   238→      </DialogContent>
+   239→   239→    </Dialog>
+   240→   240→  );
+   241→   241→}
+   242→   242→
+   243→   243→export default function LibraryView() {
+   244→   244→  const { setSavedAnalyses, removeSavedAnalysis, setCurrentAnalysis, setCurrentView, user } = useAppStore();
+   245→   245→  const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
+   246→   246→  const [loading, setLoading] = useState(true);
+   247→   247→  const [search, setSearch] = useState('');
+   248→   248→  const [platformFilter, setPlatformFilter] = useState<string>('all');
+   249→   249→  const [sort, setSort] = useState<string>('newest');
+   250→   250→  const [deleting, setDeleting] = useState<string | null>(null);
+   251→   251→  const [compareMode, setCompareMode] = useState(false);
+   252→   252→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+   253→   253→  const [compareOpen, setCompareOpen] = useState(false);
+   254→   254→
+   255→   255→  const fetchLibrary = useCallback(async () => {
+   256→   256→    if (!user?.id) {
+   257→   257→      setLoading(false);
+   258→   258→      return;
+   259→   259→    }
+   260→   260→    try {
+   261→   261→      setLoading(true);
+   262→   262→      const res = await fetch(`/api/library?userId=${user.id}`);
+   263→   263→      if (res.ok) {
+   264→   264→        const data = await res.json();
+   265→   265→        setAnalyses(data);
+   266→   266→        setSavedAnalyses(data);
+   267→   267→      }
+   268→   268→    } catch {
+   269→   269→      // Silently fail — use whatever is in local state
+   270→   270→    } finally {
+   271→   271→      setLoading(false);
+   272→   272→    }
+   273→   273→  }, [user?.id, setSavedAnalyses]);
+   274→   274→
+   275→   275→  useEffect(() => {
+   276→   276→    fetchLibrary();
+   277→   277→  }, [fetchLibrary]);
+   278→   278→
+   279→   279→  const filtered = analyses
+   280→   280→    .filter((a) => {
+   281→   281→      if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
+   282→   282→      if (platformFilter !== 'all' && a.platform !== platformFilter) return false;
+   283→   283→      return true;
+   284→   284→    })
+   285→   285→    .sort((a, b) => {
+   286→   286→      if (sort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+   287→   287→      if (sort === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+   288→   288→      if (sort === 'score-high') return b.overallScore - a.overallScore;
+   289→   289→      if (sort === 'score-low') return a.overallScore - b.overallScore;
+   290→   290→      return 0;
+   291→   291→    });
+   292→   292→
+   293→   293→  const handleDelete = async (e: React.MouseEvent, id: string) => {
+   294→   294→    e.stopPropagation();
+   295→   295→    if (!user?.id) return;
+   296→   296→    setDeleting(id);
+   297→   297→    try {
+   298→   298→      const res = await fetch(`/api/library?id=${id}&userId=${user.id}`, { method: 'DELETE' });
+   299→   299→      if (res.ok) {
+   300→   300→        setAnalyses((prev) => prev.filter((a) => a.id !== id));
+   301→   301→        removeSavedAnalysis(id);
+   302→   302→        setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+   303→   303→        toast.success('Removed from library');
+   304→   304→      } else {
+   305→   305→        toast.error('Failed to delete analysis');
+   306→   306→      }
+   307→   307→    } catch {
+   308→   308→      toast.error('Failed to delete analysis');
+   309→   309→    } finally {
+   310→   310→      setDeleting(null);
+   311→   311→    }
+   312→   312→  };
+   313→   313→
+   314→   314→  const [viewingId, setViewingId] = useState<string | null>(null);
+   315→   315→
+   316→   316→  const handleCardClick = async (id: string) => {
+   317→   317→    if (compareMode) {
+   318→   318→      setSelectedIds((prev) => {
+   319→   319→        const next = new Set(prev);
+   320→   320→        if (next.has(id)) {
+   321→   321→          next.delete(id);
+   322→   322→        } else if (next.size < 3) {
+   323→   323→          next.add(id);
+   324→   324→        } else {
+   325→   325→          toast.info('You can compare up to 3 items');
+   326→   326→          return prev;
+   327→   327→        }
+   328→   328→        return next;
+   329→   329→      });
+   330→   330→    } else {
+   331→   331→      try {
+   332→   332→        setViewingId(id);
+   333→   333→        const res = await fetch(`/api/library?id=${id}`);
+   334→   334→        if (res.ok) {
+   335→   335→          const data = await res.json();
+   336→   336→          setCurrentAnalysis(data);
+   337→   337→          setCurrentView('analysis');
+   338→   338→        } else {
+   339→   339→          toast.error('Failed to load analysis');
+   340→   340→        }
+   341→   341→      } catch {
+   342→   342→        toast.error('Failed to load analysis');
+   343→   343→      } finally {
+   344→   344→        setViewingId(null);
+   345→   345→      }
+   346→   346→    }
+   347→   347→  };
+   348→   348→
+   349→   349→  const selectedAnalyses = analyses.filter((a) => selectedIds.has(a.id));
+   350→   350→
+   351→   351→  const handleCompare = () => {
+   352→   352→    if (selectedIds.size >= 2) {
+   353→   353→      setCompareOpen(true);
+   354→   354→    }
+   355→   355→  };
+   356→   356→
+   357→   357→  const exitCompareMode = () => {
+   358→   358→    setCompareMode(false);
+   359→   359→    setSelectedIds(new Set());
+   360→   360→  };
+   361→   361→
+   362→   362→  const isFilteredEmpty = !loading && filtered.length === 0 && analyses.length > 0;
+   363→   363→  const isEmpty = !loading && analyses.length === 0;
+   364→   364→
+   365→   365→  return (
+   366→   366→    <motion.div
+   367→   367→      variants={container}
+   368→   368→      initial="hidden"
+   369→   369→      animate="show"
+   370→   370→      className="flex flex-col gap-4 max-w-4xl mx-auto"
+   371→   371→    >
+   372→   372→      {/* Header with count badge */}
+   373→   373→      <motion.div variants={item} className="flex items-center gap-3">
+   374→   374→        <div className="flex flex-col">
+   375→   375→          <div className="flex items-center gap-2.5">
+   376→   376→            <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   377→   377→              Content Library
+   378→   378→            </h2>
+   379→   379→            {!loading && analyses.length > 0 && (
+   380→   380→              <Badge
+   381→   381→                variant="outline"
+   382→   382→                className="text-xs border-wine-accent/30 text-wine-accent bg-wine-accent/10 tabular-nums"
+   383→   383→              >
+   384→   384→                {analyses.length}
+   385→   385→              </Badge>
+   386→   386→            )}
+   387→   387→          </div>
+   388→   388→          <p className="text-viralyze-muted mt-1">
+   389→   389→            Your saved content analyses
+   390→   390→          </p>
+   391→   391→        </div>
+   392→   392→      </motion.div>
+   393→   393→
+   394→   394→      {/* Filters */}
+   395→   395→      <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
+   396→   396→        <div className="relative flex-1">
+   397→   397→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted" />
+   398→   398→          <Input
+   399→   399→            placeholder="Search analyses..."
+   400→   400→            value={search}
+   401→   401→            onChange={(e) => setSearch(e.target.value)}
+   402→   402→            className="pl-9 bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent hover:border-white/[0.12] transition-colors"
+   403→   403→          />
+   404→   404→        </div>
+   405→   405→        <Select value={platformFilter} onValueChange={setPlatformFilter}>
+   406→   406→          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+   407→   407→            <SelectValue placeholder="Platform" />
+   408→   408→          </SelectTrigger>
+   409→   409→          <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   410→   410→            <SelectItem value="all" className="text-viralyze-white">All Platforms</SelectItem>
+   411→   411→            <SelectItem value="instagram" className="text-viralyze-white">Instagram</SelectItem>
+   412→   412→            <SelectItem value="youtube" className="text-viralyze-white">YouTube</SelectItem>
+   413→   413→            <SelectItem value="tiktok" className="text-viralyze-white">TikTok</SelectItem>
+   414→   414→            <SelectItem value="x" className="text-viralyze-white">X</SelectItem>
+   415→   415→            <SelectItem value="linkedin" className="text-viralyze-white">LinkedIn</SelectItem>
+   416→   416→          </SelectContent>
+   417→   417→        </Select>
+   418→   418→        <Select value={sort} onValueChange={setSort}>
+   419→   419→          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+   420→   420→            <SelectValue placeholder="Sort" />
+   421→   421→          </SelectTrigger>
+   422→   422→          <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   423→   423→            <SelectItem value="newest" className="text-viralyze-white">Newest First</SelectItem>
+   424→   424→            <SelectItem value="oldest" className="text-viralyze-white">Oldest First</SelectItem>
+   425→   425→            <SelectItem value="score-high" className="text-viralyze-white">Score: High to Low</SelectItem>
+   426→   426→            <SelectItem value="score-low" className="text-viralyze-white">Score: Low to High</SelectItem>
+   427→   427→          </SelectContent>
+   428→   428→        </Select>
+   429→   429→      </motion.div>
+   430→   430→
+   431→   431→      {/* Compare controls */}
+   432→   432→      {!loading && analyses.length > 1 && (
+   433→   433→        <motion.div variants={item} className="flex items-center gap-2">
+   434→   434→          <Button
+   435→   435→            variant={compareMode ? 'default' : 'outline'}
+   436→   436→            size="sm"
+   437→   437→            onClick={() => {
+   438→   438→              if (compareMode) {
+   439→   439→                exitCompareMode();
+   440→   440→              } else {
+   441→   441→                setCompareMode(true);
+   442→   442→              }
+   443→   443→            }}
+   444→   444→            className={cn(
+   445→   445→              'gap-1.5 transition-all',
+   446→   446→              compareMode
+   447→   447→                ? 'bg-wine-accent hover:bg-wine-accent/80 text-white border-wine-accent'
+   448→   448→                : 'border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20'
+   449→   449→            )}
+   450→   450→          >
+   451→   451→            <GitCompareArrows className="h-3.5 w-3.5" />
+   452→   452→            {compareMode ? 'Exit Compare' : 'Compare'}
+   453→   453→          </Button>
+   454→   454→          {compareMode && selectedIds.size > 0 && (
+   455→   455→            <>
+   456→   456→              <span className="text-xs text-viralyze-muted">
+   457→   457→                {selectedIds.size}/3 selected
+   458→   458→              </span>
+   459→   459→              {selectedIds.size >= 2 && (
+   460→   460→                <Button
+   461→   461→                  size="sm"
+   462→   462→                  onClick={handleCompare}
+   463→   463→                  className="bg-wine-accent hover:bg-wine-accent/80 text-white gap-1.5"
+   464→   464→                >
+   465→   465→                  Compare Selected ({selectedIds.size})
+   466→   466→                </Button>
+   467→   467→              )}
+   468→   468→              <Button
+   469→   469→                size="sm"
+   470→   470→                variant="ghost"
+   471→   471→                onClick={() => setSelectedIds(new Set())}
+   472→   472→                className="text-viralyze-muted hover:text-viralyze-white gap-1"
+   473→   473→              >
+   474→   474→                <X className="h-3 w-3" />
+   475→   475→                Clear
+   476→   476→              </Button>
+   477→   477→            </>
+   478→   478→          )}
+   479→   479→        </motion.div>
+   480→   480→      )}
+   481→   481→
+   482→   482→      {/* Loading skeleton */}
+   483→   483→      {loading && (
+   484→   484→        <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   485→   485→          {Array.from({ length: 4 }).map((_, i) => (
+   486→   486→            <SkeletonCard key={i} />
+   487→   487→          ))}
+   488→   488→        </motion.div>
+   489→   489→      )}
+   490→   490→
+   491→   491→      {/* Empty state — no analyses at all — animated dashed border */}
+   492→   492→      {!loading && isEmpty && (
+   493→   493→        <motion.div variants={item}>
+   494→   494→          <div className="relative rounded-xl p-px animate-pulse-glow">
+   495→   495→            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/[0.08]" />
+   496→   496→            <Card className="glass relative z-0">
+   497→   497→              <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+   498→   498→                <motion.div
+   499→   499→                  animate={{ y: [0, -6, 0] }}
+   500→   500→                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+   501→   501→                >
+   502→   502→                  <Inbox className="h-10 w-10 text-viralyze-muted/40" />
+   503→   503→                </motion.div>
+   504→   504→                <p className="text-viralyze-muted text-sm">No analyses yet</p>
+   505→   505→                <p className="text-viralyze-muted/60 text-xs">Your saved content predictions will appear here</p>
+   506→   506→                <Button
+   507→   507→                  onClick={() => useAppStore.getState().setCurrentView('predict')}
+   508→   508→                  className="bg-gradient-wine hover:opacity-90 text-white mt-2 btn-shine"
+   509→   509→                >
+   510→   510→                  Analyze Content
+   511→   511→                </Button>
+   512→   512→              </CardContent>
+   513→   513→            </Card>
+   514→   514→          </div>
+   515→   515→        </motion.div>
+   516→   516→      )}
+   517→   517→
+   518→   518→      {/* Empty state — filtered results — animated dashed border */}
+   519→   519→      {isFilteredEmpty && (
+   520→   520→        <motion.div variants={item}>
+   521→   521→          <div className="relative rounded-xl p-px">
+   522→   522→            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/[0.08]" />
+   523→   523→            <Card className="glass relative z-0">
+   524→   524→              <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+   525→   525→                <Search className="h-10 w-10 text-viralyze-muted/40" />
+   526→   526→                <p className="text-viralyze-muted text-sm">No results found</p>
+   527→   527→                <p className="text-viralyze-muted/60 text-xs">Try adjusting your search or filter</p>
+   528→   528→                <Button
+   529→   529→                  variant="outline"
+   530→   530→                  onClick={() => { setSearch(''); setPlatformFilter('all'); }}
+   531→   531→                  className="mt-2 border-white/10 text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-colors"
+   532→   532→                >
+   533→   533→                  Clear Filters
+   534→   534→                </Button>
+   535→   535→              </CardContent>
+   536→   536→            </Card>
+   537→   537→          </div>
+   538→   538→        </motion.div>
+   539→   539→      )}
+   540→   540→
+   541→   541→      {/* Results */}
+   542→   542→      {!loading && filtered.length > 0 && (
+   543→   543→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   544→   544→          {filtered.map((analysis) => {
+   545→   545→            const PIcon = platformIcons[analysis.platform];
+   546→   546→            const isSelected = selectedIds.has(analysis.id);
+   547→   547→
+   548→   548→            // Compute top 3 score categories
+   549→   549→            const scoreKeys = ['hook', 'engagement', 'shareability', 'retention', 'originality', 'audienceFit'] as const;
+   550→   550→            const topScores = analysis.scores
+   551→   551→              ? scoreKeys
+   552→   552→                  .map((k) => ({ key: k, value: analysis.scores![k] ?? 50 }))
+   553→   553→                  .sort((a, b) => b.value - a.value)
+   554→   554→                  .slice(0, 3)
+   555→   555→              : null;
+   556→   556→
+   557→   557→            return (
+   558→   558→              <motion.div key={analysis.id} variants={item}>
+   559→   559→                <Card
+   560→   560→                  className={cn(
+   561→   561→                    'glass group transition-all duration-300 cursor-pointer',
+   562→   562→                    compareMode && 'hover:bg-white/[0.03]',
+   563→   563→                    !compareMode && 'hover:bg-white/[0.03] hover:glow-wine-sm',
+   564→   564→                    isSelected && 'border-2 border-wine-accent/60 glow-wine-sm bg-wine-accent/[0.04]',
+   565→   565→                    !isSelected && compareMode && 'hover:border-wine-accent/30'
+   566→   566→                  )}
+   567→   567→                  onClick={() => handleCardClick(analysis.id)}
+   568→   568→                >
+   569→   569→                  <CardContent className="p-4">
+   570→   570→                    <div className="flex items-start justify-between gap-2 mb-3">
+   571→   571→                      <div className="flex items-center gap-2 min-w-0">
+   572→   572→                        {compareMode && (
+   573→   573→                          <div className={cn(
+   574→   574→                            'h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+   575→   575→                            isSelected
+   576→   576→                              ? 'bg-wine-accent border-wine-accent'
+   577→   577→                              : 'border-white/20 group-hover:border-wine-accent/40'
+   578→   578→                          )}>
+   579→   579→                            {isSelected && (
+   580→   580→                              <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+   581→   581→                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+   582→   582→                              </svg>
+   583→   583→                            )}
+   584→   584→                          </div>
+   585→   585→                        )}
+   586→   586→                        <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   587→   587→                        <span className="text-sm font-medium text-viralyze-white truncate">
+   588→   588→                          {analysis.title || 'Untitled'}
+   589→   589→                        </span>
+   590→   590→                      </div>
+   591→   591→                      <Badge
+   592→   592→                        variant="outline"
+   593→   593→                        className={cn('text-xs shrink-0', classificationStyles[analysis.classification])}
+   594→   594→                      >
+   595→   595→                        {analysis.overallScore}
+   596→   596→                      </Badge>
+   597→   597→                    </div>
+   598→   598→                    {/* Score category sparklines */}
+   599→   599→                    {topScores && (
+   600→   600→                      <div className="flex items-center gap-2 mb-3">
+   601→   601→                        {topScores.map(({ key, value }) => (
+   602→   602→                          <div
+   603→   603→                            key={key}
+   604→   604→                            className="flex flex-col items-center gap-0.5 min-w-0"
+   605→   605→                          >
+   606→   606→                            <span className="text-[10px] leading-tight text-viralyze-muted/70 font-medium tabular-nums whitespace-nowrap">
+   607→   607→                              {categoryLabels[key]}: {value}
+   608→   608→                            </span>
+   609→   609→                            <div className="h-[1.5px] w-10 rounded-full bg-white/[0.06] overflow-hidden">
+   610→   610→                              <div
+   611→   611→                                className={cn('h-full rounded-full', scoreBarColor(value))}
+   612→   612→                                style={{ width: `${value}%` }}
+   613→   613→                              />
+   614→   614→                            </div>
+   615→   615→                          </div>
+   616→   616→                        ))}
+   617→   617→                      </div>
+   618→   618→                    )}
+   619→   619→                    <div className="flex items-center justify-between">
+   620→   620→                      <div className="flex items-center gap-2 text-xs text-viralyze-muted">
+   621→   621→                        <Badge variant="outline" className="text-xs border-white/10 text-viralyze-muted">
+   622→   622→                          {analysis.contentType}
+   623→   623→                        </Badge>
+   624→   624→                        <span>{new Date(analysis.createdAt).toLocaleDateString()}</span>
+   625→   625→                      </div>
+   626→   626→                      <Button
+   627→   627→                        variant="ghost"
+   628→   628→                        size="icon"
+   629→   629→                        className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+   630→   630→                        onClick={(e) => handleDelete(e, analysis.id)}
+   631→   631→                        disabled={deleting === analysis.id}
+   632→   632→                      >
+   633→   633→                        {deleting === analysis.id ? (
+   634→   634→                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   635→   635→                        ) : (
+   636→   636→                          <Trash2 className="h-3.5 w-3.5" />
+   637→   637→                        )}
+   638→   638→                      </Button>
+   639→   639→                    </div>
+   640→   640→                  </CardContent>
+   641→   641→                </Card>
+   642→   642→              </motion.div>
+   643→   643→            );
+   644→   644→          })}
+   645→   645→        </div>
+   646→   646→      )}
+   647→   647→
+   648→   648→      {/* Compare Modal */}
+   649→   649→      <CompareModal
+   650→   650→        analyses={selectedAnalyses}
+   651→   651→        open={compareOpen}
+   652→   652→        onOpenChange={setCompareOpen}
+   653→   653→      />
+   654→   654→    </motion.div>
+   655→   655→  );
+   656→   656→}
+   657→   657→
