@@ -74,23 +74,32 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { id, title, date, time, platform, contentType, notes, analysisId } = await request.json();
+    const { id, userId, title, date, time, platform, contentType, notes, analysisId } = await request.json();
 
     if (!id) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });
     }
 
+    // Verify ownership before updating
+    if (userId) {
+      const existing = await db.calendarEvent.findUnique({ where: { id } });
+      if (!existing || existing.userId !== userId) {
+        return NextResponse.json({ error: 'Calendar event not found' }, { status: 404 });
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (title !== undefined) updateData.title = title;
+    if (date !== undefined) updateData.date = date;
+    if (time !== undefined) updateData.time = time;
+    if (platform !== undefined) updateData.platform = platform;
+    if (contentType !== undefined) updateData.contentType = contentType;
+    if (notes !== undefined) updateData.notes = notes;
+    if (analysisId !== undefined) updateData.analysisId = analysisId;
+
     const event = await db.calendarEvent.update({
       where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(date !== undefined && { date }),
-        ...(time !== undefined && { time }),
-        ...(platform !== undefined && { platform }),
-        ...(contentType !== undefined && { contentType }),
-        ...(notes !== undefined && { notes }),
-        ...(analysisId !== undefined && { analysisId }),
-      },
+      data: updateData,
     });
 
     return NextResponse.json(event);

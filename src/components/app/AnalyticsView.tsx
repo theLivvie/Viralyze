@@ -50,7 +50,7 @@ interface AnalyticsData {
   totalAnalyses: number;
   avgScore: number;
   bestScore: number;
-  predictionAccuracy: number;
+  predictionAccuracy?: number;
   scoreDistribution: { range: string; count: number }[];
   platformPerformance: { platform: string; score: number }[];
   weeklyTrend: { week: string; score: number }[];
@@ -320,7 +320,9 @@ export default function AnalyticsView() {
     rows.push(['Total Analyses', String(data.totalAnalyses), '']);
     rows.push(['Average Score', String(data.avgScore), '']);
     rows.push(['Best Score', String(data.bestScore), '']);
-    rows.push(['Prediction Accuracy', String(data.predictionAccuracy), '%']);
+    if (data.predictionAccuracy !== undefined) {
+      rows.push(['Prediction Accuracy', String(data.predictionAccuracy), '%']);
+    }
     rows.push([]);
 
     // Score distribution
@@ -472,8 +474,13 @@ export default function AnalyticsView() {
     { icon: BarChart3, value: data.totalAnalyses, label: 'Total Analyses', accent: false, trend: 'up' as const, trendPercent: '+12%', isInt: true },
     { icon: TrendingUp, value: data.avgScore, label: 'Avg Score', accent: false, trend: 'up' as const, trendPercent: '+5.3', isInt: false },
     { icon: Sparkles, value: data.bestScore, label: 'Highest Score', accent: true, trend: 'up' as const, trendPercent: '+8', isInt: true },
-    { icon: Target, value: data.predictionAccuracy, label: 'Prediction Accuracy', accent: false, trend: data.predictionAccuracy >= 80 ? 'up' as const : 'down' as const, trendPercent: data.predictionAccuracy >= 80 ? '+2.1' : '-1.4', isInt: true },
   ];
+
+  if (data.predictionAccuracy !== undefined) {
+    overviewStats.push(
+      { icon: Target, value: data.predictionAccuracy, label: 'Est. Accuracy', accent: false, trend: data.predictionAccuracy >= 80 ? 'up' as const : 'down' as const, trendPercent: data.predictionAccuracy >= 80 ? '+2.1' : '-1.4', isInt: true }
+    );
+  }
 
   return (
     <motion.div

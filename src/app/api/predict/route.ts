@@ -113,8 +113,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { mode, platform, contentType, audience, ideaText, contentText, title, hashtags, userId } = body;
 
+    // Validate required fields
     if (!platform || !contentType || (!ideaText && !contentText)) {
       return NextResponse.json({ error: 'Missing required fields: platform, contentType, and content (ideaText or contentText)' }, { status: 400 });
+    }
+
+    // Validate content length (prevent abuse)
+    const rawContent = contentText || ideaText || '';
+    if (rawContent.length < 10) {
+      return NextResponse.json({ error: 'Content is too short. Please provide at least 10 characters.' }, { status: 400 });
+    }
+    if (rawContent.length > 10000) {
+      return NextResponse.json({ error: 'Content exceeds the 10,000 character limit. Please shorten your content.' }, { status: 400 });
+    }
+
+    // Validate platform
+    const validPlatforms = ['instagram', 'youtube', 'tiktok', 'x', 'linkedin'];
+    if (!validPlatforms.includes(platform)) {
+      return NextResponse.json({ error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}` }, { status: 400 });
+    }
+
+    // Validate contentType
+    const validContentTypes = ['reel', 'video', 'post', 'story', 'carousel', 'thread', 'short', 'blog', 'email', 'newsletter'];
+    if (!validContentTypes.includes(contentType)) {
+      return NextResponse.json({ error: `Invalid content type. Must be one of: ${validContentTypes.join(', ')}` }, { status: 400 });
     }
 
     // Default audience if not provided

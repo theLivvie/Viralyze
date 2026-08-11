@@ -2,9 +2,10 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Twitter, Github, Linkedin, Instagram, Send, Check } from 'lucide-react';
+import { Twitter, Github, Linkedin, Instagram, Send, Check, X } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppStore } from '@/lib/store';
 import { toast } from 'sonner';
 
@@ -13,18 +14,12 @@ const footerLinks = {
     { label: 'Features', section: 'features' },
     { label: 'Pricing', section: 'pricing' },
     { label: 'How It Works', section: 'how-it-works' },
-    { label: 'Changelog', section: null },
   ],
   Company: [
     { label: 'About', section: null },
-    { label: 'Blog', section: null },
-    { label: 'Careers', section: null },
-    { label: 'Contact', section: null },
   ],
   Resources: [
     { label: 'Documentation', section: null },
-    { label: 'API Reference', section: null },
-    { label: 'Community', section: null },
     { label: 'Status', section: null },
   ],
 };
@@ -36,10 +31,74 @@ const socialLinks = [
   { icon: Github, label: 'GitHub', href: '#' },
 ];
 
+const LEGAL_CONTENT: Record<string, string> = {
+  'Privacy Policy': `
+## Privacy Policy
+
+**Last updated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}**
+
+Viralyze ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our service.
+
+### Information We Collect
+- **Account data**: Email address and name you provide during sign-up.
+- **Content data**: Text you submit for analysis. This data is processed by our AI and stored to provide your content library.
+- **Usage data**: Interaction patterns, feature usage, and analytics to improve our service.
+
+### How We Use Your Data
+- To provide and improve our viral content prediction service.
+- To store your analysis history and content library.
+- To communicate service updates and account notifications.
+- To analyze usage patterns for product improvement.
+
+### Data Sharing
+We do not sell, trade, or rent your personal information to third parties. We may share anonymized, aggregated usage data for analytics purposes.
+
+### Data Retention
+You may delete your account and all associated data at any time through the Settings page.
+
+### Contact
+For privacy-related inquiries, contact us at privacy@viralyze.com.
+
+*This is a placeholder document. A legal professional should review and customize this policy before production deployment.*
+`,
+  'Terms of Service': `
+## Terms of Service
+
+**Last updated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}**
+
+By accessing or using Viralyze, you agree to be bound by these Terms of Service.
+
+### Service Description
+Viralyze provides AI-powered content analysis and prediction services. Results are estimates based on AI analysis and do not guarantee actual performance.
+
+### User Accounts
+You are responsible for maintaining the confidentiality of your account credentials. You must provide accurate information during registration.
+
+### Acceptable Use
+You may not use Viralyze to generate harmful, illegal, or misleading content. You retain ownership of content you submit.
+
+### Intellectual Property
+Viralyze's analysis output and suggestions are provided for your use. The Viralyze platform, branding, and technology remain our intellectual property.
+
+### Limitation of Liability
+Viralyze provides content predictions as estimates. We are not liable for decisions made based on our analysis results. We do not guarantee virality or any specific engagement metrics.
+
+### Modifications
+We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of modified terms.
+
+### Contact
+For questions about these terms, contact us at legal@viralyze.com.
+
+*This is a placeholder document. A legal professional should review and customize these terms before production deployment.*
+`,
+};
+
 export default function LandingFooter() {
   const { setScrollToSection } = useAppStore();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [legalOpen, setLegalOpen] = useState(false);
+  const [legalTitle, setLegalTitle] = useState('');
 
   const handleLinkClick = (section: string | null) => {
     if (section) {
@@ -57,6 +116,11 @@ export default function LandingFooter() {
     toast.success('Thanks for subscribing! We\'ll keep you updated.');
     setSubscribed(true);
     setEmail('');
+  };
+
+  const openLegal = (title: string) => {
+    setLegalTitle(title);
+    setLegalOpen(true);
   };
 
   return (
@@ -177,16 +241,18 @@ export default function LandingFooter() {
 
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-viralyze-muted">
-            © {new Date().getFullYear()} Viralyze. All rights reserved.
+            &copy; {new Date().getFullYear()} Viralyze. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <motion.button
+              onClick={() => openLegal('Privacy Policy')}
               className="text-xs text-viralyze-muted transition-all duration-300 hover:text-viralyze-white"
               whileHover={{ x: 2 }}
             >
               Privacy Policy
             </motion.button>
             <motion.button
+              onClick={() => openLegal('Terms of Service')}
               className="text-xs text-viralyze-muted transition-all duration-300 hover:text-viralyze-white"
               whileHover={{ x: 2 }}
             >
@@ -195,6 +261,25 @@ export default function LandingFooter() {
           </div>
         </div>
       </div>
+
+      {/* Legal Dialog */}
+      <Dialog open={legalOpen} onOpenChange={setLegalOpen}>
+        <DialogContent className="glass-strong sm:max-w-2xl max-h-[80vh] overflow-y-auto border-white/10" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle className="text-viralyze-white">{legalTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-invert prose-sm max-w-none text-viralyze-muted/80 [&_h2]:text-viralyze-white [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-3 [&_p]:mb-2 [&_p]:text-sm [&_p]:leading-relaxed [&_strong]:text-viralyze-white [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_em]:text-wine-accent/80">
+            {LEGAL_CONTENT[legalTitle]?.split('\n').map((line, i) => {
+              if (line.startsWith('## ')) return <h2 key={i}>{line.replace('## ', '')}</h2>;
+              if (line.startsWith('### ')) return <h3 key={i} className="text-viralyze-white font-medium mt-4 mb-2">{line.replace('### ', '')}</h3>;
+              if (line.startsWith('- ')) return <li key={i}>{line.replace('- ', '')}</li>;
+              if (line.startsWith('*')) return <p key={i} className="text-xs text-viralyze-muted/50 italic mt-4">{line.replace(/\*/g, '')}</p>;
+              if (line.trim() === '') return <br key={i} />;
+              return <p key={i}>{line}</p>;
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </footer>
   );
 }

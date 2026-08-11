@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
         totalAnalyses: 0,
         avgScore: 0,
         bestScore: 0,
-        predictionAccuracy: 87,
         scoreDistribution: [
           { range: '0-20', count: 0 },
           { range: '21-40', count: 0 },
@@ -158,7 +157,6 @@ export async function GET(request: NextRequest) {
       totalAnalyses,
       avgScore,
       bestScore,
-      predictionAccuracy: 87,
       scoreDistribution,
       platformPerformance,
       weeklyTrend,

@@ -71,10 +71,13 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const order = searchParams.get('order') || 'desc';
 
-    // Fetch single full analysis
+    // Fetch single full analysis (verify userId ownership for security)
     if (id) {
       const analysis = await db.contentAnalysis.findUnique({ where: { id } });
       if (!analysis) {
+        return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+      }
+      if (userId && analysis.userId !== userId) {
         return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
       }
       return NextResponse.json(formatFullAnalysis(analysis as unknown as Record<string, unknown>));
