@@ -64,6 +64,7 @@ export default function CTASection() {
             ease: 'easeInOut',
           }}
           className="glass pointer-events-none absolute rounded-full"
+          aria-hidden="true"
           style={{
             left: p.x,
             top: p.y,
@@ -104,6 +105,7 @@ export default function CTASection() {
               onClick={() => setAuthModal(true, 'signup')}
               size="lg"
               className="btn-shine border-0 bg-gradient-to-r from-viralyze-white via-white to-viralyze-white font-bold text-wine-deep shadow-lg shadow-white/10 transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+              aria-label="Get started free - sign up for Viralyze"
             >
               Get Started Free
               <ArrowRight className="h-4 w-4" />

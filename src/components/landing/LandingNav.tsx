@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Menu } from 'lucide-react';
+import Image from 'next/image';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -55,9 +56,13 @@ export default function LandingNav() {
           onClick={() => setCurrentView('landing')}
           className="flex items-center gap-2 transition-opacity hover:opacity-80"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-wine">
-            <Sparkles className="h-4 w-4 text-viralyze-white" />
-          </div>
+          <Image
+            src="/viralyze_logo.png"
+            alt="Viralyze Logo"
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
           <span className="text-lg font-bold tracking-tight text-viralyze-white">
             Viralyze
           </span>
@@ -100,9 +105,13 @@ export default function LandingNav() {
           <SheetContent side="right" className="w-72 border-white/5 bg-viralyze-soft-black">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2 text-viralyze-white">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-wine">
-                  <Sparkles className="h-3.5 w-3.5 text-viralyze-white" />
-                </div>
+                <Image
+                  src="/viralyze_logo.png"
+                  alt="Viralyze Logo"
+                  width={28}
+                  height={28}
+                  className="rounded-lg"
+                />
                 Viralyze
               </SheetTitle>
             </SheetHeader>

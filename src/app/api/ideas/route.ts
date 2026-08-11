@@ -41,6 +41,7 @@ ${audience ? `Target audience: ${audience}` : ''}`;
         { role: 'assistant', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
+      stream: false,
       thinking: { type: 'disabled' },
     });
 

@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  LayoutDashboard,
   Sparkles,
+  LayoutDashboard,
   Library,
   Lightbulb,
   LayoutTemplate,
@@ -13,6 +13,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
   Sidebar,
   SidebarContent,
@@ -72,10 +73,16 @@ export default function AppSidebar() {
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
         >
           <motion.div
-            animate={{ scale: [1, 1.12, 1], opacity: [1, 0.8, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <Sparkles className="h-7 w-7 text-wine-accent" />
+            <Image
+              src="/viralyze_logo.png"
+              alt="Viralyze Logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
           </motion.div>
           <span className="text-lg font-bold text-viralyze-white tracking-tight">
             Viralyze

@@ -14,16 +14,33 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://viralyze.com'),
   title: "Viralyze — AI-Powered Viral Content Predictor",
   description: "Know what will go viral before you post. AI-powered content intelligence that analyzes your ideas and existing posts, predicts viral potential, and tells you exactly what to improve.",
   keywords: ["viral content", "content prediction", "AI analytics", "social media", "content strategy", "viralyze"],
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>",
+    icon: '/favicon.ico',
+    apple: '/viralyze_logo.png',
   },
   openGraph: {
     title: "Viralyze — Predict What Goes Viral",
-    description: "AI-powered content intelligence for creators and brands.",
+    description: "AI-powered content intelligence for creators and brands. Know what will go viral before you post.",
     type: "website",
+    siteName: "Viralyze",
+    url: "https://viralyze.com",
+    images: [{
+      url: "/viralyze_logo.png",
+      width: 1200,
+      height: 630,
+      alt: "Viralyze — AI-Powered Viral Content Predictor",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Viralyze — Predict What Goes Viral",
+    description: "AI-powered content intelligence for creators and brands.",
+    site: "@viralyze",
+    images: ["/viralyze_logo.png"],
   },
 };
 

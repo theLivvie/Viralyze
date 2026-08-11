@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
         { role: 'assistant', content: SYSTEM_PROMPT },
         { role: 'user', content: 'Generate the latest trending topics across social media platforms right now. Focus on what is currently gaining traction and has viral potential for content creators.' },
       ],
+      stream: false,
       thinking: { type: 'disabled' },
     });
 

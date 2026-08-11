@@ -2,7 +2,8 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Sparkles, Twitter, Github, Linkedin, Instagram, ArrowRight, Send, Check } from 'lucide-react';
+import { Twitter, Github, Linkedin, Instagram, Send, Check } from 'lucide-react';
+import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/lib/store';
 import { toast } from 'sonner';
@@ -75,9 +76,13 @@ export default function LandingFooter() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-wine transition-colors duration-300 hover:bg-wine-accent/10">
-                <Sparkles className="h-4 w-4 text-viralyze-white" />
-              </div>
+              <Image
+                src="/viralyze_logo.png"
+                alt="Viralyze Logo"
+                width={32}
+                height={32}
+                className="rounded-lg"
+              />
               <span className="text-lg font-bold tracking-tight text-viralyze-white">Viralyze</span>
             </div>
             <p className="mb-6 max-w-xs text-sm leading-relaxed text-viralyze-muted">

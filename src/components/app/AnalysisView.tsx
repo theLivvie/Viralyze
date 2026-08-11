@@ -231,6 +231,7 @@ export default function AnalysisView() {
       <motion.button
         onClick={() => setCurrentView('predict')}
         title="New Analysis"
+        aria-label="Start new analysis"
         className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-full bg-gradient-wine btn-shine flex items-center justify-center text-white shadow-lg glow-wine-sm hover:scale-110 transition-transform duration-200"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
@@ -243,7 +244,8 @@ export default function AnalysisView() {
         <Button
           variant="ghost"
           onClick={() => setCurrentView('predict')}
-          className="text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+          className="min-h-[44px] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+          aria-label="Go back to new analysis"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           New Analysis
@@ -259,7 +261,8 @@ export default function AnalysisView() {
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-r-none border-r-0"
+              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-r-none border-r-0 min-h-[44px]"
+              aria-label="Export analysis report"
             >
               <Download className="mr-2 h-3.5 w-3.5" />
               Export
@@ -268,7 +271,8 @@ export default function AnalysisView() {
               variant="outline"
               size="sm"
               onClick={handleShare}
-              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-none"
+              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-none min-h-[44px]"
+              aria-label="Share analysis summary"
             >
               <Share2 className="h-3.5 w-3.5" />
               Share
@@ -281,15 +285,17 @@ export default function AnalysisView() {
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5',
+                    'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5 min-h-[44px]',
                     compareTo && 'border-wine-accent/40 text-wine-accent bg-wine-accent/10'
                   )}
+                  aria-label="Compare with past analysis"
+                  aria-expanded={!!compareTo}
                 >
                   <GitCompareArrows className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Compare</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 bg-viralyze-soft-black border-white/[0.08] p-2" align="end">
+              <PopoverContent className="w-72 bg-viralyze-soft-black border-white/[0.08] p-2" align="end" role="dialog" aria-label="Compare with past analysis">
                 <div className="flex items-center gap-2 px-2 pb-2 border-b border-white/[0.06]">
                   <GitCompareArrows className="h-3.5 w-3.5 text-wine-accent" />
                   <span className="text-xs font-medium text-viralyze-white">Compare with Past Analysis</span>
@@ -297,8 +303,9 @@ export default function AnalysisView() {
                 <div className="max-h-64 overflow-y-auto scrollbar-thin mt-1">
                   {compareTo && (
                     <button
-                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] transition-colors mb-1"
+                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] transition-colors mb-1 min-h-[44px]"
                       onClick={() => setCompareTo(null)}
+                      aria-label="Clear comparison selection"
                     >
                       <X className="h-3 w-3" />
                       Clear comparison
@@ -313,12 +320,14 @@ export default function AnalysisView() {
                         <button
                           key={a.id}
                           className={cn(
-                            'w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                            'w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors min-h-[44px]',
                             compareTo === a.id
                               ? 'bg-wine-accent/10 border border-wine-accent/30'
                               : 'hover:bg-white/[0.04] border border-transparent'
                           )}
                           onClick={() => setCompareTo(compareTo === a.id ? null : a.id)}
+                          aria-label={`Compare with ${a.title || 'Untitled'}, score ${a.overallScore}`}
+                          aria-pressed={compareTo === a.id}
                         >
                           <span className="text-sm">{PI}</span>
                           <div className="flex-1 min-w-0">
@@ -340,7 +349,8 @@ export default function AnalysisView() {
             variant="outline"
             size="sm"
             onClick={handleReanalyze}
-            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] min-h-[44px]"
+            aria-label="Re-analyze content"
           >
             <RefreshCw className="mr-2 h-3.5 w-3.5" />
             Re-analyze
@@ -361,8 +371,9 @@ export default function AnalysisView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+                  className="min-h-[44px] px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
                   onClick={() => copyToClipboard(originalContent, 'original')}
+                  aria-label="Copy original content"
                 >
                   {copiedField === 'original' ? (
                     <Check className="h-3.5 w-3.5 text-green-400" />
@@ -389,10 +400,10 @@ export default function AnalysisView() {
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row items-center gap-8">
               {/* Score Ring with floating dots + tooltip on segments */}
-              <div className="relative flex-shrink-0 animate-pulse-glow" style={{ animationDuration: '3s', borderRadius: '50%' }}>
-                <div className="absolute -top-3 -left-3 w-2 h-2 rounded-full bg-wine-accent animate-pulse" />
-                <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-wine-accent/60 animate-pulse [animation-delay:0.5s]" />
-                <div className="absolute top-1/2 -right-4 w-1 h-1 rounded-full bg-wine-accent/40 animate-pulse [animation-delay:1s]" />
+              <div className="relative flex-shrink-0 animate-pulse-glow" style={{ animationDuration: '3s', borderRadius: '50%' }} aria-live="polite" aria-atomic="true">
+                <div className="absolute -top-3 -left-3 w-2 h-2 rounded-full bg-wine-accent animate-pulse" aria-hidden="true" />
+                <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-wine-accent/60 animate-pulse [animation-delay:0.5s]" aria-hidden="true" />
+                <div className="absolute top-1/2 -right-4 w-1 h-1 rounded-full bg-wine-accent/40 animate-pulse [animation-delay:1s]" aria-hidden="true" />
                 <div title={scoreEntries.map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}>
                   <ScoreRing
                     score={overallScore}
@@ -489,8 +500,9 @@ export default function AnalysisView() {
                     Score Comparison
                   </CardTitle>
                   <button
-                    className="text-viralyze-muted hover:text-viralyze-white transition-colors"
+                    className="text-viralyze-muted hover:text-viralyze-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                     onClick={() => setCompareTo(null)}
+                    aria-label="Close score comparison"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -906,8 +918,9 @@ export default function AnalysisView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+                  className="min-h-[44px] px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
                   onClick={handleCopyAll}
+                  aria-label="Copy all optimized content"
                 >
                   <ClipboardCopy className="h-3.5 w-3.5" />
                   Copy All
@@ -924,8 +937,9 @@ export default function AnalysisView() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+                      className="min-h-[44px] px-2 text-viralyze-muted hover:text-viralyze-white"
                       onClick={() => copyToClipboard(optimizedTitle, 'title')}
+                      aria-label="Copy optimized title"
                     >
                       {copiedField === 'title' ? (
                         <Check className="h-3 w-3 text-green-400" />
@@ -949,8 +963,9 @@ export default function AnalysisView() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+                      className="min-h-[44px] px-2 text-viralyze-muted hover:text-viralyze-white"
                       onClick={() => copyToClipboard(optimizedHook, 'hook')}
+                      aria-label="Copy optimized hook"
                     >
                       {copiedField === 'hook' ? (
                         <Check className="h-3 w-3 text-green-400" />
@@ -974,8 +989,9 @@ export default function AnalysisView() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+                      className="min-h-[44px] px-2 text-viralyze-muted hover:text-viralyze-white"
                       onClick={() => copyToClipboard(optimizedCaption, 'caption')}
+                      aria-label="Copy optimized caption"
                     >
                       {copiedField === 'caption' ? (
                         <Check className="h-3 w-3 text-green-400" />
@@ -1015,9 +1031,11 @@ export default function AnalysisView() {
                     size="sm"
                     onClick={() => setCompareMode(!compareMode)}
                     className={cn(
-                      'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5',
+                      'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5 min-h-[44px]',
                       compareMode && 'border-wine-accent/40 text-wine-accent bg-wine-accent/10'
                     )}
+                    aria-label={compareMode ? 'Switch to grid view' : 'Switch to compare view'}
+                    aria-pressed={compareMode}
                   >
                     {compareMode ? <LayoutGrid className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
                     {compareMode ? 'Grid View' : 'Compare View'}
@@ -1068,8 +1086,9 @@ export default function AnalysisView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+                              className="min-h-[44px] px-2 text-viralyze-muted hover:text-viralyze-white"
                               onClick={() => copyToClipboard(v.content, `var-${i}`)}
+                              aria-label={`Copy variation: ${v.label}`}
                             >
                               {copiedField === `var-${i}` ? (
                                 <Check className="h-3 w-3 text-green-400" />
@@ -1088,13 +1107,14 @@ export default function AnalysisView() {
                         >
                           <Button
                             size="sm"
-                            className="h-7 px-3 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine text-xs gap-1.5"
+                            className="min-h-[44px] px-3 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine text-xs gap-1.5"
                             onClick={() => {
                               setPrefilledIdea(v.content);
                               setPredictMode('idea');
                               setCurrentView('predict');
                               toast.success('Variation loaded for prediction');
                             }}
+                            aria-label={`Use variation ${v.label} for prediction`}
                           >
                             <Sparkles className="h-3 w-3" />
                             Use for Prediction
@@ -1168,13 +1188,14 @@ export default function AnalysisView() {
                             <div className="flex justify-end gap-1">
                               <Button
                                 size="sm"
-                                className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white"
+                                className="min-h-[44px] px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white"
                                 onClick={() => {
                                   setPrefilledIdea(v.content);
                                   setPredictMode('idea');
                                   setCurrentView('predict');
                                   toast.success('Variation loaded for re-analysis');
                                 }}
+                                aria-label={`Use ${v.label} for re-analysis`}
                               >
                                 <Sparkles className="h-3 w-3" />
                               </Button>

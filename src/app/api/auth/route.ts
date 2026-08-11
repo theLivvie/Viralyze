@@ -47,8 +47,18 @@ export async function POST(request: NextRequest) {
   try {
     const { action, email, name, password } = await request.json();
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Please provide a valid email address' }, { status: 400 });
+    }
+
+    if (!password || typeof password !== 'string' || password.trim().length < 1) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 });
     }
 
     if (action === 'signup') {

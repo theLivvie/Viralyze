@@ -1,0 +1,1705 @@
+✓ Done
+✓ Done
+- generic
+  - button "Viralyze Logo Viralyze" [ref=e2]
+    - image "Viralyze Logo"
+    - StaticText "Viralyze"
+  - list
+    - listitem [level=1]
+      - button "Navigate to Dashboard" [ref=e25]
+        - StaticText "Dashboard"
+    - listitem [level=1]
+      - button "Navigate to Predict Content" [ref=e26]
+        - StaticText "Predict Content"
+    - listitem [level=1]
+      - button "Navigate to Content Library" [ref=e27]
+        - StaticText "Content Library"
+    - listitem [level=1]
+      - button "Navigate to Idea Generator" [ref=e28]
+        - StaticText "Idea Generator"
+    - listitem [level=1]
+      - button "Navigate to Templates" [ref=e29]
+        - StaticText "Templates"
+    - listitem [level=1]
+      - button "Navigate to Trend Radar" [ref=e30]
+        - StaticText "Trend Radar"
+    - listitem [level=1]
+      - button "Navigate to Analytics" [ref=e31]
+        - StaticText "Analytics"
+    - listitem [level=1]
+      - button "Navigate to Content Calendar" [ref=e32]
+        - StaticText "Content Calendar"
+    - listitem [level=1]
+      - button "Navigate to Settings" [ref=e33]
+        - StaticText "Settings"
+  - StaticText "Usage"
+  - StaticText "0"
+  - StaticText "/"
+  - StaticText "5"
+  - StaticText "T"
+  - paragraph
+    - StaticText "test"
+  - paragraph
+    - StaticText "test@prod.com"
+  - list
+    - listitem [level=1]
+      - button "Log out of your account" [ref=e17]
+        - StaticText "Log Out"
+  - banner
+    - heading "Dashboard" [level=1, ref=e3]
+    - button [expanded=false, ref=e4]
+    - StaticText "0"
+    - StaticText "/"
+    - StaticText "5"
+    - StaticText "T"
+  - main
+    - generic
+      - generic [ref=e16] clickable [onclick]
+      - generic
+        - button [ref=e20]
+        - generic
+        - StaticText "STEP "
+        - StaticText "1"
+        - StaticText " OF "
+        - StaticText "3"
+        - heading "Welcome to Viralyze!" [level=2, ref=e34]
+        - paragraph
+          - StaticText "AI-powered viral content prediction for every platform. Analyze, optimize, and publish content that performs."
+        - button "Skip" [ref=e21]
+        - button "Next" [ref=e22]
+    - button "Keyboard shortcuts" [expanded=false, ref=e5]
+      - StaticText "?"
+    - heading "Welcome back, test" [level=2, ref=e6]
+      - StaticText "Welcome back, test"
+    - paragraph
+      - StaticText "Ready to predict your next viral hit?"
+    - StaticText "Free Plan"
+    - generic
+      - generic
+      - generic
+        - generic [ref=e18] clickable [cursor:pointer, onclick]
+          - heading "Predict New Content" [level=3, ref=e23]
+          - paragraph
+            - StaticText "Analyze your idea before publishing"
+        - generic [ref=e19] clickable [cursor:pointer, onclick]
+          - heading "Analyze Existing Content" [level=3, ref=e24]
+          - paragraph
+            - StaticText "Score your drafted posts & captions"
+    - heading "QUICK STATS" [level=3, ref=e7]
+    - StaticText "0"
+    - StaticText "Total Analyses"
+    - StaticText "0"
+    - StaticText "Avg Score"
+    - StaticText "0"
+    - StaticText "Best Score"
+    - heading "PERFORMANCE TRACKING" [level=3, ref=e8]
+    - paragraph
+      - StaticText "Track your content performance after 24 hours"
+    - heading "PLATFORM DISTRIBUTION" [level=3, ref=e9]
+    - paragraph
+      - StaticText "No data yet"
+    - heading "TOP STRENGTHS" [level=3, ref=e10]
+    - StaticText "Strong Hooks"
+    - StaticText "Keep it up!"
+    - StaticText "High Engagement"
+    - StaticText "Keep it up!"
+    - StaticText "Great Shareability"
+    - StaticText "Keep it up!"
+    - heading "RECENT ANALYSES" [level=3, ref=e11]
+    - paragraph
+      - StaticText "No analyses yet"
+    - paragraph
+      - StaticText "Your recent content predictions will appear here."
+      - LineBreak "\n"
+      - StaticText "Start by analyzing your first piece of content."
+  - button "New Prediction" [ref=e12]
+    - StaticText "New"
+  - button "Generate Ideas" [ref=e13]
+    - StaticText "Ideas"
+  - button "View Trends" [ref=e14]
+    - StaticText "Trends"
+  - button "View Analytics" [ref=e15]
+    - StaticText "Analytics"
+  - region "Notifications alt+T" [ref=e1]
+  - generic
+    - generic
+      - generic
+        - generic
+          - navigation
+            - button "previous" [disabled, ref=e40]
+              - image "previous"
+            - generic
+              - StaticText "1/1"
+            - button "next" [disabled, ref=e41]
+              - image "next"
+          - image
+        - generic
+          - link "Next.js 16.1.3 (stale) Turbopack" [ref=e35]
+            - image
+            - StaticText "Next.js 16.1.3 (stale)"
+            - StaticText "Turbopack"
+          - image
+      - generic
+        - dialog "Console Error"
+          - generic
+            - generic
+              - StaticText "Console Error"
+              - button "Copy Error Info" [ref=e44]
+                - image
+              - link "Go to related documentation" [ref=e45]
+                - image
+              - button "Attach Node.js inspector" [ref=e46]
+                - image
+              - generic
+                - StaticText "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:"
+            - generic
+              - paragraph
+                - StaticText "- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded."
+              - paragraph
+                - StaticText "See more info here: "
+                - link "https://nextjs.org/docs/messages/react-hydration-error" [ref=e50]
+              - button "complete Component Stack" [expanded=false, ref=e47]
+                - image
+              - code
+                - generic
+                  - StaticText "  ...\n"
+                - generic
+                  - StaticText "    <RedirectErrorBoundary router={{...}}>\n"
+                - generic
+                  - StaticText "      <InnerLayoutRouter url=\"/\" tree={[...]} params={{}} cacheNode={{rsc:<Fragment>, ...}} segmentPath={[...]} ...>\n"
+                - generic
+                  - StaticText "        <SegmentViewNode type=\"page\" pagePath=\"page.tsx\">\n"
+                - generic
+                  - StaticText "          <SegmentTrieNode>\n"
+                - generic
+                  - StaticText "          <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>\n"
+                - generic
+                  - StaticText "            <Home params={Promise} searchParams={Promise}>\n"
+                - generic
+                  - StaticText "              <main className=\"min-h-scre...\">\n"
+                - generic
+                  - StaticText "                <ErrorBoundary>\n"
+                - generic
+                  - StaticText "                  <LandingPageWithRefs>\n"
+                - generic
+                  - StaticText "                    <LandingNav>\n"
+                - generic
+                  - StaticText "                    <HeroSection>\n"
+                - generic
+                  - StaticText "                      <section ref={{current:null}} onMouseMove={function HeroSection.useCallbackandleMouseMove]} ...>\n"
+                - generic
+                  - StaticText "                        <div>\n"
+                - generic
+                  - StaticText "                        <div>\n"
+                - generic
+                  - StaticText "                        <FloatingParticles>\n"
+                - generic
+                  - StaticText "                          <div className=\"pointer-ev...\" aria-hidden=\"true\">\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.36985931902659px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.02455px\"\n"
+                - generic
+                  - StaticText "+                               height: \"1.8861555513072292px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.35074px\"\n"
+                - generic
+                  - StaticText "+                               left: \"5.593476324818781%\"\n"
+                - generic
+                  - StaticText "-                               left: \"37.7883%\"\n"
+                - generic
+                  - StaticText "+                               top: \"21.37285303666223%\"\n"
+                - generic
+                  - StaticText "-                               top: \"36.6334%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 17.92932437830745s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"4.8729880770559s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"11.7156s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"4.08017s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.8689205842703829px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.74751px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.994110820000344px\"\n"
+                - generic
+                  - StaticText "-                               height: \"1.84467px\"\n"
+                - generic
+                  - StaticText "+                               left: \"67.94672548907677%\"\n"
+                - generic
+                  - StaticText "-                               left: \"67.0801%\"\n"
+                - generic
+                  - StaticText "+                               top: \"0.6608070667747934%\"\n"
+                - generic
+                  - StaticText "-                               top: \"17.2423%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 17.985555785162347s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"3.07872257870278s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"13.6781s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"1.44289s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"2.0689085721309652px\"\n"
+                - generic
+                  - StaticText "-                               width: \"2.8606px\"\n"
+                - generic
+                  - StaticText "+                               height: \"1.2599818440479502px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.15943px\"\n"
+                - generic
+                  - StaticText "+                               left: \"73.00527130062612%\"\n"
+                - generic
+                  - StaticText "-                               left: \"16.0008%\"\n"
+                - generic
+                  - StaticText "+                               top: \"70.95947154267968%\"\n"
+                - generic
+                  - StaticText "-                               top: \"51.3022%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-2 8.08629915007619s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"1.9587470631465853s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"13.8253s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-2\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"4.61654s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.635718249384989px\"\n"
+                - generic
+                  - StaticText "-                               width: \"3.89871px\"\n"
+                - generic
+                  - StaticText "+                               height: \"3.183519128006723px\"\n"
+                - generic
+                  - StaticText "-                               height: \"3.5118px\"\n"
+                - generic
+                  - StaticText "+                               left: \"49.67999424025644%\"\n"
+                - generic
+                  - StaticText "-                               left: \"38.0065%\"\n"
+                - generic
+                  - StaticText "+                               top: \"76.2510971300364%\"\n"
+                - generic
+                  - StaticText "-                               top: \"16.3601%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 11.041435531693867s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"1.7364926939329601s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"9.82009s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"2.26063s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"2.901880966609174px\"\n"
+                - generic
+                  - StaticText "-                               width: \"2.30545px\"\n"
+                - generic
+                  - StaticText "+                               height: \"3.9578656003367634px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.33659px\"\n"
+                - generic
+                  - StaticText "+                               left: \"72.27212973002243%\"\n"
+                - generic
+                  - StaticText "-                               left: \"88.7869%\"\n"
+                - generic
+                  - StaticText "+                               top: \"66.70896029441505%\"\n"
+                - generic
+                  - StaticText "-                               top: \"93.5208%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 9.207541577294554s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"0.555681722579503s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"15.1281s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"1.61739s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.2653424159530884px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.90303px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.141836203314681px\"\n"
+                - generic
+                  - StaticText "-                               height: \"1.98605px\"\n"
+                - generic
+                  - StaticText "+                               left: \"88.76943695761778%\"\n"
+                - generic
+                  - StaticText "-                               left: \"55.0284%\"\n"
+                - generic
+                  - StaticText "+                               top: \"94.35165954678708%\"\n"
+                - generic
+                  - StaticText "-                               top: \"28.5989%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-2 18.19033579927287s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"3.6764692037521005s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"15.8193s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-2\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"1.61504s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.649178227803892px\"\n"
+                - generic
+                  - StaticText "-                               width: \"3.34299px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.058659750318405px\"\n"
+                - generic
+                  - StaticText "-                               height: \"1.36086px\"\n"
+                - generic
+                  - StaticText "+                               left: \"19.4955564599147%\"\n"
+                - generic
+                  - StaticText "-                               left: \"99.0963%\"\n"
+                - generic
+                  - StaticText "+                               top: \"12.54072537574663%\"\n"
+                - generic
+                  - StaticText "-                               top: \"71.0286%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 9.45931135140291s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"3.5203483439125516s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"13.8795s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"0.971882s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"2.405476793100376px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.83732px\"\n"
+                - generic
+                  - StaticText "+                               height: \"1.7374460736369532px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.08425px\"\n"
+                - generic
+                  - StaticText "+                               left: \"82.78864963468195%\"\n"
+                - generic
+                  - StaticText "-                               left: \"16.764%\"\n"
+                - generic
+                  - StaticText "+                               top: \"24.819810098212514%\"\n"
+                - generic
+                  - StaticText "-                               top: \"79.1205%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 15.700660871042693s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"4.8824532344539s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"8.41753s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"4.83766s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.613058339232386px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.68219px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.3325049443631993px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.78339px\"\n"
+                - generic
+                  - StaticText "+                               left: \"61.746597755224364%\"\n"
+                - generic
+                  - StaticText "-                               left: \"3.21238%\"\n"
+                - generic
+                  - StaticText "+                               top: \"6.356104615648761%\"\n"
+                - generic
+                  - StaticText "-                               top: \"92.1095%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-2 12.88464977521115s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"2.583737498589139s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"17.7337s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-2\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"1.48065s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.8793700723305973px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.67055px\"\n"
+                - generic
+                  - StaticText "+                               height: \"3.801245951357067px\"\n"
+                - generic
+                  - StaticText "-                               height: \"3.19475px\"\n"
+                - generic
+                  - StaticText "+                               left: \"57.4381551290155%\"\n"
+                - generic
+                  - StaticText "-                               left: \"9.99227%\"\n"
+                - generic
+                  - StaticText "+                               top: \"8.670063788184844%\"\n"
+                - generic
+                  - StaticText "-                               top: \"57.8792%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 10.625569787754138s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"2.6500970098673116s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"13.8705s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"4.57209s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.9890030916206087px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.60943px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.390311353993158px\"\n"
+                - generic
+                  - StaticText "-                               height: \"3.36531px\"\n"
+                - generic
+                  - StaticText "+                               left: \"11.889602602287951%\"\n"
+                - generic
+                  - StaticText "-                               left: \"2.44732%\"\n"
+                - generic
+                  - StaticText "+                               top: \"83.79784095925005%\"\n"
+                - generic
+                  - StaticText "-                               top: \"25.9088%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 12.516813725682256s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"4.489129340280447s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"9.91386s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"2.79341s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"2.826035851291107px\"\n"
+                - generic
+                  - StaticText "-                               width: \"3.08847px\"\n"
+                - generic
+                  - StaticText "+                               height: \"3.945332061211446px\"\n"
+                - generic
+                  - StaticText "-                               height: \"3.81095px\"\n"
+                - generic
+                  - StaticText "+                               left: \"93.7681301085252%\"\n"
+                - generic
+                  - StaticText "-                               left: \"13.843%\"\n"
+                - generic
+                  - StaticText "+                               top: \"59.309246459868135%\"\n"
+                - generic
+                  - StaticText "-                               top: \"92.263%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-2 14.489051870377155s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"3.205308904304285s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"18.3616s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-2\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"4.71449s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.192203948385077px\"\n"
+                - generic
+                  - StaticText "-                               width: \"2.67297px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.313552164243862px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.69515px\"\n"
+                - generic
+                  - StaticText "+                               left: \"18.219868110313364%\"\n"
+                - generic
+                  - StaticText "-                               left: \"19.54%\"\n"
+                - generic
+                  - StaticText "+                               top: \"81.63838940436897%\"\n"
+                - generic
+                  - StaticText "-                               top: \"44.4553%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 17.749617505332836s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"2.6574896048669894s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"18.1773s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"3.39675s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.117591706950662px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.08887px\"\n"
+                - generic
+                  - StaticText "+                               height: \"3.1531633440300997px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.65425px\"\n"
+                - generic
+                  - StaticText "+                               left: \"0.022584285917370828%\"\n"
+                - generic
+                  - StaticText "-                               left: \"14.0296%\"\n"
+                - generic
+                  - StaticText "+                               top: \"19.912364564803674%\"\n"
+                - generic
+                  - StaticText "-                               top: \"91.4749%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 16.48773768442776s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"3.5753455345145753s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"13.4289s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"2.50835s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.0891393486375622px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.02354px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.3295275105039175px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.49413px\"\n"
+                - generic
+                  - StaticText "+                               left: \"73.27579413435915%\"\n"
+                - generic
+                  - StaticText "-                               left: \"96.26%\"\n"
+                - generic
+                  - StaticText "+                               top: \"91.03334305017623%\"\n"
+                - generic
+                  - StaticText "-                               top: \"31.2042%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-2 11.677495365227607s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"2.9911118188232226s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"14.4567s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-2\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"0.173002s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.011939694348643px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.38524px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.4977130382572117px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.19271px\"\n"
+                - generic
+                  - StaticText "+                               left: \"70.57040441533478%\"\n"
+                - generic
+                  - StaticText "-                               left: \"82.1123%\"\n"
+                - generic
+                  - StaticText "+                               top: \"51.498860050351304%\"\n"
+                - generic
+                  - StaticText "-                               top: \"63.7407%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 9.86522356134607s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"0.7300694082057413s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"9.43318s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"2.29611s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.0997781494121703px\"\n"
+                - generic
+                  - StaticText "-                               width: \"3.48612px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.371285547831179px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.52943px\"\n"
+                - generic
+                  - StaticText "+                               left: \"55.118327871465546%\"\n"
+                - generic
+                  - StaticText "-                               left: \"98.9452%\"\n"
+                - generic
+                  - StaticText "+                               top: \"64.77417585282778%\"\n"
+                - generic
+                  - StaticText "-                               top: \"97.2935%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 14.697509541365578s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"1.0250919155763616s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"10.5946s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"0.985297s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"2.430512517089852px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.47643px\"\n"
+                - generic
+                  - StaticText "+                               height: \"2.2172222510663087px\"\n"
+                - generic
+                  - StaticText "-                               height: \"3.98695px\"\n"
+                - generic
+                  - StaticText "+                               left: \"76.29240178026397%\"\n"
+                - generic
+                  - StaticText "-                               left: \"78.2391%\"\n"
+                - generic
+                  - StaticText "+                               top: \"72.88982992238198%\"\n"
+                - generic
+                  - StaticText "-                               top: \"80.0245%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-2 14.102561772621097s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"3.460942615292424s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"10.4336s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-2\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"3.1127s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"1.9277057922161285px\"\n"
+                - generic
+                  - StaticText "-                               width: \"3.60348px\"\n"
+                - generic
+                  - StaticText "+                               height: \"3.433493654531469px\"\n"
+                - generic
+                  - StaticText "-                               height: \"2.78161px\"\n"
+                - generic
+                  - StaticText "+                               left: \"84.20882271858493%\"\n"
+                - generic
+                  - StaticText "-                               left: \"38.4254%\"\n"
+                - generic
+                  - StaticText "+                               top: \"33.05608921889799%\"\n"
+                - generic
+                  - StaticText "-                               top: \"68.0694%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-0 12.862987116936724s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"1.6402380063902107s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"15.0503s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-0\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"1.80716s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            <div\n"
+                - generic
+                  - StaticText "                              className=\"absolute rounded-full opacity-20\"\n"
+                - generic
+                  - StaticText "                              style={{\n"
+                - generic
+                  - StaticText "+                               width: \"3.3599370501737327px\"\n"
+                - generic
+                  - StaticText "-                               width: \"1.73645px\"\n"
+                - generic
+                  - StaticText "+                               height: \"1.573122571686579px\"\n"
+                - generic
+                  - StaticText "-                               height: \"1.23975px\"\n"
+                - generic
+                  - StaticText "+                               left: \"74.072596921391%\"\n"
+                - generic
+                  - StaticText "-                               left: \"38.1845%\"\n"
+                - generic
+                  - StaticText "+                               top: \"68.63932827163619%\"\n"
+                - generic
+                  - StaticText "-                               top: \"10.8878%\"\n"
+                - generic
+                  - StaticText "+                               background: \"var(--color-wine-accent)\"\n"
+                - generic
+                  - StaticText "+                               animation: \"float-1 15.810192889874381s ease-in-out infinite\"\n"
+                - generic
+                  - StaticText "+                               animationDelay: \"4.260211000940912s\"\n"
+                - generic
+                  - StaticText "-                               background-image: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-x: \"\"\n"
+                - generic
+                  - StaticText "-                               background-position-y: \"\"\n"
+                - generic
+                  - StaticText "-                               background-size: \"\"\n"
+                - generic
+                  - StaticText "-                               background-repeat: \"\"\n"
+                - generic
+                  - StaticText "-                               background-attachment: \"\"\n"
+                - generic
+                  - StaticText "-                               background-origin: \"\"\n"
+                - generic
+                  - StaticText "-                               background-clip: \"\"\n"
+                - generic
+                  - StaticText "-                               background-color: \"\"\n"
+                - generic
+                  - StaticText "-                               animation-duration: \"9.8523s\"\n"
+                - generic
+                  - StaticText "-                               animation-timing-function: \"ease-in-out\"\n"
+                - generic
+                  - StaticText "-                               animation-iteration-count: \"infinite\"\n"
+                - generic
+                  - StaticText "-                               animation-direction: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-fill-mode: \"none\"\n"
+                - generic
+                  - StaticText "-                               animation-play-state: \"running\"\n"
+                - generic
+                  - StaticText "-                               animation-name: \"float-1\"\n"
+                - generic
+                  - StaticText "-                               animation-timeline: \"auto\"\n"
+                - generic
+                  - StaticText "-                               animation-range-start: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-range-end: \"normal\"\n"
+                - generic
+                  - StaticText "-                               animation-delay: \"4.05198s\"\n"
+                - generic
+                  - StaticText "                              }}\n"
+                - generic
+                  - StaticText "                            >\n"
+                - generic
+                  - StaticText "                            ...\n"
+                - generic
+                  - StaticText "                        ...\n"
+                - generic
+                  - StaticText "                    ...\n"
+                - generic
+                  - StaticText "        ...\n"
+                - generic
+                  - StaticText "      ...\n"
+              - image
+              - StaticText "src/components/landing/HeroSection.tsx (45:9)"
+              - StaticText " @"
+              - StaticText " "
+              - StaticText "<unknown>"
+              - button "Open in editor" [ref=e48]
+                - image
+              - StaticText "  43 |       {/* Existing random particles */}"
+              - StaticText "  44 |       {Array.from({ length: 20 }).map((_, i) => ("
+              - StaticText "> 45 |         <div"
+              - StaticText "     |         ^"
+              - StaticText "  46 |           key={`rand-${i}`}"
+              - StaticText "  47 |           className=\"absolute rounded-full opacity-20\""
+              - StaticText "  48 |           style={{"
+              - generic
+                - StaticText "Call Stack"
+                - StaticText "24"
+                - button "Show 17 ignore-listed frame(s)" [ref=e51]
+                  - StaticText "Show 17 ignore-listed frame(s)"
+                  - image
+                - StaticText "div"
+                - StaticText "<anonymous>"
+                - StaticText "<unknown>"
+                - button "Open <unknown> in editor" [ref=e52]
+                  - image
+                - StaticText "src/components/landing/HeroSection.tsx (45:9)"
+                - StaticText "Array.map"
+                - StaticText "<anonymous>"
+                - StaticText "FloatingParticles"
+                - button "Open FloatingParticles in editor" [ref=e53]
+                  - image
+                - StaticText "src/components/landing/HeroSection.tsx (44:35)"
+                - StaticText "HeroSection"
+                - button "Open HeroSection in editor" [ref=e54]
+                  - image
+                - StaticText "src/components/landing/HeroSection.tsx (262:7)"
+                - StaticText "LandingPageWithRefs"
+                - button "Open LandingPageWithRefs in editor" [ref=e55]
+                  - image
+                - StaticText "src/app/page.tsx (130:7)"
+                - StaticText "Home"
+                - button "Open Home in editor" [ref=e56]
+                  - image
+                - StaticText "src/app/page.tsx (176:9)"
+        - contentinfo
+          - region "Error feedback" [ref=e36]
+            - paragraph
+              - link "Was this helpful?" [ref=e49]
+            - button "Mark as helpful" [ref=e42]
+            - button "Mark as not helpful" [ref=e43]
+    - button "Open Next.js Dev Tools" [expanded=false, ref=e37]
+      - image
+    - button "Open issues overlay" [ref=e38]
+      - StaticText "1"
+      - StaticText "Issue"
+    - button "Collapse issues badge" [ref=e39]
+      - image
+  - alert

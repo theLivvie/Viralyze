@@ -251,8 +251,10 @@ export default function ContentTemplatesView() {
             <Badge
               variant="outline"
               className="text-xs border-wine-accent/30 text-wine-accent bg-wine-accent/10 tabular-nums"
+              aria-live="polite"
+              aria-atomic="true"
             >
-              {templates.length}
+              {filtered.length} of {templates.length}
             </Badge>
           </div>
           <p className="text-viralyze-muted mt-1">
@@ -279,11 +281,13 @@ export default function ContentTemplatesView() {
           whileTap={{ scale: 0.97 }}
           onClick={() => setActiveCategory('all')}
           className={cn(
-            'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
+            'min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
             activeCategory === 'all'
               ? 'bg-wine-accent/20 border-wine-accent/40 text-wine-accent shadow-[0_0_12px_rgba(184,50,90,0.15)]'
               : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:bg-white/[0.06] hover:text-viralyze-white hover:border-white/[0.15]'
           )}
+          aria-label="Show all templates"
+          aria-pressed={activeCategory === 'all'}
         >
           All
         </motion.button>
@@ -294,15 +298,19 @@ export default function ContentTemplatesView() {
             whileTap={{ scale: 0.97 }}
             onClick={() => setActiveCategory(cat)}
             className={cn(
-              'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
+              'min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
               activeCategory === cat
                 ? cn(categoryColors[cat], 'shadow-[0_0_12px_rgba(184,50,90,0.1)]')
                 : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:bg-white/[0.06] hover:text-viralyze-white hover:border-white/[0.15]'
             )}
+            aria-label={`Filter by ${cat}`}
+            aria-pressed={activeCategory === cat}
           >
             {cat}
           </motion.button>
         ))}
+        {/* Screen reader announcement for active filter */}
+        <span aria-live="polite" className="sr-only">Showing {filtered.length} templates{activeCategory !== 'all' ? ` in ${activeCategory}` : ''}</span>
       </motion.div>
 
       {/* Templates Grid */}
@@ -321,7 +329,10 @@ export default function ContentTemplatesView() {
             const PIcon = platformIcons[template.platform];
             return (
               <motion.div key={template.id} variants={item}>
-                <Card className="glass group relative overflow-hidden hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300 hover:border-wine-accent/30">
+                <Card className="glass group relative overflow-hidden hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300 hover:border-wine-accent/30"
+                  role="article"
+                  aria-label={`${template.title} - ${template.platform} ${template.contentType}, estimated score ${template.estimatedScore}`}
+                >
                   {/* Hover shimmer effect */}
                   <motion.div
                     className="absolute inset-0 pointer-events-none z-10"
@@ -423,8 +434,9 @@ export default function ContentTemplatesView() {
                         whileHover={{ scale: 1.04, y: -1 }}
                         whileTap={{ scale: 0.96 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                        className="h-8 w-full text-xs bg-gradient-wine hover:opacity-90 text-white btn-shine rounded-md flex items-center justify-center gap-1.5"
+                        className="min-h-[44px] h-8 w-full text-xs bg-gradient-wine hover:opacity-90 text-white btn-shine rounded-md flex items-center justify-center gap-1.5"
                         onClick={() => handleUseTemplate(template)}
+                        aria-label={`Use template: ${template.title}`}
                       >
                         <Sparkles className="h-3 w-3" />
                         Use Template

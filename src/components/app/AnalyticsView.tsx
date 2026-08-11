@@ -288,6 +288,19 @@ export default function AnalyticsView() {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
+  // Date range filter for top content (must be before any early returns to satisfy hooks rules)
+  const filteredTopContent = useMemo(() => {
+    if (!data || dateRange === 'all') return data?.topContent || [];
+    const now = new Date();
+    const cutoff = new Date();
+    if (dateRange === 'week') cutoff.setDate(now.getDate() - 7);
+    else if (dateRange === 'month') cutoff.setMonth(now.getMonth() - 1);
+    return (data?.topContent || []).filter((item) => {
+      const d = new Date(item.date);
+      return d >= cutoff;
+    });
+  }, [data, dateRange]);
+
   const handleExportCSV = () => {
     if (!data) {
       toast.error('No data to export');
@@ -453,19 +466,6 @@ export default function AnalyticsView() {
 
   // Guard: no data
   if (!data) return null;
-
-  // --- Date range filter for top content ---
-  const filteredTopContent = useMemo(() => {
-    if (!data || dateRange === 'all') return data?.topContent || [];
-    const now = new Date();
-    const cutoff = new Date();
-    if (dateRange === 'week') cutoff.setDate(now.getDate() - 7);
-    else if (dateRange === 'month') cutoff.setMonth(now.getMonth() - 1);
-    return (data?.topContent || []).filter((item) => {
-      const d = new Date(item.date);
-      return d >= cutoff;
-    });
-  }, [data, dateRange]);
 
   // --- Derived data ---
   const overviewStats = [

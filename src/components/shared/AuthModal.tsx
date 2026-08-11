@@ -40,6 +40,15 @@ export default function AuthModal() {
       toast.error('Please fill in all required fields');
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    if (password.length < 1) {
+      toast.error('Please enter a password');
+      return;
+    }
     if (authModalMode === 'signup' && !name) {
       toast.error('Please enter your name');
       return;

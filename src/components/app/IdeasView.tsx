@@ -234,7 +234,9 @@ export default function IdeasView() {
                 <Button
                   onClick={handleGenerate}
                   disabled={loading}
+                  aria-busy={loading}
                   className="bg-gradient-wine hover:opacity-90 text-white font-medium h-11 w-full btn-shine relative z-10"
+                  aria-label={loading ? 'Generating ideas, please wait' : 'Generate content ideas'}
                 >
                   {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -315,7 +317,8 @@ export default function IdeasView() {
                       whileHover={{ scale: 1.05, y: -1 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => handleChipClick(chip)}
-                      className="px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-sm text-viralyze-muted hover:text-viralyze-white hover:border-wine-accent/40 hover:bg-wine-accent/10 transition-all duration-200"
+                      className="min-h-[44px] px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-sm text-viralyze-muted hover:text-viralyze-white hover:border-wine-accent/40 hover:bg-wine-accent/10 transition-all duration-200"
+                      aria-label={`Use topic suggestion: ${chip}`}
                     >
                       {chip}
                     </motion.button>
@@ -330,6 +333,7 @@ export default function IdeasView() {
       {/* Results — single column on mobile, 2 cols on sm+ */}
       {!loading && ideas.length > 0 && (
         <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{ideas.length} ideas generated</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {ideas.map((idea, i) => {
             const PIcon = platformIcons[idea.platform];
@@ -347,7 +351,12 @@ export default function IdeasView() {
                   delay: i * 0.05,
                 }}
               >
-                <Card className="glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300">
+                <Card className="glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300"
+                  role="article"
+                  aria-label={`Idea: ${idea.title}, viral score ${idea.viralScore}, ${idea.platform} ${idea.contentType}`}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAnalyze(idea); }}
+                >
                   <CardContent className="p-5 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold text-viralyze-white text-sm leading-snug flex-1">
@@ -413,16 +422,18 @@ export default function IdeasView() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs text-viralyze-muted hover:text-wine-accent hover:bg-wine-accent/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="min-h-[44px] text-xs text-viralyze-muted hover:text-wine-accent hover:bg-wine-accent/10 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => handleSaveToLibrary(idea)}
+                          aria-label={`Save idea: ${idea.title}`}
                         >
                           <BookmarkPlus className="h-3 w-3 mr-1" />
                           Save
                         </Button>
                         <Button
                           size="sm"
-                          className="h-7 text-xs bg-gradient-wine hover:opacity-90 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="min-h-[44px] text-xs bg-gradient-wine hover:opacity-90 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => handleAnalyze(idea)}
+                          aria-label={`Analyze idea: ${idea.title}`}
                         >
                           <Sparkles className="h-3 w-3 mr-1" />
                           Analyze
@@ -442,7 +453,9 @@ export default function IdeasView() {
             size="sm"
             onClick={handleRegenerate}
             disabled={regenerating || !topic.trim()}
-            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-2"
+            className="min-h-[44px] border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-2"
+            aria-label={regenerating ? 'Regenerating ideas, please wait' : 'Regenerate ideas'}
+            aria-busy={regenerating}
           >
             <motion.span
               animate={regenerating ? { rotate: 360 } : { rotate: 0 }}

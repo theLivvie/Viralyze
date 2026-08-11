@@ -214,18 +214,19 @@ export default function TrendsView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
   const [bookmarkedTrends, setBookmarkedTrends] = useState<Set<string>>(new Set());
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(filteredTrendData.map((c) => c.category)));
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
-  const allCategoriesExpanded = filteredTrendData.length > 0 && filteredTrendData.every((c) => expandedCategories.has(c.category));
-  const allCategoriesCollapsed = filteredTrendData.every((c) => !expandedCategories.has(c.category));
-
   const toggleExpandAll = () => {
-    if (allCategoriesExpanded) {
-      setExpandedCategories(new Set());
-    } else {
-      setExpandedCategories(new Set(filteredTrendData.map((c) => c.category)));
-    }
+    setExpandedCategories((prev) => {
+      // Check if all categories in current filtered data are expanded
+      const allExpanded = filteredTrendData.every((c) => prev.has(c.category));
+      if (allExpanded) {
+        return new Set();
+      } else {
+        return new Set(filteredTrendData.map((c) => c.category));
+      }
+    });
   };
 
   const toggleCategory = (cat: string) => {
@@ -339,6 +340,16 @@ export default function TrendsView() {
 
     return data;
   }, [trendData, activeFilter, searchQuery]);
+
+  // Auto-expand categories when filtered data changes (only if none are expanded)
+  useEffect(() => {
+    setExpandedCategories((prev) => {
+      if (prev.size === 0 && filteredTrendData.length > 0) {
+        return new Set(filteredTrendData.map((c) => c.category));
+      }
+      return prev;
+    });
+  }, [filteredTrendData]);
 
   const hasAnyResults = filteredTrendData.some((cat) => cat.trends.length > 0);
 

@@ -38,21 +38,35 @@ const floatingParticles = [
 ];
 
 function FloatingParticles() {
+  // Use seeded values to avoid hydration mismatch (Math.random() differs between SSR and client)
+  const seededParticles = Array.from({ length: 20 }).map((_, i) => {
+    const seed = i * 7 + 3;
+    return {
+      width: `${(seed % 3) + 1}px`,
+      height: `${(seed % 3) + 1}px`,
+      left: `${(seed * 13) % 100}%`,
+      top: `${(seed * 17) % 100}%`,
+      duration: `${8 + (seed % 12)}s`,
+      delay: `${(seed % 5)}s`,
+      floatType: seed % 3,
+    };
+  });
+
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Existing random particles */}
-      {Array.from({ length: 20 }).map((_, i) => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* Seeded particles for SSR consistency */}
+      {seededParticles.map((p, i) => (
         <div
           key={`rand-${i}`}
           className="absolute rounded-full opacity-20"
           style={{
-            width: `${Math.random() * 3 + 1}px`,
-            height: `${Math.random() * 3 + 1}px`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            width: p.width,
+            height: p.height,
+            left: p.left,
+            top: p.top,
             background: `var(--color-wine-accent)`,
-            animation: `float-${i % 3} ${8 + Math.random() * 12}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 5}s`,
+            animation: `float-${p.floatType} ${p.duration} ease-in-out infinite`,
+            animationDelay: p.delay,
           }}
         />
       ))}
@@ -116,6 +130,8 @@ function DashboardMockup() {
   return (
     <motion.div
       initial={{ opacity: 0, x: 40, scale: 0.95 }}
+      role="img"
+      aria-label="Animated dashboard mockup showing a viral analysis with a score of 87 out of 100, including engagement metrics and category breakdowns"
       animate={{
         opacity: 1,
         x: 0,
@@ -327,6 +343,7 @@ export default function HeroSection() {
                 onClick={() => { setAuthModal(true, 'login'); }}
                 size="lg"
                 className="bg-gradient-wine border-0 px-6 text-viralyze-white hover:opacity-90 transition-opacity"
+                aria-label="Analyze content - sign up or log in"
               >
                 Analyze Content
                 <ArrowRight className="h-4 w-4" />
@@ -336,6 +353,7 @@ export default function HeroSection() {
                 variant="outline"
                 size="lg"
                 className="border-white/10 bg-transparent text-viralyze-white hover:bg-white/5 hover:text-viralyze-white"
+                aria-label="See how Viralyze works"
               >
                 See How It Works
               </Button>

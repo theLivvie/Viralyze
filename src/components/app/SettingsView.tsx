@@ -162,6 +162,7 @@ export default function SettingsView() {
                   whileTap={{ scale: 0.97 }}
                   className="relative h-16 w-16 rounded-full border-2 border-dashed border-white/[0.12] bg-white/[0.03] flex items-center justify-center hover:border-wine-accent/40 hover:bg-wine-accent/[0.05] transition-all duration-200 group"
                   onClick={() => toast.info('Avatar upload coming soon!')}
+                  aria-label="Upload profile photo"
                 >
                   {/* Rotating conic-gradient ring */}
                   <motion.div
@@ -194,9 +195,10 @@ export default function SettingsView() {
               </div>
               <Separator className="bg-white/[0.06]" />
               <div className="flex flex-col gap-2">
-                <Label className="text-viralyze-muted text-sm">Name</Label>
+                <Label htmlFor="settings-name" className="text-viralyze-muted text-sm">Name</Label>
                 <div className="flex items-center gap-2">
                   <Input
+                    id="settings-name"
                     value={nameValue}
                     onChange={(e) => setNameValue(e.target.value)}
                     placeholder="Enter your name"
@@ -206,19 +208,23 @@ export default function SettingsView() {
                     onClick={handleSaveName}
                     disabled={saving || !nameValue.trim() || nameValue.trim() === (user?.name || '')}
                     size="icon"
-                    className="h-9 w-9 shrink-0 bg-wine-accent hover:bg-wine-accent/90 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="h-9 w-9 min-h-[44px] min-w-[44px] shrink-0 bg-wine-accent hover:bg-wine-accent/90 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Save name"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <Label className="text-viralyze-muted text-sm">Email</Label>
+                <Label htmlFor="settings-email" className="text-viralyze-muted text-sm">Email</Label>
                 <Input
+                  id="settings-email"
                   value={user?.email || ''}
                   readOnly
                   className="bg-white/[0.03] border-white/[0.06] text-viralyze-white/60 cursor-not-allowed hover:border-white/[0.12] transition-colors"
+                  aria-describedby="settings-email-hint"
                 />
+                <p id="settings-email-hint" className="text-xs text-viralyze-muted/40 sr-only">Email address is read-only and cannot be changed</p>
               </div>
             </CardContent>
           </Card>
@@ -259,8 +265,9 @@ export default function SettingsView() {
             </div>
             <Button
               variant="outline"
-              className="w-full border-white/10 text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] hover:border-wine-accent/30 transition-colors"
+              className="w-full min-h-[44px] border-white/10 text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] hover:border-wine-accent/30 transition-colors"
               onClick={() => {}}
+              aria-label="Upgrade to a higher plan"
             >
               Upgrade Plan
             </Button>
@@ -353,7 +360,10 @@ export default function SettingsView() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Bell className="h-4 w-4 text-wine-accent" />
               Notification Preferences
-              {savingSettings && <Loader2 className="h-3.5 w-3.5 text-wine-accent animate-spin" />}
+              <span aria-live="polite" className="sr-only">
+                {savingSettings ? 'Saving notification settings' : ''}
+              </span>
+              {savingSettings && <Loader2 className="h-3.5 w-3.5 text-wine-accent animate-spin" aria-hidden="true" />}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -383,6 +393,7 @@ export default function SettingsView() {
                       checked={notifications.email}
                       onCheckedChange={(v) => handleNotificationChange('email', v)}
                       className="data-[state=checked]:bg-wine-accent"
+                      aria-label="Toggle email notifications"
                     />
                   </div>
                 </div>
@@ -407,6 +418,7 @@ export default function SettingsView() {
                       checked={notifications.weeklyDigest}
                       onCheckedChange={(v) => handleNotificationChange('weeklyDigest', v)}
                       className="data-[state=checked]:bg-wine-accent"
+                      aria-label="Toggle weekly digest"
                     />
                   </div>
                 </div>
@@ -431,6 +443,7 @@ export default function SettingsView() {
                       checked={notifications.predictionAlerts}
                       onCheckedChange={(v) => handleNotificationChange('predictionAlerts', v)}
                       className="data-[state=checked]:bg-wine-accent"
+                      aria-label="Toggle prediction alerts"
                     />
                   </div>
                 </div>
@@ -453,7 +466,8 @@ export default function SettingsView() {
             <Button
               variant="outline"
               onClick={logout}
-              className="w-full border-white/10 text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] hover:border-white/20 transition-colors"
+              className="w-full min-h-[44px] border-white/10 text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] hover:border-white/20 transition-colors"
+              aria-label="Log out of your account"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Log Out
@@ -473,13 +487,15 @@ export default function SettingsView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-viralyze-muted mb-4">
+            <p id="danger-zone-warning" className="text-sm text-viralyze-muted mb-4">
               Once you delete your account, there is no going back. Please be certain.
             </p>
             <Button
               variant="outline"
               onClick={handleDeleteAccount}
-              className="border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/50 transition-colors"
+              className="min-h-[44px] border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/50 transition-colors"
+              aria-describedby="danger-zone-warning"
+              aria-label="Delete account permanently"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Account
