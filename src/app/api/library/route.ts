@@ -1,133 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import type { Platform, Confidence, Classification, PlatformFitScore, ContentVariation } from '@/lib/types';
 import { rateLimit } from '@/lib/rate-limit';
 
-function parseSafeJson<T>(str: string | null | undefined, fallback: T): T {
-  if (!str) return fallback;
-  try {
-    return JSON.parse(str) as T;
-  } catch {
-    return fallback;
-  }
+function parseSafeJson<T>(str: unknown, fallback: T): T {
+  if (!str || typeof str !== 'object') return fallback;
+  if (Array.isArray(str)) return str as T;
+  return fallback;
 }
 
-function formatFullAnalysis(a: Record<string, unknown>) {
+function mapSnakeToAnalysis(row: Record<string, unknown>) {
   const scores = {
-    hook: (a.hookScore as number) || 0,
-    engagement: (a.engagementScore as number) || 0,
-    shareability: (a.shareabilityScore as number) || 0,
-    retention: (a.retentionScore as number) || 0,
-    originality: (a.originalityScore as number) || 0,
-    audienceFit: (a.audienceFitScore as number) || 0,
-    emotionalImpact: (a.emotionalImpactScore as number) || 0,
-    contentQuality: (a.contentQualityScore as number) || 0,
-    trendAlignment: (a.trendAlignmentScore as number) || 0,
+    hook: (row.hook_score as number) || 0,
+    engagement: (row.engagement_score as number) || 0,
+    shareability: (row.shareability_score as number) || 0,
+    retention: (row.retention_score as number) || 0,
+    originality: (row.originality_score as number) || 0,
+    audienceFit: (row.audience_fit_score as number) || 0,
+    emotionalImpact: (row.emotional_impact_score as number) || 0,
+    contentQuality: (row.content_quality_score as number) || 0,
+    trendAlignment: (row.trend_alignment_score as number) || 0,
   };
-
-  const strengths = parseSafeJson<string[]>(a.strengths as string, []);
-  const weaknesses = parseSafeJson<string[]>(a.weaknesses as string, []);
-  const improvements = parseSafeJson<string[]>(a.recommendations as string, []);
-  const platformFit = parseSafeJson<PlatformFitScore[]>(a.platformFitScores as string, []);
-  const variations = parseSafeJson<ContentVariation[]>(a.variations as string, []);
 
   return {
-    id: a.id as string,
-    title: a.title as string,
-    platform: a.platform as Platform,
-    contentType: a.contentType as string,
-    contentText: a.contentText as string,
-    ideaText: (a.ideaText as string) || undefined,
-    audience: (a.audience as string) || undefined,
-    overallScore: a.overallScore as number,
-    confidence: (a.confidence as Confidence) || 'medium',
-    classification: (a.classification as Classification) || 'moderate',
-    createdAt: (a.createdAt as Date).toISOString(),
+    id: row.id as string,
+    title: row.title as string,
+    platform: row.platform as Platform,
+    contentType: row.content_type as string,
+    contentText: row.content_text as string,
+    ideaText: (row.idea_text as string) || undefined,
+    audience: (row.audience as string) || undefined,
+    overallScore: row.overall_score as number,
+    confidence: (row.confidence as Confidence) || 'medium',
+    classification: (row.classification as Classification) || 'moderate',
+    createdAt: (row.created_at as string) || new Date().toISOString(),
     scores,
-    platformFit,
-    strengths,
-    weaknesses,
-    improvements,
-    optimizedHook: (a.optimizedHook as string) || undefined,
-    optimizedCaption: (a.optimizedCaption as string) || undefined,
-    optimizedTitle: (a.optimizedTitle as string) || undefined,
-    variations,
+    platformFit: parseSafeJson<PlatformFitScore[]>(row.platform_fit_scores, []),
+    strengths: parseSafeJson<string[]>(row.strengths, []),
+    weaknesses: parseSafeJson<string[]>(row.weaknesses, []),
+    improvements: parseSafeJson<string[]>(row.recommendations, []),
+    optimizedHook: (row.optimized_hook as string) || undefined,
+    optimizedCaption: (row.optimized_caption as string) || undefined,
+    optimizedTitle: (row.optimized_title as string) || undefined,
+    variations: parseSafeJson<ContentVariation[]>(row.variations, []),
   };
+}
+
+async function getAuthUserId(request: NextRequest): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
 }
 
 export async function GET(request: NextRequest) {
   const rl = rateLimit(60, 60_000);
   const identifier = request.headers.get('x-forwarded-for') || 'unknown';
-  const { allowed, retryAfter } = rl.check(identifier);
+  const { allowed } = rl.check(identifier);
   if (!allowed) {
-    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const id = searchParams.get('id');
     const platform = searchParams.get('platform');
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortBy = searchParams.get('sortBy') || 'created_at';
     const order = searchParams.get('order') || 'desc';
 
-    // Fetch single full analysis (verify userId ownership for security)
+    const userId = await getAuthUserId(request);
+
+    const admin = await createAdminClient();
+
+    // Fetch single analysis
     if (id) {
-      const analysis = await db.contentAnalysis.findUnique({ where: { id } });
-      if (!analysis) {
+      const { data: row } = await admin
+        .from('content_analyses')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!row) {
         return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
       }
-      if (userId && analysis.userId !== userId) {
+      if (userId && row.user_id !== userId) {
         return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
       }
-      return NextResponse.json(formatFullAnalysis(analysis as unknown as Record<string, unknown>));
+      return NextResponse.json(mapSnakeToAnalysis(row as Record<string, unknown>));
     }
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const where: Record<string, unknown> = { userId };
-    if (platform) where.platform = platform;
+    let query = admin
+      .from('content_analyses')
+      .select('*')
+      .eq('user_id', userId);
 
-    const analyses = await db.contentAnalysis.findMany({
-      where,
-      orderBy: { [sortBy]: order === 'asc' ? 'asc' : 'desc' },
-      take: 50,
-    });
+    if (platform) {
+      query = query.eq('platform', platform);
+    }
 
-    const formatted = analyses.map((a) => ({
-      id: a.id,
-      title: a.title,
-      platform: a.platform as Platform,
-      contentType: a.contentType,
-      contentText: a.contentText,
-      ideaText: a.ideaText || undefined,
-      audience: a.audience || undefined,
-      overallScore: a.overallScore,
-      confidence: (a.confidence as Confidence) || 'medium',
-      classification: (a.classification as Classification) || 'moderate',
-      scores: {
-        hook: a.hookScore || 0,
-        engagement: a.engagementScore || 0,
-        shareability: a.shareabilityScore || 0,
-        retention: a.retentionScore || 0,
-        originality: a.originalityScore || 0,
-        audienceFit: a.audienceFitScore || 0,
-        emotionalImpact: a.emotionalImpactScore || 0,
-        contentQuality: a.contentQualityScore || 0,
-        trendAlignment: a.trendAlignmentScore || 0,
-      },
-      platformFit: parseSafeJson<PlatformFitScore[]>(a.platformFitScores as string, []),
-      strengths: parseSafeJson<string[]>(a.strengths as string, []),
-      weaknesses: parseSafeJson<string[]>(a.weaknesses as string, []),
-      improvements: parseSafeJson<string[]>(a.recommendations as string, []),
-      optimizedHook: a.optimizedHook || undefined,
-      optimizedCaption: a.optimizedCaption || undefined,
-      optimizedTitle: a.optimizedTitle || undefined,
-      variations: parseSafeJson<ContentVariation[]>(a.variations as string, []),
-      createdAt: a.createdAt.toISOString(),
-    }));
+    // Validate sort column
+    const validSortCols = ['created_at', 'overall_score', 'title', 'platform'];
+    const sortCol = validSortCols.includes(sortBy) ? sortBy : 'created_at';
+
+    query = query.order(sortCol, { ascending: order === 'asc' }).limit(50);
+
+    const { data: rows, error } = await query;
+
+    if (error) {
+      console.error('Library fetch error:', error);
+      return NextResponse.json({ error: 'Failed to fetch library' }, { status: 500 });
+    }
+
+    const formatted = (rows || []).map((row) =>
+      mapSnakeToAnalysis(row as Record<string, unknown>),
+    );
 
     return NextResponse.json(formatted);
   } catch (error) {
@@ -139,21 +129,36 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const rl = rateLimit(60, 60_000);
   const identifier = request.headers.get('x-forwarded-for') || 'unknown';
-  const { allowed, retryAfter } = rl.check(identifier);
+  const { allowed } = rl.check(identifier);
   if (!allowed) {
-    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    const userId = searchParams.get('userId');
 
-    if (!id || !userId) {
-      return NextResponse.json({ error: 'id and userId are required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
     }
 
-    await db.contentAnalysis.deleteMany({ where: { id, userId } });
+    const userId = await getAuthUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const admin = await createAdminClient();
+    const { error } = await admin
+      .from('content_analyses')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Delete error:', error);
+      return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete error:', error);

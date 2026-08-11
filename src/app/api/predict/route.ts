@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
-import { db } from '@/lib/db';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 
 const SYSTEM_PROMPT = `You are Viralyze, an expert AI-powered viral content prediction engine.
@@ -62,7 +63,7 @@ Return this EXACT JSON structure:
 }
 
 Scoring guidelines:
-- overallScore: Weighted average — hook(15%), engagement(15%), shareability(12%), originality(12%), audienceFit(13%), retention(10%), emotionalImpact(8%), contentQuality(8%), trendAlignment(7%)
+- overallScore: Weighted average -- hook(15%), engagement(15%), shareability(12%), originality(12%), audienceFit(13%), retention(10%), emotionalImpact(8%), contentQuality(8%), trendAlignment(7%)
 - confidence: "low" (score<50), "medium" (50-75), "high" (>75)
 - classification: "low" (<40), "moderate" (40-65), "high" (65-85), "viral" (>85)
 
@@ -104,42 +105,47 @@ Provide a complete viral content prediction analysis as JSON.`;
 export async function POST(request: NextRequest) {
   const rl = rateLimit(10, 60_000);
   const identifier = request.headers.get('x-forwarded-for') || 'unknown';
-  const { allowed, retryAfter } = rl.check(identifier);
+  const { allowed } = rl.check(identifier);
   if (!allowed) {
-    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
     const body = await request.json();
-    const { mode, platform, contentType, audience, ideaText, contentText, title, hashtags, userId } = body;
+    const { mode, platform, contentType, audience, ideaText, contentText, title, hashtags } = body;
+
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Please sign in to analyze content' }, { status: 401 });
+    }
 
     // Validate required fields
     if (!platform || !contentType || (!ideaText && !contentText)) {
       return NextResponse.json({ error: 'Missing required fields: platform, contentType, and content (ideaText or contentText)' }, { status: 400 });
     }
 
-    // Validate content length (prevent abuse)
     const rawContent = contentText || ideaText || '';
     if (rawContent.length < 10) {
       return NextResponse.json({ error: 'Content is too short. Please provide at least 10 characters.' }, { status: 400 });
     }
     if (rawContent.length > 10000) {
-      return NextResponse.json({ error: 'Content exceeds the 10,000 character limit. Please shorten your content.' }, { status: 400 });
+      return NextResponse.json({ error: 'Content exceeds the 10,000 character limit.' }, { status: 400 });
     }
 
-    // Validate platform
     const validPlatforms = ['instagram', 'youtube', 'tiktok', 'x', 'linkedin'];
     if (!validPlatforms.includes(platform)) {
       return NextResponse.json({ error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}` }, { status: 400 });
     }
 
-    // Validate contentType
     const validContentTypes = ['reel', 'video', 'post', 'story', 'carousel', 'thread', 'short', 'blog', 'email', 'newsletter'];
     if (!validContentTypes.includes(contentType)) {
       return NextResponse.json({ error: `Invalid content type. Must be one of: ${validContentTypes.join(', ')}` }, { status: 400 });
     }
 
-    // Default audience if not provided
     const targetAudience = audience || 'General social media audience';
 
     const userPrompt = buildUserPrompt({ mode, platform, contentType, audience: targetAudience, ideaText, contentText, title, hashtags });
@@ -157,18 +163,13 @@ export async function POST(request: NextRequest) {
     let raw = completion.choices[0]?.message?.content || '';
     raw = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-    let analysis;
-    // Try multiple JSON extraction strategies
     const extractJSON = (text: string) => {
-      // Strategy 1: Direct parse
       try { return JSON.parse(text); } catch {}
-      // Strategy 2: Find first { to last }
       const firstBrace = text.indexOf('{');
       const lastBrace = text.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace > firstBrace) {
         try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)); } catch {}
       }
-      // Strategy 3: Find JSON object that starts with expected keys
       const jsonBlock = text.match(/\{\s*"overallScore"[\s\S]*?\}/);
       if (jsonBlock) {
         try { return JSON.parse(jsonBlock[0]); } catch {}
@@ -176,65 +177,67 @@ export async function POST(request: NextRequest) {
       return null;
     };
 
-    analysis = extractJSON(raw);
+    const analysis = extractJSON(raw);
     if (!analysis) {
       return NextResponse.json({ error: 'Failed to parse AI response. Please try again.' }, { status: 500 });
     }
 
-    // Increment user's prediction usage
-    if (userId) {
-      try {
-        await db.user.update({
-          where: { id: userId },
-          data: { predictionsUsed: { increment: 1 } },
-        });
-      } catch {}
-    }
-
-    // Save to database
-    const savedAnalysis = await db.contentAnalysis.create({
-      data: {
-        userId: userId || null,
+    // Save to Supabase
+    const admin = await createAdminClient();
+    const { data: savedAnalysis } = await admin
+      .from('content_analyses')
+      .insert({
+        user_id: userId,
         title: title || (ideaText || contentText || '').slice(0, 80),
         platform,
-        contentType,
-        contentText: contentText || ideaText || '',
-        ideaText: ideaText || null,
-        audience,
-        overallScore: analysis.overallScore || 0,
+        content_type: contentType,
+        content_text: contentText || ideaText || '',
+        idea_text: ideaText || null,
+        audience: targetAudience,
+        overall_score: analysis.overallScore || 0,
         confidence: analysis.confidence || 'medium',
         classification: analysis.classification || 'moderate',
-        hookScore: analysis.scores?.hook || 0,
-        engagementScore: analysis.scores?.engagement || 0,
-        shareabilityScore: analysis.scores?.shareability || 0,
-        retentionScore: analysis.scores?.retention || 0,
-        originalityScore: analysis.scores?.originality || 0,
-        audienceFitScore: analysis.scores?.audienceFit || 0,
-        emotionalImpactScore: analysis.scores?.emotionalImpact || 0,
-        contentQualityScore: analysis.scores?.contentQuality || 0,
-        trendAlignmentScore: analysis.scores?.trendAlignment || 0,
-        platformFitScores: JSON.stringify(analysis.platformFit || []),
-        strengths: JSON.stringify(analysis.strengths || []),
-        weaknesses: JSON.stringify(analysis.weaknesses || []),
-        recommendations: JSON.stringify(analysis.improvements || analysis.recommendations || []),
-        optimizedHook: analysis.optimizedHook || null,
-        optimizedCaption: analysis.optimizedCaption || null,
-        optimizedTitle: analysis.optimizedTitle || null,
-        variations: analysis.variations ? JSON.stringify(analysis.variations) : null,
-      },
-    });
+        hook_score: analysis.scores?.hook || 0,
+        engagement_score: analysis.scores?.engagement || 0,
+        shareability_score: analysis.scores?.shareability || 0,
+        retention_score: analysis.scores?.retention || 0,
+        originality_score: analysis.scores?.originality || 0,
+        audience_fit_score: analysis.scores?.audienceFit || 0,
+        emotional_impact_score: analysis.scores?.emotionalImpact || 0,
+        content_quality_score: analysis.scores?.contentQuality || 0,
+        trend_alignment_score: analysis.scores?.trendAlignment || 0,
+        platform_fit_scores: analysis.platformFit || [],
+        strengths: analysis.strengths || [],
+        weaknesses: analysis.weaknesses || [],
+        recommendations: analysis.improvements || [],
+        optimized_hook: analysis.optimizedHook || null,
+        optimized_caption: analysis.optimizedCaption || null,
+        optimized_title: analysis.optimizedTitle || null,
+        variations: analysis.variations || null,
+      })
+      .select()
+      .single();
 
-    // Fetch updated user for usage count
-    let updatedUser = null;
-    if (userId) {
-      try {
-        updatedUser = await db.user.findUnique({ where: { id: userId } });
-      } catch {}
+    // Increment predictions used (fetch-then-update pattern for Supabase)
+    let updatedProfile = null;
+    const { data: currentProfile } = await admin
+      .from('profiles')
+      .select('predictions_used, predictions_limit')
+      .eq('id', userId)
+      .single();
+
+    if (currentProfile) {
+      const newCount = (currentProfile.predictions_used || 0) + 1;
+      await admin
+        .from('profiles')
+        .update({ predictions_used: newCount })
+        .eq('id', userId);
+      updatedProfile = { ...currentProfile, predictions_used: newCount };
     }
 
-    // Normalize response for frontend
-    const response = {
-      id: savedAnalysis.id,
+    // Normalize response
+    const response: Record<string, unknown> = {
+      id: savedAnalysis?.id,
       overallScore: analysis.overallScore || 50,
       confidence: analysis.confidence || 'medium',
       classification: analysis.classification || 'moderate',
@@ -265,11 +268,10 @@ export async function POST(request: NextRequest) {
       variations: Array.isArray(analysis.variations) ? analysis.variations : [],
     };
 
-    // Attach updated usage info
-    if (updatedUser) {
-      (response as Record<string, unknown>).userUsage = {
-        predictionsUsed: updatedUser.predictionsUsed,
-        predictionsLimit: updatedUser.predictionsLimit,
+    if (updatedProfile) {
+      response.userUsage = {
+        predictionsUsed: updatedProfile.predictions_used,
+        predictionsLimit: updatedProfile.predictions_limit,
       };
     }
 

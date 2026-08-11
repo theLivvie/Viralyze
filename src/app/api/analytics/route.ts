@@ -1,31 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
+
+async function getAuthUserId(request: NextRequest): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
 
 export async function GET(request: NextRequest) {
   const rl = rateLimit(60, 60_000);
   const identifier = request.headers.get('x-forwarded-for') || 'unknown';
-  const { allowed, retryAfter } = rl.check(identifier);
+  const { allowed } = rl.check(identifier);
   if (!allowed) {
-    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
+    const userId = await getAuthUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Fetch all analyses for the user (no limit — we need full history for analytics)
-    const analyses = await db.contentAnalysis.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
+    const admin = await createAdminClient();
+    const { data: analyses, error } = await admin
+      .from('content_analyses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
 
-    // If no analyses, return empty analytics
-    if (analyses.length === 0) {
+    if (error) {
+      console.error('Analytics error:', error);
+      return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
+    }
+
+    const rows = analyses || [];
+
+    if (rows.length === 0) {
       return NextResponse.json({
         totalAnalyses: 0,
         avgScore: 0,
@@ -44,13 +56,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // --- Overview stats ---
-    const scores = analyses.map((a) => a.overallScore);
-    const totalAnalyses = analyses.length;
+    const scores = rows.map((a) => (a.overall_score as number) || 0);
+    const totalAnalyses = rows.length;
     const avgScore = Math.round(scores.reduce((s, v) => s + v, 0) / totalAnalyses);
     const bestScore = Math.max(...scores);
 
-    // --- Score distribution ---
+    // Score distribution
     const ranges = [
       { range: '0-20', min: 0, max: 20, count: 0 },
       { range: '21-40', min: 21, max: 40, count: 0 },
@@ -64,12 +75,12 @@ export async function GET(request: NextRequest) {
     }
     const scoreDistribution = ranges.map((r) => ({ range: r.range, count: r.count }));
 
-    // --- Platform performance (avg score per platform) ---
+    // Platform performance
     const platformMap: Record<string, { total: number; count: number }> = {};
-    for (const a of analyses) {
-      const p = a.platform;
+    for (const a of rows) {
+      const p = a.platform as string;
       if (!platformMap[p]) platformMap[p] = { total: 0, count: 0 };
-      platformMap[p].total += a.overallScore;
+      platformMap[p].total += (a.overall_score as number) || 0;
       platformMap[p].count++;
     }
     const platformDisplayName: Record<string, string> = {
@@ -86,44 +97,41 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.score - a.score);
 
-    // --- Weekly trend (group by ISO week, last 12 weeks) ---
+    // Weekly trend
     const weekMap: Record<string, { total: number; count: number }> = {};
-    for (const a of analyses) {
-      const d = new Date(a.createdAt);
-      // Get ISO week number
+    for (const a of rows) {
+      const d = new Date(a.created_at as string);
       const jan1 = new Date(d.getFullYear(), 0, 1);
       const days = Math.floor((d.getTime() - jan1.getTime()) / 86400000);
       const weekNum = Math.ceil((days + jan1.getDay() + 1) / 7);
       const year = d.getFullYear();
       const key = `${year}-W${String(weekNum).padStart(2, '0')}`;
       if (!weekMap[key]) weekMap[key] = { total: 0, count: 0 };
-      weekMap[key].total += a.overallScore;
+      weekMap[key].total += (a.overall_score as number) || 0;
       weekMap[key].count++;
     }
-    // Get the last 12 weeks chronologically
-    const allWeeks = Object.entries(weekMap)
-      .sort(([a], [b]) => a.localeCompare(b));
+    const allWeeks = Object.entries(weekMap).sort(([a], [b]) => a.localeCompare(b));
     const lastWeeks = allWeeks.slice(-12);
     const weeklyTrend = lastWeeks.map(([week, data]) => ({
       week,
       score: Math.round(data.total / data.count),
     }));
 
-    // --- Category breakdown (average each score dimension) ---
+    // Category breakdown
     const categories = [
-      { key: 'hookScore', label: 'Hook' },
-      { key: 'engagementScore', label: 'Engagement' },
-      { key: 'shareabilityScore', label: 'Shareability' },
-      { key: 'retentionScore', label: 'Retention' },
-      { key: 'originalityScore', label: 'Originality' },
-      { key: 'audienceFitScore', label: 'Audience Fit' },
-      { key: 'emotionalImpactScore', label: 'Emotional Impact' },
-      { key: 'contentQualityScore', label: 'Content Quality' },
-      { key: 'trendAlignmentScore', label: 'Trend Alignment' },
+      { key: 'hook_score', label: 'Hook' },
+      { key: 'engagement_score', label: 'Engagement' },
+      { key: 'shareability_score', label: 'Shareability' },
+      { key: 'retention_score', label: 'Retention' },
+      { key: 'originality_score', label: 'Originality' },
+      { key: 'audience_fit_score', label: 'Audience Fit' },
+      { key: 'emotional_impact_score', label: 'Emotional Impact' },
+      { key: 'content_quality_score', label: 'Content Quality' },
+      { key: 'trend_alignment_score', label: 'Trend Alignment' },
     ];
     const categoryBreakdown = categories
       .map((cat) => {
-        const vals = analyses
+        const vals = rows
           .map((a) => (a as Record<string, unknown>)[cat.key] as number)
           .filter((v) => v != null && v > 0);
         if (vals.length === 0) return null;
@@ -135,10 +143,10 @@ export async function GET(request: NextRequest) {
       .filter(Boolean)
       .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0)) as { category: string; score: number }[];
 
-    // --- Top content (top 5 by overallScore) ---
-    const sorted = [...analyses].sort((a, b) => b.overallScore - a.overallScore);
+    // Top content
+    const sorted = [...rows].sort((a, b) => (b.overall_score as number) - (a.overall_score as number));
     const topContent = sorted.slice(0, 5).map((a) => {
-      const d = new Date(a.createdAt);
+      const d = new Date(a.created_at as string);
       const dateStr = d.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -148,7 +156,7 @@ export async function GET(request: NextRequest) {
         id: a.id,
         title: a.title,
         platform: a.platform,
-        score: a.overallScore,
+        score: a.overall_score,
         date: dateStr,
       };
     });
