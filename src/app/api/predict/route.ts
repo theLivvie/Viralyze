@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
 import { db } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
 
 const SYSTEM_PROMPT = `You are Viralyze, an expert AI-powered viral content prediction engine.
 
@@ -101,15 +102,25 @@ Provide a complete viral content prediction analysis as JSON.`;
 }
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(10, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const { mode, platform, contentType, audience, ideaText, contentText, title, hashtags, userId } = body;
 
-    if (!platform || !contentType || !audience || (!ideaText && !contentText)) {
-      return NextResponse.json({ error: 'Missing required fields: platform, contentType, audience, and content (ideaText or contentText)' }, { status: 400 });
+    if (!platform || !contentType || (!ideaText && !contentText)) {
+      return NextResponse.json({ error: 'Missing required fields: platform, contentType, and content (ideaText or contentText)' }, { status: 400 });
     }
 
-    const userPrompt = buildUserPrompt({ mode, platform, contentType, audience, ideaText, contentText, title, hashtags });
+    // Default audience if not provided
+    const targetAudience = audience || 'General social media audience';
+
+    const userPrompt = buildUserPrompt({ mode, platform, contentType, audience: targetAudience, ideaText, contentText, title, hashtags });
 
     const zai = await ZAI.create();
     const completion = await zai.chat.completions.create({
@@ -147,6 +158,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to parse AI response. Please try again.' }, { status: 500 });
     }
 
+    // Increment user's prediction usage
+    if (userId) {
+      try {
+        await db.user.update({
+          where: { id: userId },
+          data: { predictionsUsed: { increment: 1 } },
+        });
+      } catch {}
+    }
+
     // Save to database
     const savedAnalysis = await db.contentAnalysis.create({
       data: {
@@ -180,6 +201,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Fetch updated user for usage count
+    let updatedUser = null;
+    if (userId) {
+      try {
+        updatedUser = await db.user.findUnique({ where: { id: userId } });
+      } catch {}
+    }
+
     // Normalize response for frontend
     const response = {
       id: savedAnalysis.id,
@@ -212,6 +241,14 @@ export async function POST(request: NextRequest) {
       optimizedTitle: analysis.optimizedTitle || '',
       variations: Array.isArray(analysis.variations) ? analysis.variations : [],
     };
+
+    // Attach updated usage info
+    if (updatedUser) {
+      (response as Record<string, unknown>).userUsage = {
+        predictionsUsed: updatedUser.predictionsUsed,
+        predictionsLimit: updatedUser.predictionsLimit,
+      };
+    }
 
     return NextResponse.json(response);
   } catch (error: unknown) {

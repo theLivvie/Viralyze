@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { User, CreditCard, LogOut, AlertTriangle, Trash2, Check, Sparkles, Bell, Mail, BarChart3, Camera, Upload, Loader2, Save } from 'lucide-react';
@@ -26,18 +26,56 @@ const item = {
 const plans = [
   { name: 'Free', price: '$0', predictions: 5, analytics: false, export: false, priority: false },
   { name: 'Creator', price: '$12', predictions: 50, analytics: true, export: true, priority: false, highlighted: true },
-  { name: 'Pro', price: '$29', predictions: '∞', analytics: true, export: true, priority: true },
+  { name: 'Pro', price: '$29', predictions: '\u221e', analytics: true, export: true, priority: true },
 ] as const;
+
+interface NotificationSettings {
+  email: boolean;
+  weeklyDigest: boolean;
+  predictionAlerts: boolean;
+}
 
 export default function SettingsView() {
   const { user, logout, login } = useAppStore();
+  const userId = user?.id;
   const [nameValue, setNameValue] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
-  const [notifications, setNotifications] = useState({
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     email: true,
     weeklyDigest: false,
     predictionAlerts: true,
   });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Fetch notification settings from DB on mount
+  const fetchSettings = useCallback(async () => {
+    if (!userId) {
+      setSettingsLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/settings?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.notifications && typeof data.notifications === 'object') {
+          setNotifications({
+            email: data.notifications.email ?? true,
+            weeklyDigest: data.notifications.weeklyDigest ?? false,
+            predictionAlerts: data.notifications.predictionAlerts ?? true,
+          });
+        }
+      }
+    } catch {
+      // Silently fail — use defaults
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSaveName = async () => {
     if (!user || !nameValue.trim() || nameValue.trim() === user.name) return;
@@ -62,8 +100,35 @@ export default function SettingsView() {
     }
   };
 
+  const handleNotificationChange = async (key: keyof NotificationSettings, value: boolean) => {
+    if (!userId) return;
+    const updated = { ...notifications, [key]: value };
+    setNotifications(updated);
+    setSavingSettings(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, notifications: updated }),
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setNotifications(notifications);
+        const data = await res.json();
+        toast.error(data.error || 'Failed to save notification settings');
+      } else {
+        toast.success('Notification settings saved');
+      }
+    } catch {
+      setNotifications(notifications);
+      toast.error('Failed to save notification settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const handleDeleteAccount = () => {
-    toast.error('Account deletion is not available in the demo. Stay with us! 🍷');
+    toast.error('Account deletion is not available in the demo. Stay with us! \ud83c\udf77');
   };
 
   return (
@@ -288,80 +353,89 @@ export default function SettingsView() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Bell className="h-4 w-4 text-wine-accent" />
               Notification Preferences
+              {savingSettings && <Loader2 className="h-3.5 w-3.5 text-wine-accent animate-spin" />}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-viralyze-muted" />
-                </div>
-                <div>
-                  <p className="text-sm text-viralyze-white font-medium">Email Notifications</p>
-                  <p className="text-xs text-viralyze-muted/50">Receive prediction results via email</p>
-                </div>
+            {settingsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 text-wine-accent animate-spin" />
               </div>
-              <div className={cn(
-                'rounded-full p-1 transition-all duration-300',
-                notifications.email
-                  ? 'bg-wine-accent/10 animate-pulse-glow'
-                  : 'bg-white/[0.04]'
-              )} style={notifications.email ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
-                <Switch
-                  checked={notifications.email}
-                  onCheckedChange={(v) => setNotifications((n) => ({ ...n, email: v }))}
-                  className="data-[state=checked]:bg-wine-accent"
-                />
-              </div>
-            </div>
-            <Separator className="bg-white/[0.06]" />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                  <BarChart3 className="h-4 w-4 text-viralyze-muted" />
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                      <Mail className="h-4 w-4 text-viralyze-muted" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-viralyze-white font-medium">Email Notifications</p>
+                      <p className="text-xs text-viralyze-muted/50">Receive prediction results via email</p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    'rounded-full p-1 transition-all duration-300',
+                    notifications.email
+                      ? 'bg-wine-accent/10 animate-pulse-glow'
+                      : 'bg-white/[0.04]'
+                  )} style={notifications.email ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
+                    <Switch
+                      checked={notifications.email}
+                      onCheckedChange={(v) => handleNotificationChange('email', v)}
+                      className="data-[state=checked]:bg-wine-accent"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-viralyze-white font-medium">Weekly Digest</p>
-                  <p className="text-xs text-viralyze-muted/50">Get a weekly summary of trending topics</p>
+                <Separator className="bg-white/[0.06]" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                      <BarChart3 className="h-4 w-4 text-viralyze-muted" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-viralyze-white font-medium">Weekly Digest</p>
+                      <p className="text-xs text-viralyze-muted/50">Get a weekly summary of trending topics</p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    'rounded-full p-1 transition-all duration-300',
+                    notifications.weeklyDigest
+                      ? 'bg-wine-accent/10 animate-pulse-glow'
+                      : 'bg-white/[0.04]'
+                  )} style={notifications.weeklyDigest ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
+                    <Switch
+                      checked={notifications.weeklyDigest}
+                      onCheckedChange={(v) => handleNotificationChange('weeklyDigest', v)}
+                      className="data-[state=checked]:bg-wine-accent"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className={cn(
-                'rounded-full p-1 transition-all duration-300',
-                notifications.weeklyDigest
-                  ? 'bg-wine-accent/10 animate-pulse-glow'
-                  : 'bg-white/[0.04]'
-              )} style={notifications.weeklyDigest ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
-                <Switch
-                  checked={notifications.weeklyDigest}
-                  onCheckedChange={(v) => setNotifications((n) => ({ ...n, weeklyDigest: v }))}
-                  className="data-[state=checked]:bg-wine-accent"
-                />
-              </div>
-            </div>
-            <Separator className="bg-white/[0.06]" />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-viralyze-muted" />
+                <Separator className="bg-white/[0.06]" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-viralyze-muted" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-viralyze-white font-medium">Prediction Alerts</p>
+                      <p className="text-xs text-viralyze-muted/50">Get notified when predictions are ready</p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    'rounded-full p-1 transition-all duration-300',
+                    notifications.predictionAlerts
+                      ? 'bg-wine-accent/10 animate-pulse-glow'
+                      : 'bg-white/[0.04]'
+                  )} style={notifications.predictionAlerts ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
+                    <Switch
+                      checked={notifications.predictionAlerts}
+                      onCheckedChange={(v) => handleNotificationChange('predictionAlerts', v)}
+                      className="data-[state=checked]:bg-wine-accent"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-viralyze-white font-medium">Prediction Alerts</p>
-                  <p className="text-xs text-viralyze-muted/50">Get notified when predictions are ready</p>
-                </div>
-              </div>
-              <div className={cn(
-                'rounded-full p-1 transition-all duration-300',
-                notifications.predictionAlerts
-                  ? 'bg-wine-accent/10 animate-pulse-glow'
-                  : 'bg-white/[0.04]'
-              )} style={notifications.predictionAlerts ? { animationDuration: '4s', boxShadow: '0 0 12px rgba(184, 50, 90, 0.3)' } : undefined}>
-                <Switch
-                  checked={notifications.predictionAlerts}
-                  onCheckedChange={(v) => setNotifications((n) => ({ ...n, predictionAlerts: v }))}
-                  className="data-[state=checked]:bg-wine-accent"
-                />
-              </div>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </motion.div>

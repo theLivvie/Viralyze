@@ -58,6 +58,20 @@ export default function OnboardingOverlay() {
     }
   }, []);
 
+  // Handle Escape key to dismiss onboarding
+  useEffect(() => {
+    if (!visible) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        localStorage.setItem(STORAGE_KEY, 'true');
+        setVisible(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [visible]);
+
   const complete = () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     setVisible(false);

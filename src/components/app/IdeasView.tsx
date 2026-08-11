@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, Loader2, Sparkles, Instagram, Youtube, Tv, Twitter, Linkedin } from 'lucide-react';
+import { Lightbulb, Loader2, Sparkles, Instagram, Youtube, Tv, Twitter, Linkedin, RefreshCw, BookmarkPlus, Sun, Cloud, Moon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
 import PlatformSelector from '@/components/shared/PlatformSelector';
-import type { Platform, IdeaSuggestion } from '@/lib/types';
+import type { Platform, IdeaSuggestion, SavedAnalysis } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -29,6 +29,33 @@ function getViralLevel(score: number): { label: string; color: string; emoji: st
   if (score >= 75) return { label: 'High', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', emoji: '🔥' };
   if (score >= 50) return { label: 'Medium', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30', emoji: '🔥' };
   return { label: 'Low', color: 'text-red-400 bg-red-500/10 border-red-500/30', emoji: '🔥' };
+}
+
+function getPlatformMatchScore(ideaPlatform: Platform, selectedPlatform: Platform): number {
+  if (ideaPlatform === selectedPlatform) return 100;
+  const related: Record<Platform, Platform[]> = {
+    instagram: ['tiktok', 'youtube'],
+    youtube: ['tiktok', 'instagram'],
+    tiktok: ['instagram', 'youtube'],
+    x: ['linkedin'],
+    linkedin: ['x'],
+  };
+  const rel = related[selectedPlatform] || [];
+  const idx = rel.indexOf(ideaPlatform);
+  if (idx === 0) return 75;
+  if (idx === 1) return 55;
+  return 30;
+}
+
+function getBestPostingTime(platform: Platform): { label: string; icon: React.ElementType; time: string } {
+  const times: Record<Platform, { label: string; icon: React.ElementType; time: string }> = {
+    instagram: { label: 'Morning', icon: Sun, time: '9–11 AM' },
+    youtube: { label: 'Afternoon', icon: Cloud, time: '2–4 PM' },
+    tiktok: { label: 'Evening', icon: Moon, time: '7–10 PM' },
+    x: { label: 'Morning', icon: Sun, time: '8–10 AM' },
+    linkedin: { label: 'Afternoon', icon: Cloud, time: '10–12 PM' },
+  };
+  return times[platform];
 }
 
 function ShimmerCard() {
@@ -52,12 +79,13 @@ function ShimmerCard() {
 }
 
 export default function IdeasView() {
-  const { predictPlatform, setPredictPlatform, setPredictContentType, setPredictMode, setCurrentView, setAnalysisLoading, setPrefilledIdea } = useAppStore();
+  const { predictPlatform, setPredictPlatform, setPredictContentType, setPredictMode, setCurrentView, setAnalysisLoading, setPrefilledIdea, savedAnalyses, addSavedAnalysis, user } = useAppStore();
 
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('');
   const [loading, setLoading] = useState(false);
   const [ideas, setIdeas] = useState<IdeaSuggestion[]>([]);
+  const [regenerating, setRegenerating] = useState(false);
 
   const hasTopic = topic.trim().length > 0;
 
@@ -106,6 +134,30 @@ export default function IdeasView() {
 
   const handleChipClick = (chip: string) => {
     setTopic(chip);
+  };
+
+  const handleRegenerate = async () => {
+    if (!topic.trim()) return;
+    setRegenerating(true);
+    await handleGenerate();
+    setRegenerating(false);
+  };
+
+  const handleSaveToLibrary = (idea: IdeaSuggestion) => {
+    const newAnalysis: SavedAnalysis = {
+      id: `lib-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: idea.title,
+      platform: idea.platform,
+      contentType: idea.contentType,
+      contentText: idea.description,
+      ideaText: idea.title,
+      overallScore: idea.viralScore,
+      confidence: 'medium',
+      classification: idea.viralScore >= 85 ? 'viral' : idea.viralScore >= 70 ? 'high' : idea.viralScore >= 45 ? 'moderate' : 'low',
+      createdAt: new Date().toISOString(),
+    };
+    addSavedAnalysis(newAnalysis);
+    toast.success('Saved to library!');
   };
 
   return (
@@ -277,10 +329,14 @@ export default function IdeasView() {
 
       {/* Results — single column on mobile, 2 cols on sm+ */}
       {!loading && ideas.length > 0 && (
+        <>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {ideas.map((idea, i) => {
             const PIcon = platformIcons[idea.platform];
             const viralLevel = getViralLevel(idea.viralScore);
+            const platformMatch = getPlatformMatchScore(idea.platform, predictPlatform);
+            const bestTime = getBestPostingTime(idea.platform);
+            const BestTimeIcon = bestTime.icon;
             return (
               <motion.div
                 key={i}
@@ -330,20 +386,48 @@ export default function IdeasView() {
                         <PIcon className="h-2.5 w-2.5" />
                         <span className="capitalize">{idea.platform}</span>
                       </span>
+                      {/* Platform Match score */}
+                      <span className={cn(
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border',
+                        platformMatch >= 80
+                          ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                          : platformMatch >= 50
+                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                          : 'bg-white/[0.04] border-white/[0.08] text-viralyze-muted'
+                      )}>
+                        Platform Match: {platformMatch}%
+                      </span>
+                    </div>
+
+                    {/* Best posting time */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-viralyze-muted">
+                      <BestTimeIcon className="h-3 w-3 text-wine-accent/60" />
+                      <span>Best time: {bestTime.label} ({bestTime.time})</span>
                     </div>
 
                     <div className="flex items-center justify-between mt-auto pt-1">
                       <div className="flex items-center gap-1.5 text-xs text-viralyze-muted">
                         <span className="capitalize">{idea.contentType}</span>
                       </div>
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs bg-gradient-wine hover:opacity-90 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleAnalyze(idea)}
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Analyze
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-viralyze-muted hover:text-wine-accent hover:bg-wine-accent/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleSaveToLibrary(idea)}
+                        >
+                          <BookmarkPlus className="h-3 w-3 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-gradient-wine hover:opacity-90 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleAnalyze(idea)}
+                        >
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Analyze
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -351,6 +435,25 @@ export default function IdeasView() {
             );
           })}
         </div>
+        {/* Regenerate button */}
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRegenerate}
+            disabled={regenerating || !topic.trim()}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-2"
+          >
+            <motion.span
+              animate={regenerating ? { rotate: 360 } : { rotate: 0 }}
+              transition={regenerating ? { duration: 0.8, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </motion.span>
+            {regenerating ? 'Regenerating...' : 'Regenerate Ideas'}
+          </Button>
+        </div>
+        </>
       )}
     </motion.div>
   );

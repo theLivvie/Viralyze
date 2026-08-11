@@ -14,7 +14,6 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/lib/store';
@@ -199,12 +198,12 @@ const categoryColors: Record<TemplateCategory, string> = {
 
 const container = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  hidden: { opacity: 0, y: 16, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 export default function ContentTemplatesView() {
@@ -275,30 +274,34 @@ export default function ContentTemplatesView() {
 
       {/* Category Filters */}
       <motion.div variants={item} className="flex flex-wrap gap-2">
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => setActiveCategory('all')}
           className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
+            'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
             activeCategory === 'all'
-              ? 'bg-wine-accent/20 border-wine-accent/40 text-wine-accent'
-              : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:bg-white/[0.06] hover:text-viralyze-white'
+              ? 'bg-wine-accent/20 border-wine-accent/40 text-wine-accent shadow-[0_0_12px_rgba(184,50,90,0.15)]'
+              : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:bg-white/[0.06] hover:text-viralyze-white hover:border-white/[0.15]'
           )}
         >
           All
-        </button>
+        </motion.button>
         {categories.map((cat) => (
-          <button
+          <motion.button
             key={cat}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setActiveCategory(cat)}
             className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
+              'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
               activeCategory === cat
-                ? categoryColors[cat]
-                : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:bg-white/[0.06] hover:text-viralyze-white'
+                ? cn(categoryColors[cat], 'shadow-[0_0_12px_rgba(184,50,90,0.1)]')
+                : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:bg-white/[0.06] hover:text-viralyze-white hover:border-white/[0.15]'
             )}
           >
             {cat}
-          </button>
+          </motion.button>
         ))}
       </motion.div>
 
@@ -318,11 +321,39 @@ export default function ContentTemplatesView() {
             const PIcon = platformIcons[template.platform];
             return (
               <motion.div key={template.id} variants={item}>
-                <Card className="glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300">
-                  <CardContent className="p-5 flex flex-col gap-3">
+                <Card className="glass group relative overflow-hidden hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300 hover:border-wine-accent/30">
+                  {/* Hover shimmer effect */}
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none z-10"
+                    initial={{ backgroundPosition: '200% 0' }}
+                    whileHover={{
+                      backgroundPosition: '-200% 0',
+                    }}
+                    transition={{ duration: 0.8, ease: 'easeInOut' }}
+                    style={{
+                      background: 'linear-gradient(105deg, transparent 40%, rgba(184,50,90,0.06) 45%, rgba(255,255,255,0.03) 50%, rgba(184,50,90,0.06) 55%, transparent 60%)',
+                      backgroundSize: '200% 100%',
+                    }}
+                  />
+                  {/* Glowing border on hover */}
+                  <motion.div
+                    className="absolute inset-0 rounded-lg pointer-events-none z-0"
+                    initial={{ boxShadow: '0 0 0px rgba(184,50,90,0)' }}
+                    whileHover={{
+                      boxShadow: '0 0 20px rgba(184,50,90,0.15), 0 0 40px rgba(127,29,58,0.08), inset 0 0 20px rgba(184,50,90,0.03)',
+                    }}
+                    transition={{ duration: 0.4 }}
+                  />
+                  {/* Platform icon badge - top right corner */}
+                  <div className="absolute top-3 right-3 z-20">
+                    <div className="h-6 w-6 rounded-md bg-white/[0.06] border border-white/[0.08] flex items-center justify-center group-hover:bg-wine-accent/10 group-hover:border-wine-accent/20 transition-all duration-300">
+                      <PIcon className="h-3 w-3 text-viralyze-muted group-hover:text-wine-accent transition-colors duration-300" />
+                    </div>
+                  </div>
+                  <CardContent className="p-5 flex flex-col gap-3 relative z-10">
                     {/* Title row with score widget */}
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-6">
                         <h3 className="font-semibold text-viralyze-white text-sm leading-snug">
                           {template.title}
                         </h3>
@@ -386,15 +417,19 @@ export default function ContentTemplatesView() {
                       <span className="text-[10px] tabular-nums text-viralyze-muted/50">{template.popularity}%</span>
                     </div>
 
-                    {/* Use Template button */}
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs bg-gradient-wine hover:opacity-90 text-white opacity-0 group-hover:opacity-100 transition-opacity mt-1"
-                      onClick={() => handleUseTemplate(template)}
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Use Template
-                    </Button>
+                    {/* Use Template button with micro-bounce */}
+                    <motion.div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
+                      <motion.button
+                        whileHover={{ scale: 1.04, y: -1 }}
+                        whileTap={{ scale: 0.96 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                        className="h-8 w-full text-xs bg-gradient-wine hover:opacity-90 text-white btn-shine rounded-md flex items-center justify-center gap-1.5"
+                        onClick={() => handleUseTemplate(template)}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Use Template
+                      </motion.button>
+                    </motion.div>
                   </CardContent>
                 </Card>
               </motion.div>

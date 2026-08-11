@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
   FileText,
@@ -19,6 +19,13 @@ import {
   Recycle,
   Trophy,
   RefreshCw,
+  AlertCircle,
+  Target,
+  Award,
+  TrendingDown,
+  CheckCircle2,
+  ChevronDown,
+  Activity,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +76,43 @@ const item = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
+
+// Helper to parse predicted engagement string (e.g. '2.5K', '1.2M') to a number
+function parseEngagementValue(val: string | undefined): number {
+  if (!val) return 0;
+  const str = val.replace(/,/g, '').trim();
+  const num = parseFloat(str);
+  if (isNaN(num)) return 0;
+  const upper = str.toUpperCase();
+  if (upper.endsWith('M')) return num * 1000000;
+  if (upper.endsWith('K')) return num * 1000;
+  return num;
+}
+
+interface ActualPerformance {
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+}
+
+function getAccuracyColor(offPercent: number): string {
+  if (offPercent <= 30) return 'text-green-400';
+  if (offPercent <= 60) return 'text-amber-400';
+  return 'text-red-400';
+}
+
+function getAccuracyBg(offPercent: number): string {
+  if (offPercent <= 30) return 'bg-green-500/10 border-green-500/20';
+  if (offPercent <= 60) return 'bg-amber-500/10 border-amber-500/20';
+  return 'bg-red-500/10 border-red-500/20';
+}
+
+function getAccuracyLabel(offPercent: number): string {
+  if (offPercent <= 30) return 'Accurate';
+  if (offPercent <= 60) return 'Moderate';
+  return 'Off Target';
+}
 
 function scoreBarColor(score: number): string {
   if (score >= 70) return 'bg-green-400';
@@ -123,6 +167,14 @@ export default function DashboardView() {
       : 0;
 
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [trackingExpandedId, setTrackingExpandedId] = useState<string | null>(null);
+  const [actualInputs, setActualInputs] = useState<Record<string, ActualPerformance>>({});
+  const [savedActuals, setSavedActuals] = useState<Record<string, ActualPerformance>>(() => {
+    try {
+      const raw = localStorage.getItem('viralytics-actuals');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
 
   const recentAnalyses = savedAnalyses.slice(0, 5);
   const scoreHistory = savedAnalyses.map((a) => a.overallScore);
@@ -170,6 +222,28 @@ export default function DashboardView() {
         time: timeStr,
         accentColor,
       };
+    });
+  }, [savedAnalyses]);
+
+  const persistActuals = useCallback((data: Record<string, ActualPerformance>) => {
+    try { localStorage.setItem('viralytics-actuals', JSON.stringify(data)); } catch { /* noop */ }
+  }, []);
+
+  const handleSaveActual = (analysisId: string) => {
+    const vals = actualInputs[analysisId];
+    if (!vals) return;
+    const updated = { ...savedActuals, [analysisId]: vals };
+    setSavedActuals(updated);
+    persistActuals(updated);
+    setTrackingExpandedId(null);
+  };
+
+  // Analyses older than 24h
+  const analysesOlderThan24h = useMemo(() => {
+    const now = Date.now();
+    return savedAnalyses.filter((a) => {
+      const created = new Date(a.createdAt).getTime();
+      return now - created > 24 * 60 * 60 * 1000;
     });
   }, [savedAnalyses]);
 
@@ -287,9 +361,9 @@ export default function DashboardView() {
         <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
           Quick Stats
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="glass">
-            <CardContent className="p-4 flex flex-col items-center gap-1">
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center gap-1">
               <BarChart3 className="h-5 w-5 text-viralyze-muted mb-1" />
               <span className="text-2xl font-bold text-viralyze-white tabular-nums">
                 {totalAnalyses}
@@ -298,7 +372,7 @@ export default function DashboardView() {
             </CardContent>
           </Card>
           <Card className="glass">
-            <CardContent className="p-4 flex flex-col items-center gap-1">
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center gap-1">
               <TrendingUp className="h-5 w-5 text-viralyze-muted mb-1" />
               <span className="text-2xl font-bold text-viralyze-white tabular-nums">
                 {avgScore}
@@ -307,7 +381,7 @@ export default function DashboardView() {
             </CardContent>
           </Card>
           <Card className="glass">
-            <CardContent className="p-4 flex flex-col items-center gap-1">
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center gap-1">
               <Sparkles className="h-5 w-5 text-wine-accent mb-1" />
               <span className="text-2xl font-bold text-wine-accent tabular-nums">
                 {bestScore}
@@ -398,11 +472,309 @@ export default function DashboardView() {
                     </div>
                   </div>
                 </div>
-                <ScoreHistory scores={scoreHistory} />
+                <div className="overflow-x-auto -mx-1 px-1 scrollbar-thin">
+                  <div className="min-w-[240px]">
+                    <ScoreHistory scores={scoreHistory} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
+      </motion.div>
+
+      {/* Score Insights */}
+      {savedAnalyses.length >= 1 && (() => {
+        const insights: { icon: React.ElementType; text: string; color: string; glow?: boolean }[] = [];
+
+        // Average score insight
+        if (avgScore < 50) {
+          insights.push({
+            icon: AlertCircle,
+            text: 'Your average score is below 50. Focus on stronger hooks and more specific audience targeting.',
+            color: 'text-amber-400',
+          });
+        }
+        if (avgScore >= 75) {
+          insights.push({
+            icon: Award,
+            text: 'Great job! Your content consistently scores above 75. Keep up the excellent work.',
+            color: 'text-green-400',
+          });
+        }
+
+        // Platform performance insight
+        const platformAvgs: Record<string, { total: number; count: number }> = {};
+        savedAnalyses.forEach((a) => {
+          if (!platformAvgs[a.platform]) platformAvgs[a.platform] = { total: 0, count: 0 };
+          platformAvgs[a.platform].total += a.overallScore;
+          platformAvgs[a.platform].count++;
+        });
+        const platformAvgEntries = Object.entries(platformAvgs).map(([p, { total, count }]) => ({
+          platform: p,
+          avg: Math.round(total / count),
+        }));
+        if (platformAvgEntries.length >= 2) {
+          const sorted = [...platformAvgEntries].sort((a, b) => b.avg - a.avg);
+          const best = sorted[0];
+          const others = sorted.slice(1);
+          const allAbove = others.every((o) => best.avg - o.avg < 15);
+          if (!allAbove) {
+            const bestLabel = platformLabels[best.platform as Platform];
+            insights.push({
+              icon: Target,
+              text: `Your ${bestLabel} content performs significantly better. Consider focusing more effort here.`,
+              color: 'text-wine-accent',
+              glow: true,
+            });
+          }
+        }
+
+        // Trend insight (last 3 scores)
+        if (savedAnalyses.length >= 3) {
+          const last3 = savedAnalyses.slice(0, 3).map((a) => a.overallScore);
+          const isTrendingUp = last3[2] > last3[1] && last3[1] > last3[0];
+          const isTrendingDown = last3[2] < last3[1] && last3[1] < last3[0];
+          if (isTrendingUp) {
+            insights.push({
+              icon: TrendingUp,
+              text: 'Your recent scores are improving! The changes you are making are working.',
+              color: 'text-green-400',
+            });
+          }
+          if (isTrendingDown) {
+            insights.push({
+              icon: TrendingDown,
+              text: 'Your recent scores have been declining. Consider refreshing your content strategy.',
+              color: 'text-amber-400',
+            });
+          }
+        }
+
+        if (insights.length === 0) return null;
+
+        return (
+          <motion.div variants={item}>
+            <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+              Score Insights
+            </h3>
+            <Card className={cn('glass', insights.some((i) => i.glow) && 'glow-wine-sm')}>
+              <CardContent className="p-4 flex flex-col gap-3">
+                {insights.map((insight, i) => {
+                  const IIcon = insight.icon;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1, duration: 0.35, ease: 'easeOut' }}
+                      className={cn(
+                        'flex items-start gap-3 p-3 rounded-lg border',
+                        insight.glow
+                          ? 'border-wine-accent/20 bg-wine-accent/[0.05]'
+                          : 'border-white/[0.04] bg-white/[0.02]'
+                      )}
+                    >
+                      <div className={cn('h-8 w-8 rounded-full flex items-center justify-center shrink-0',
+                        insight.glow ? 'bg-wine-accent/15' : 'bg-white/[0.05]'
+                      )}>
+                        <IIcon className={cn('h-4 w-4', insight.color)} />
+                      </div>
+                      <p className="text-sm text-viralyze-white/80 leading-relaxed">
+                        {insight.text}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </motion.div>
+        );
+      })()}
+
+      {/* Performance Tracking - Predicted vs Actual */}
+      <motion.div variants={item}>
+        <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+          <Activity className="h-4 w-4 inline-block mr-1.5 -mt-0.5" />
+          Performance Tracking
+        </h3>
+        <Card className="glass">
+          <CardContent className="p-4">
+            {analysesOlderThan24h.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <div className="h-10 w-10 rounded-full bg-white/[0.04] flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-viralyze-muted/40" />
+                </div>
+                <p className="text-sm text-viralyze-muted">
+                  Track your content performance after 24 hours
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {analysesOlderThan24h.map((analysis) => {
+                  const isTracking = trackingExpandedId === analysis.id;
+                  const hasSaved = !!savedActuals[analysis.id];
+                  const PIcon = platformIcons[analysis.platform];
+
+                  // Compute accuracy if saved
+                  let accuracyPercent = 0;
+                  if (hasSaved) {
+                    const actual = savedActuals[analysis.id];
+                    const predicted = analysis.predictedEngagement;
+                    const fields = ['likes', 'comments', 'shares', 'saves'] as const;
+                    let totalOff = 0;
+                    let fieldsWithPrediction = 0;
+                    for (const f of fields) {
+                      const predVal = parseEngagementValue(predicted?.[f]);
+                      if (predVal > 0) {
+                        fieldsWithPrediction++;
+                        const offPct = Math.abs(actual[f] - predVal) / predVal * 100;
+                        totalOff += offPct;
+                      }
+                    }
+                    accuracyPercent = fieldsWithPrediction > 0 ? Math.round(100 - (totalOff / fieldsWithPrediction)) : 0;
+                    accuracyPercent = Math.max(0, Math.min(100, accuracyPercent));
+                  }
+
+                  return (
+                    <div
+                      key={analysis.id}
+                      className="rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden"
+                    >
+                      {/* Analysis row */}
+                      <div className="flex items-center gap-3 p-3">
+                        <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+                        <span className="text-sm text-viralyze-white flex-1 truncate">
+                          {analysis.title || 'Untitled'}
+                        </span>
+                        {hasSaved && (
+                          <span className={cn(
+                            'text-xs font-bold tabular-nums px-2 py-0.5 rounded-full border',
+                            getAccuracyBg(100 - accuracyPercent),
+                            getAccuracyColor(100 - accuracyPercent)
+                          )}>
+                            {accuracyPercent}% accurate
+                          </span>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={cn(
+                            'h-7 text-xs gap-1 shrink-0',
+                            isTracking ? 'text-wine-accent' : 'text-viralyze-muted hover:text-viralyze-white'
+                          )}
+                          onClick={() => {
+                            setTrackingExpandedId(isTracking ? null : analysis.id);
+                            if (!actualInputs[analysis.id]) {
+                              setActualInputs((prev) => ({
+                                ...prev,
+                                [analysis.id]: { likes: 0, comments: 0, shares: 0, saves: 0 },
+                              }));
+                            }
+                          }}
+                        >
+                          {hasSaved ? 'Update' : 'How did it perform?'}
+                          <motion.span
+                            animate={{ rotate: isTracking ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                          </motion.span>
+                        </Button>
+                      </div>
+
+                      {/* Expanded form / comparison */}
+                      <AnimatePresence>
+                        {isTracking && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-3 pb-3 border-t border-white/[0.04] pt-3">
+                              {/* Comparison if saved */}
+                              {hasSaved && (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                  {(['likes', 'comments', 'shares', 'saves'] as const).map((field) => {
+                                    const predVal = parseEngagementValue(analysis.predictedEngagement?.[field]);
+                                    const actVal = savedActuals[analysis.id][field];
+                                    const offPct = predVal > 0 ? Math.abs(actVal - predVal) / predVal * 100 : 0;
+                                    return (
+                                      <div key={field} className={cn(
+                                        'rounded-md border p-2 text-center',
+                                        getAccuracyBg(offPct)
+                                      )}>
+                                        <span className="text-[10px] text-viralyze-muted uppercase tracking-wider block mb-1">
+                                          {field}
+                                        </span>
+                                        <span className="text-xs text-viralyze-muted block">
+                                          Pred: {predVal > 0 ? (predVal >= 1000000 ? (predVal / 1000000).toFixed(1) + 'M' : predVal >= 1000 ? (predVal / 1000).toFixed(1) + 'K' : String(predVal)) : '—'}
+                                        </span>
+                                        <span className={cn('text-sm font-bold block', getAccuracyColor(offPct))}>
+                                          Act: {actVal >= 1000000 ? (actVal / 1000000).toFixed(1) + 'M' : actVal >= 1000 ? (actVal / 1000).toFixed(1) + 'K' : String(actVal)}
+                                        </span>
+                                        <span className={cn('text-[10px] font-medium block mt-0.5', getAccuracyColor(offPct))}>
+                                          {getAccuracyLabel(offPct)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Input form */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {(['likes', 'comments', 'shares', 'saves'] as const).map((field) => {
+                                  const current = actualInputs[analysis.id]?.[field] ?? 0;
+                                  return (
+                                    <div key={field} className="flex flex-col gap-1">
+                                      <label className="text-[10px] text-viralyze-muted uppercase tracking-wider">
+                                        Actual {field}
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={current}
+                                        onChange={(e) => {
+                                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                                          setActualInputs((prev) => ({
+                                            ...prev,
+                                            [analysis.id]: {
+                                              ...prev[analysis.id],
+                                              [field]: val,
+                                            },
+                                          }));
+                                        }}
+                                        className="h-8 w-full rounded-md bg-white/[0.05] border border-white/[0.08] text-sm text-viralyze-white text-center focus:outline-none focus:border-wine-accent/40 focus-glow-wine transition-all"
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="mt-3 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  className="h-8 text-xs bg-gradient-wine hover:opacity-90 text-white gap-1.5"
+                                  onClick={() => handleSaveActual(analysis.id)}
+                                >
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Save Performance
+                                </Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Platform Distribution */}
@@ -622,7 +994,7 @@ export default function DashboardView() {
                   className="glass cursor-pointer hover:bg-white/[0.03] transition-colors"
                   onClick={() => handleAnalysisClick(analysis.id)}
                 >
-                  <CardContent className="p-3 px-4 flex items-center gap-3">
+                  <CardContent className="p-4 flex items-center gap-3 min-h-[44px]">
                     <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
                     <span className="text-sm text-viralyze-white flex-1 truncate">
                       {analysis.title || 'Untitled'}

@@ -1,0 +1,658 @@
+     1→     1→     1→'use client';
+     2→     2→     2→
+     3→     3→     3→import { useState, useMemo } from 'react';
+     4→     4→     4→import { motion } from 'framer-motion';
+     5→     5→     5→import {
+     6→     6→     6→  Sparkles,
+     7→     7→     7→  FileText,
+     8→     8→     8→  BarChart3,
+     9→     9→     9→  TrendingUp,
+    10→    10→    10→  ArrowRight,
+    11→    11→    11→  Instagram,
+    12→    12→    12→  Youtube,
+    13→    13→    13→  Tv,
+    14→    14→    14→  Twitter,
+    15→    15→    15→  Linkedin,
+    16→    16→    16→  Search,
+    17→    17→    17→  Zap,
+    18→    18→    18→  Share2,
+    19→    19→    19→  Recycle,
+    20→    20→    20→  Trophy,
+    21→    21→    21→  RefreshCw,
+    22→    22→    22→} from 'lucide-react';
+    23→    23→    23→import { Card, CardContent } from '@/components/ui/card';
+    24→    24→    24→import { Badge } from '@/components/ui/badge';
+    25→    25→    25→import { Button } from '@/components/ui/button';
+    26→    26→    26→import { useAppStore } from '@/lib/store';
+    27→    27→    27→import type { Platform, Classification } from '@/lib/types';
+    28→    28→    28→import { cn } from '@/lib/utils';
+    29→    29→    29→
+    30→    30→    30→const platformIcons: Record<Platform, React.ElementType> = {
+    31→    31→    31→  instagram: Instagram,
+    32→    32→    32→  youtube: Youtube,
+    33→    33→    33→  tiktok: Tv,
+    34→    34→    34→  x: Twitter,
+    35→    35→    35→  linkedin: Linkedin,
+    36→    36→    36→};
+    37→    37→    37→
+    38→    38→    38→const platformLabels: Record<Platform, string> = {
+    39→    39→    39→  instagram: 'Instagram',
+    40→    40→    40→  youtube: 'YouTube',
+    41→    41→    41→  tiktok: 'TikTok',
+    42→    42→    42→  x: 'X',
+    43→    43→    43→  linkedin: 'LinkedIn',
+    44→    44→    44→};
+    45→    45→    45→
+    46→    46→    46→const classificationStyles: Record<Classification, string> = {
+    47→    47→    47→  low: 'bg-red-500/20 text-red-400',
+    48→    48→    48→  moderate: 'bg-amber-500/20 text-amber-400',
+    49→    49→    49→  high: 'bg-green-500/20 text-green-400',
+    50→    50→    50→  viral: 'bg-emerald-500/20 text-emerald-400',
+    51→    51→    51→};
+    52→    52→    52→
+    53→    53→    53→const classificationDotColors: Record<Classification, string> = {
+    54→    54→    54→  low: 'bg-red-400',
+    55→    55→    55→  moderate: 'bg-amber-400',
+    56→    56→    56→  high: 'bg-green-400',
+    57→    57→    57→  viral: 'bg-emerald-400',
+    58→    58→    58→};
+    59→    59→    59→
+    60→    60→    60→const container = {
+    61→    61→    61→  hidden: { opacity: 0 },
+    62→    62→    62→  show: {
+    63→    63→    63→    opacity: 1,
+    64→    64→    64→    transition: { staggerChildren: 0.08 },
+    65→    65→    65→  },
+    66→    66→    66→};
+    67→    67→    67→
+    68→    68→    68→const item = {
+    69→    69→    69→  hidden: { opacity: 0, y: 16 },
+    70→    70→    70→  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+    71→    71→    71→};
+    72→    72→    72→
+    73→    73→    73→function scoreBarColor(score: number): string {
+    74→    74→    74→  if (score >= 70) return 'bg-green-400';
+    75→    75→    75→  if (score >= 50) return 'bg-amber-400';
+    76→    76→    76→  return 'bg-red-400';
+    77→    77→    77→}
+    78→    78→    78→
+    79→    79→    79→function ScoreHistory({ scores }: { scores: number[] }) {
+    80→    80→    80→  if (scores.length === 0) return null;
+    81→    81→    81→
+    82→    82→    82→  // Take last 10 scores
+    83→    83→    83→  const recent = scores.slice(-10);
+    84→    84→    84→  const maxScore = 100;
+    85→    85→    85→
+    86→    86→    86→  return (
+    87→    87→    87→    <div className="flex items-end gap-1 h-12">
+    88→    88→    88→      {recent.map((score, i) => {
+    89→    89→    89→        const height = Math.max(4, (score / maxScore) * 100);
+    90→    90→    90→        return (
+    91→    91→    91→          <motion.div
+    92→    92→    92→            key={i}
+    93→    93→    93→            initial={{ height: 0, opacity: 0 }}
+    94→    94→    94→            animate={{ height: `${height}%`, opacity: 1 }}
+    95→    95→    95→            transition={{
+    96→    96→    96→              duration: 0.5,
+    97→    97→    97→              delay: i * 0.06,
+    98→    98→    98→              ease: 'easeOut',
+    99→    99→    99→            }}
+   100→   100→   100→            className={cn(
+   101→   101→   101→              'flex-1 rounded-sm min-w-[6px] max-w-[24px]',
+   102→   102→   102→              scoreBarColor(score)
+   103→   103→   103→            )}
+   104→   104→   104→            title={`Score: ${score}`}
+   105→   105→   105→          />
+   106→   106→   106→        );
+   107→   107→   107→      })}
+   108→   108→   108→    </div>
+   109→   109→   109→  );
+   110→   110→   110→}
+   111→   111→   111→
+   112→   112→   112→export default function DashboardView() {
+   113→   113→   113→  const { savedAnalyses, setCurrentView, setCurrentAnalysis, setPredictMode, setPrefilledIdea, setPredictPlatform, setPredictContentType, user } = useAppStore();
+   114→   114→   114→
+   115→   115→   115→  const totalAnalyses = savedAnalyses.length;
+   116→   116→   116→  const avgScore =
+   117→   117→   117→    totalAnalyses > 0
+   118→   118→   118→      ? Math.round(savedAnalyses.reduce((s, a) => s + a.overallScore, 0) / totalAnalyses)
+   119→   119→   119→      : 0;
+   120→   120→   120→  const bestScore =
+   121→   121→   121→    totalAnalyses > 0
+   122→   122→   122→      ? Math.max(...savedAnalyses.map((a) => a.overallScore))
+   123→   123→   123→      : 0;
+   124→   124→   124→
+   125→   125→   125→  const [viewingId, setViewingId] = useState<string | null>(null);
+   126→   126→   126→
+   127→   127→   127→  const recentAnalyses = savedAnalyses.slice(0, 5);
+   128→   128→   128→  const scoreHistory = savedAnalyses.map((a) => a.overallScore);
+   129→   129→   129→
+   130→   130→   130→  // Platform distribution counts
+   131→   131→   131→  const platformCounts = useMemo(() => {
+   132→   132→   132→    const counts: Record<Platform, number> = {
+   133→   133→   133→      instagram: 0,
+   134→   134→   134→      youtube: 0,
+   135→   135→   135→      tiktok: 0,
+   136→   136→   136→      x: 0,
+   137→   137→   137→      linkedin: 0,
+   138→   138→   138→    };
+   139→   139→   139→    savedAnalyses.forEach((a) => {
+   140→   140→   140→      counts[a.platform]++;
+   141→   141→   141→    });
+   142→   142→   142→    return counts;
+   143→   143→   143→  }, [savedAnalyses]);
+   144→   144→   144→
+   145→   145→   145→  const maxPlatformCount = Math.max(...Object.values(platformCounts), 1);
+   146→   146→   146→
+   147→   147→   147→  // Derive activity items from saved analyses
+   148→   148→   148→  const activityItems = useMemo(() => {
+   149→   149→   149→    if (savedAnalyses.length === 0) return [];
+   150→   150→   150→    return savedAnalyses.slice(0, 5).map((a) => {
+   151→   151→   151→      const PIcon = platformIcons[a.platform];
+   152→   152→   152→      const now = Date.now();
+   153→   153→   153→      const created = new Date(a.createdAt).getTime();
+   154→   154→   154→      const diffMs = now - created;
+   155→   155→   155→      const diffMin = Math.floor(diffMs / 60000);
+   156→   156→   156→      const diffHr = Math.floor(diffMs / 3600000);
+   157→   157→   157→      const diffDay = Math.floor(diffMs / 86400000);
+   158→   158→   158→      let timeStr: string;
+   159→   159→   159→      if (diffMin < 1) timeStr = 'Just now';
+   160→   160→   160→      else if (diffMin < 60) timeStr = `${diffMin} min ago`;
+   161→   161→   161→      else if (diffHr < 24) timeStr = `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+   162→   162→   162→      else timeStr = `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+   163→   163→   163→
+   164→   164→   164→      const accentColor = a.overallScore >= 80 ? 'text-emerald-400' : a.overallScore >= 60 ? 'text-green-400' : a.overallScore >= 40 ? 'text-amber-400' : 'text-red-400';
+   165→   165→   165→
+   166→   166→   166→      return {
+   167→   167→   167→        id: a.id,
+   168→   168→   168→        icon: PIcon,
+   169→   169→   169→        description: `Analyzed ${a.platform} content \u2014 Score: ${a.overallScore}`,
+   170→   170→   170→        time: timeStr,
+   171→   171→   171→        accentColor,
+   172→   172→   172→      };
+   173→   173→   173→    });
+   174→   174→   174→  }, [savedAnalyses]);
+   175→   175→   175→
+   176→   176→   176→  const handleAnalysisClick = async (id: string) => {
+   177→   177→   177→    try {
+   178→   178→   178→      setViewingId(id);
+   179→   179→   179→      const res = await fetch(`/api/library?id=${id}`);
+   180→   180→   180→      if (res.ok) {
+   181→   181→   181→        const data = await res.json();
+   182→   182→   182→        setCurrentAnalysis(data);
+   183→   183→   183→        setCurrentView('analysis');
+   184→   184→   184→      }
+   185→   185→   185→    } catch {
+   186→   186→   186→      // silently fail
+   187→   187→   187→    } finally {
+   188→   188→   188→      setViewingId(null);
+   189→   189→   189→    }
+   190→   190→   190→  };
+   191→   191→   191→
+   192→   192→   192→  const planLabel = user?.plan
+   193→   193→   193→    ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) + ' Plan'
+   194→   194→   194→    : 'Free Plan';
+   195→   195→   195→
+   196→   196→   196→  return (
+   197→   197→   197→    <motion.div
+   198→   198→   198→      variants={container}
+   199→   199→   199→      initial="hidden"
+   200→   200→   200→      animate="show"
+   201→   201→   201→      className="flex flex-col gap-6 max-w-5xl mx-auto"
+   202→   202→   202→    >
+   203→   203→   203→      {/* Welcome - Enhanced */}
+   204→   204→   204→      <motion.div variants={item}>
+   205→   205→   205→        <div className="flex items-center gap-2 flex-wrap">
+   206→   206→   206→          <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   207→   207→   207→            Welcome back, {user?.name || 'Creator'}
+   208→   208→   208→          </h2>
+   209→   209→   209→          <span className="animate-pulse-glow text-lg" aria-hidden="true">
+   210→   210→   210→            ✨
+   211→   211→   211→          </span>
+   212→   212→   212→        </div>
+   213→   213→   213→        <p className="text-viralyze-muted mt-1">
+   214→   214→   214→          Ready to predict your next viral hit?
+   215→   215→   215→        </p>
+   216→   216→   216→        <div className="mt-2">
+   217→   217→   217→          <Badge
+   218→   218→   218→            variant="outline"
+   219→   219→   219→            className="border-wine-accent/40 text-wine-accent text-xs"
+   220→   220→   220→          >
+   221→   221→   221→            {planLabel}
+   222→   222→   222→          </Badge>
+   223→   223→   223→        </div>
+   224→   224→   224→      </motion.div>
+   225→   225→   225→
+   226→   226→   226→      {/* CTA Cards with gradient mesh background and hover lift */}
+   227→   227→   227→      <motion.div variants={item} className="relative">
+   228→   228→   228→        {/* Gradient mesh background */}
+   229→   229→   229→        <div className="absolute -inset-8 pointer-events-none">
+   230→   230→   230→          <div className="absolute top-0 left-1/4 h-40 w-40 rounded-full bg-wine-accent/[0.07] blur-[80px]" />
+   231→   231→   231→          <div className="absolute bottom-0 right-1/4 h-32 w-32 rounded-full bg-wine/[0.05] blur-[60px]" />
+   232→   232→   232→        </div>
+   233→   233→   233→
+   234→   234→   234→        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4">
+   235→   235→   235→          <motion.div
+   236→   236→   236→            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+   237→   237→   237→          >
+   238→   238→   238→            <Card
+   239→   239→   239→              className="glass border-wine-accent/30 cursor-pointer group hover:border-wine-accent/60 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(127,29,58,0.2)] h-full"
+   240→   240→   240→              onClick={() => setCurrentView('predict')}
+   241→   241→   241→            >
+   242→   242→   242→              <CardContent className="p-6 flex items-center gap-4">
+   243→   243→   243→                <div className="h-12 w-12 rounded-xl bg-gradient-wine flex items-center justify-center shrink-0">
+   244→   244→   244→                  <Sparkles className="h-6 w-6 text-white" />
+   245→   245→   245→                </div>
+   246→   246→   246→                <div className="flex-1">
+   247→   247→   247→                  <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
+   248→   248→   248→                    Predict New Content
+   249→   249→   249→                  </h3>
+   250→   250→   250→                  <p className="text-sm text-viralyze-muted mt-0.5">
+   251→   251→   251→                    Analyze your idea before publishing
+   252→   252→   252→                  </p>
+   253→   253→   253→                </div>
+   254→   254→   254→                <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
+   255→   255→   255→              </CardContent>
+   256→   256→   256→            </Card>
+   257→   257→   257→          </motion.div>
+   258→   258→   258→
+   259→   259→   259→          <motion.div
+   260→   260→   260→            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+   261→   261→   261→          >
+   262→   262→   262→            <Card
+   263→   263→   263→              className="glass border-white/[0.06] cursor-pointer group hover:border-white/15 transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] h-full"
+   264→   264→   264→              onClick={() => { setPredictMode('post'); setCurrentView('predict'); }}
+   265→   265→   265→            >
+   266→   266→   266→              <CardContent className="p-6 flex items-center gap-4">
+   267→   267→   267→                <div className="h-12 w-12 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0">
+   268→   268→   268→                  <FileText className="h-6 w-6 text-viralyze-muted" />
+   269→   269→   269→                </div>
+   270→   270→   270→                <div className="flex-1">
+   271→   271→   271→                  <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
+   272→   272→   272→                    Analyze Existing Content
+   273→   273→   273→                  </h3>
+   274→   274→   274→                  <p className="text-sm text-viralyze-muted mt-0.5">
+   275→   275→   275→                    Score your drafted posts & captions
+   276→   276→   276→                  </p>
+   277→   277→   277→                </div>
+   278→   278→   278→                <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
+   279→   279→   279→              </CardContent>
+   280→   280→   280→            </Card>
+   281→   281→   281→          </motion.div>
+   282→   282→   282→        </div>
+   283→   283→   283→      </motion.div>
+   284→   284→   284→
+   285→   285→   285→      {/* Quick Stats with Score History */}
+   286→   286→   286→      <motion.div variants={item}>
+   287→   287→   287→        <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+   288→   288→   288→          Quick Stats
+   289→   289→   289→        </h3>
+   290→   290→   290→        <div className="grid grid-cols-3 gap-4">
+   291→   291→   291→          <Card className="glass">
+   292→   292→   292→            <CardContent className="p-4 flex flex-col items-center gap-1">
+   293→   293→   293→              <BarChart3 className="h-5 w-5 text-viralyze-muted mb-1" />
+   294→   294→   294→              <span className="text-2xl font-bold text-viralyze-white tabular-nums">
+   295→   295→   295→                {totalAnalyses}
+   296→   296→   296→              </span>
+   297→   297→   297→              <span className="text-xs text-viralyze-muted">Total Analyses</span>
+   298→   298→   298→            </CardContent>
+   299→   299→   299→          </Card>
+   300→   300→   300→          <Card className="glass">
+   301→   301→   301→            <CardContent className="p-4 flex flex-col items-center gap-1">
+   302→   302→   302→              <TrendingUp className="h-5 w-5 text-viralyze-muted mb-1" />
+   303→   303→   303→              <span className="text-2xl font-bold text-viralyze-white tabular-nums">
+   304→   304→   304→                {avgScore}
+   305→   305→   305→              </span>
+   306→   306→   306→              <span className="text-xs text-viralyze-muted">Avg Score</span>
+   307→   307→   307→            </CardContent>
+   308→   308→   308→          </Card>
+   309→   309→   309→          <Card className="glass">
+   310→   310→   310→            <CardContent className="p-4 flex flex-col items-center gap-1">
+   311→   311→   311→              <Sparkles className="h-5 w-5 text-wine-accent mb-1" />
+   312→   312→   312→              <span className="text-2xl font-bold text-wine-accent tabular-nums">
+   313→   313→   313→                {bestScore}
+   314→   314→   314→              </span>
+   315→   315→   315→              <span className="text-xs text-viralyze-muted">Best Score</span>
+   316→   316→   316→            </CardContent>
+   317→   317→   317→          </Card>
+   318→   318→   318→        </div>
+   319→   319→   319→
+   320→   320→   320→        {/* Score Leaderboard */}
+   321→   321→   321→        {totalAnalyses >= 2 && (() => {
+   322→   322→   322→          const top5 = [...savedAnalyses].sort((a, b) => b.overallScore - a.overallScore).slice(0, 5);
+   323→   323→   323→          const rankColors = ['text-yellow-400', 'text-gray-300', 'text-amber-600', 'text-viralyze-muted', 'text-viralyze-muted'];
+   324→   324→   324→          const rankBg = ['bg-yellow-400/10', 'bg-gray-300/10', 'bg-amber-600/10', 'bg-white/[0.02]', 'bg-white/[0.02]'];
+   325→   325→   325→          return (
+   326→   326→   326→            <motion.div variants={item}>
+   327→   327→   327→              <Card className="glass">
+   328→   328→   328→                <CardContent className="p-4">
+   329→   329→   329→                  <div className="flex items-center gap-2 mb-3">
+   330→   330→   330→                    <Trophy className="h-4 w-4 text-wine-accent" />
+   331→   331→   331→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   332→   332→   332→                      Score Leaderboard
+   333→   333→   333→                    </span>
+   334→   334→   334→                  </div>
+   335→   335→   335→                  <div className="flex flex-col gap-1.5">
+   336→   336→   336→                    {top5.map((a, i) => {
+   337→   337→   337→                      const PIcon = platformIcons[a.platform];
+   338→   338→   338→                      return (
+   339→   339→   339→                        <motion.div
+   340→   340→   340→                          key={a.id}
+   341→   341→   341→                          initial={{ opacity: 0, x: -12 }}
+   342→   342→   342→                          animate={{ opacity: 1, x: 0 }}
+   343→   343→   343→                          transition={{ delay: i * 0.08, duration: 0.3, ease: 'easeOut' }}
+   344→   344→   344→                          className="flex items-center gap-3 py-1.5"
+   345→   345→   345→                        >
+   346→   346→   346→                          <span className={cn('text-sm font-bold w-6 text-right tabular-nums', rankColors[i])}>
+   347→   347→   347→                            #{i + 1}
+   348→   348→   348→                          </span>
+   349→   349→   349→                          <PIcon className="h-3.5 w-3.5 text-viralyze-muted shrink-0" />
+   350→   350→   350→                          <span className="text-sm text-viralyze-white flex-1 truncate">
+   351→   351→   351→                            {(a.title || 'Untitled').length > 30
+   352→   352→   352→                              ? (a.title || 'Untitled').slice(0, 30) + '...'
+   353→   353→   353→                              : (a.title || 'Untitled')}
+   354→   354→   354→                          </span>
+   355→   355→   355→                          <span className={cn(
+   356→   356→   356→                            'text-xs font-bold tabular-nums px-2 py-0.5 rounded-full',
+   357→   357→   357→                            rankBg[i],
+   358→   358→   358→                            a.overallScore >= 85 ? 'text-emerald-400' : a.overallScore >= 65 ? 'text-green-400' : a.overallScore >= 40 ? 'text-amber-400' : 'text-red-400'
+   359→   359→   359→                          )}>
+   360→   360→   360→                            {a.overallScore}
+   361→   361→   361→                          </span>
+   362→   362→   362→                        </motion.div>
+   363→   363→   363→                      );
+   364→   364→   364→                    })}
+   365→   365→   365→                  </div>
+   366→   366→   366→                </CardContent>
+   367→   367→   367→              </Card>
+   368→   368→   368→            </motion.div>
+   369→   369→   369→          );
+   370→   370→   370→        })()}
+   371→   371→   371→
+   372→   372→   372→      {/* Score History Mini Bar Chart */}
+   373→   373→   373→        {scoreHistory.length > 0 && (
+   374→   374→   374→          <motion.div
+   375→   375→   375→            initial={{ opacity: 0, y: 12 }}
+   376→   376→   376→            animate={{ opacity: 1, y: 0 }}
+   377→   377→   377→            transition={{ duration: 0.5, delay: 0.4 }}
+   378→   378→   378→            className="mt-4"
+   379→   379→   379→          >
+   380→   380→   380→            <Card className="glass">
+   381→   381→   381→              <CardContent className="p-4">
+   382→   382→   382→                <div className="flex items-center justify-between mb-3">
+   383→   383→   383→                  <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   384→   384→   384→                    Score History
+   385→   385→   385→                  </span>
+   386→   386→   386→                  <div className="flex items-center gap-3 text-[10px] text-viralyze-muted/60">
+   387→   387→   387→                    <div className="flex items-center gap-1">
+   388→   388→   388→                      <div className="h-2 w-2 rounded-sm bg-green-400" />
+   389→   389→   389→                      70+
+   390→   390→   390→                    </div>
+   391→   391→   391→                    <div className="flex items-center gap-1">
+   392→   392→   392→                      <div className="h-2 w-2 rounded-sm bg-amber-400" />
+   393→   393→   393→                      50-69
+   394→   394→   394→                    </div>
+   395→   395→   395→                    <div className="flex items-center gap-1">
+   396→   396→   396→                      <div className="h-2 w-2 rounded-sm bg-red-400" />
+   397→   397→   397→                      &lt;50
+   398→   398→   398→                    </div>
+   399→   399→   399→                  </div>
+   400→   400→   400→                </div>
+   401→   401→   401→                <ScoreHistory scores={scoreHistory} />
+   402→   402→   402→              </CardContent>
+   403→   403→   403→            </Card>
+   404→   404→   404→          </motion.div>
+   405→   405→   405→        )}
+   406→   406→   406→      </motion.div>
+   407→   407→   407→
+   408→   408→   408→      {/* Platform Distribution */}
+   409→   409→   409→      <motion.div variants={item}>
+   410→   410→   410→        <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+   411→   411→   411→          Platform Distribution
+   412→   412→   412→        </h3>
+   413→   413→   413→        <Card className="glass">
+   414→   414→   414→          <CardContent className="p-4">
+   415→   415→   415→            {totalAnalyses === 0 ? (
+   416→   416→   416→              <p className="text-sm text-viralyze-muted text-center py-4">
+   417→   417→   417→                No data yet
+   418→   418→   418→              </p>
+   419→   419→   419→            ) : (
+   420→   420→   420→              <div className="flex flex-col gap-2.5">
+   421→   421→   421→                {(Object.keys(platformIcons) as Platform[]).map((platform) => {
+   422→   422→   422→                  const count = platformCounts[platform];
+   423→   423→   423→                  if (count === 0) return null;
+   424→   424→   424→                  const PIcon = platformIcons[platform];
+   425→   425→   425→                  const barWidth = (count / maxPlatformCount) * 100;
+   426→   426→   426→                  return (
+   427→   427→   427→                    <div key={platform} className="flex items-center gap-3">
+   428→   428→   428→                      <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   429→   429→   429→                      <span className="text-xs text-viralyze-muted w-20 shrink-0">
+   430→   430→   430→                        {platformLabels[platform]}
+   431→   431→   431→                      </span>
+   432→   432→   432→                      <div className="flex-1 flex items-center gap-2">
+   433→   433→   433→                        <div className="flex-1 h-3 rounded-full bg-wine-accent/10 overflow-hidden">
+   434→   434→   434→                          <motion.div
+   435→   435→   435→                            initial={{ width: 0 }}
+   436→   436→   436→                            animate={{ width: `${barWidth}%` }}
+   437→   437→   437→                            transition={{ duration: 0.6, ease: 'easeOut' }}
+   438→   438→   438→                            className="h-full rounded-full bg-wine-accent/60"
+   439→   439→   439→                          />
+   440→   440→   440→                        </div>
+   441→   441→   441→                        <span className="text-xs font-medium text-viralyze-white tabular-nums w-6 text-right">
+   442→   442→   442→                          {count}
+   443→   443→   443→                        </span>
+   444→   444→   444→                      </div>
+   445→   445→   445→                    </div>
+   446→   446→   446→                  );
+   447→   447→   447→                })}
+   448→   448→   448→              </div>
+   449→   449→   449→            )}
+   450→   450→   450→          </CardContent>
+   451→   451→   451→        </Card>
+   452→   452→   452→      </motion.div>
+   453→   453→   453→
+   454→   454→   454→      {/* Top Strengths Summary */}
+   455→   455→   455→      <motion.div variants={item}>
+   456→   456→   456→        <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+   457→   457→   457→          Top Strengths
+   458→   458→   458→        </h3>
+   459→   459→   459→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+   460→   460→   460→          <Card className="glass">
+   461→   461→   461→            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+   462→   462→   462→              <div className="h-10 w-10 rounded-full bg-wine-accent/15 flex items-center justify-center">
+   463→   463→   463→                <Zap className="h-5 w-5 text-wine-accent" />
+   464→   464→   464→              </div>
+   465→   465→   465→              <span className="text-sm font-medium text-viralyze-white">Strong Hooks</span>
+   466→   466→   466→              <span className="text-xs text-viralyze-muted">Keep it up!</span>
+   467→   467→   467→            </CardContent>
+   468→   468→   468→          </Card>
+   469→   469→   469→          <Card className="glass">
+   470→   470→   470→            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+   471→   471→   471→              <div className="h-10 w-10 rounded-full bg-wine-accent/15 flex items-center justify-center">
+   472→   472→   472→                <TrendingUp className="h-5 w-5 text-wine-accent" />
+   473→   473→   473→              </div>
+   474→   474→   474→              <span className="text-sm font-medium text-viralyze-white">High Engagement</span>
+   475→   475→   475→              <span className="text-xs text-viralyze-muted">Keep it up!</span>
+   476→   476→   476→            </CardContent>
+   477→   477→   477→          </Card>
+   478→   478→   478→          <Card className="glass">
+   479→   479→   479→            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+   480→   480→   480→              <div className="h-10 w-10 rounded-full bg-wine-accent/15 flex items-center justify-center">
+   481→   481→   481→                <Share2 className="h-5 w-5 text-wine-accent" />
+   482→   482→   482→              </div>
+   483→   483→   483→              <span className="text-sm font-medium text-viralyze-white">Great Shareability</span>
+   484→   484→   484→              <span className="text-xs text-viralyze-muted">Keep it up!</span>
+   485→   485→   485→            </CardContent>
+   486→   486→   486→          </Card>
+   487→   487→   487→        </div>
+   488→   488→   488→      </motion.div>
+   489→   489→   489→
+   490→   490→   490→      {/* Content Recycler */}
+   491→   491→   491→      {totalAnalyses >= 1 && (() => {
+   492→   492→   492→        const bottom3 = [...savedAnalyses].sort((a, b) => a.overallScore - b.overallScore).slice(0, 3);
+   493→   493→   493→        return (
+   494→   494→   494→          <motion.div variants={item}>
+   495→   495→   495→            <Card className="glass">
+   496→   496→   496→              <CardContent className="p-4">
+   497→   497→   497→                <div className="flex items-center gap-2 mb-2">
+   498→   498→   498→                  <Recycle className="h-4 w-4 text-wine-accent" />
+   499→   499→   499→                  <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   500→   500→   500→                    Content Recycler
+   501→   501→   501→                  </span>
+   502→   502→   502→                </div>
+   503→   503→   503→                <p className="text-xs text-viralyze-muted/70 mb-3">
+   504→   504→   504→                  Breathe new life into your content
+   505→   505→   505→                </p>
+   506→   506→   506→                <div className="flex flex-col gap-2">
+   507→   507→   507→                  {bottom3.map((a, i) => {
+   508→   508→   508→                    const PIcon = platformIcons[a.platform];
+   509→   509→   509→                    const scoreColor = a.overallScore < 40 ? 'text-red-400' : 'text-amber-400';
+   510→   510→   510→                    const scoreBg = a.overallScore < 40 ? 'bg-red-500/15' : 'bg-amber-500/15';
+   511→   511→   511→                    return (
+   512→   512→   512→                      <motion.div
+   513→   513→   513→                        key={a.id}
+   514→   514→   514→                        initial={{ opacity: 0, y: 8 }}
+   515→   515→   515→                        animate={{ opacity: 1, y: 0 }}
+   516→   516→   516→                        transition={{ delay: i * 0.1, duration: 0.35, ease: 'easeOut' }}
+   517→   517→   517→                        className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-colors"
+   518→   518→   518→                      >
+   519→   519→   519→                        <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   520→   520→   520→                        <span className="text-sm text-viralyze-white flex-1 truncate">
+   521→   521→   521→                          {a.title || 'Untitled'}
+   522→   522→   522→                        </span>
+   523→   523→   523→                        <span className={cn('text-xs font-bold tabular-nums px-2 py-0.5 rounded-full', scoreBg, scoreColor)}>
+   524→   524→   524→                          {a.overallScore}
+   525→   525→   525→                        </span>
+   526→   526→   526→                        <Button
+   527→   527→   527→                          size="sm"
+   528→   528→   528→                          variant="ghost"
+   529→   529→   529→                          className="h-7 gap-1 text-xs text-wine-accent hover:text-wine-accent/80 hover:bg-wine-accent/10 shrink-0"
+   530→   530→   530→                          onClick={(e) => {
+   531→   531→   531→                            e.stopPropagation();
+   532→   532→   532→                            setPrefilledIdea(a.contentText || a.ideaText || a.title);
+   533→   533→   533→                            setPredictPlatform(a.platform);
+   534→   534→   534→                            setPredictContentType(a.contentType);
+   535→   535→   535→                            setCurrentView('predict');
+   536→   536→   536→                          }}
+   537→   537→   537→                        >
+   538→   538→   538→                          <RefreshCw className="h-3 w-3" />
+   539→   539→   539→                          Re-analyze
+   540→   540→   540→                        </Button>
+   541→   541→   541→                      </motion.div>
+   542→   542→   542→                    );
+   543→   543→   543→                  })}
+   544→   544→   544→                </div>
+   545→   545→   545→              </CardContent>
+   546→   546→   546→            </Card>
+   547→   547→   547→          </motion.div>
+   548→   548→   548→        );
+   549→   549→   549→      })()}
+   550→   550→   550→
+   551→   551→   551→      {/* Activity Feed */}
+   552→   552→   552→      {activityItems.length > 0 && (
+   553→   553→   553→        <motion.div variants={item}>
+   554→   554→   554→          <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider mb-3">
+   555→   555→   555→            Recent Activity
+   556→   556→   556→          </h3>
+   557→   557→   557→          <Card className="glass">
+   558→   558→   558→            <CardContent className="p-4 flex flex-col gap-0 divide-y divide-white/[0.04]">
+   559→   559→   559→              {activityItems.map((act, i) => {
+   560→   560→   560→                const AIcon = act.icon;
+   561→   561→   561→                return (
+   562→   562→   562→                  <motion.div
+   563→   563→   563→                    key={act.id}
+   564→   564→   564→                    initial={{ opacity: 0, x: -8 }}
+   565→   565→   565→                    animate={{ opacity: 1, x: 0 }}
+   566→   566→   566→                    transition={{ delay: i * 0.08, duration: 0.3 }}
+   567→   567→   567→                    className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+   568→   568→   568→                  >
+   569→   569→   569→                    <div className={cn("h-8 w-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0", act.accentColor)}>
+   570→   570→   570→                      <AIcon className="h-3.5 w-3.5" />
+   571→   571→   571→                    </div>
+   572→   572→   572→                    <p className="text-sm text-viralyze-white flex-1">{act.description}</p>
+   573→   573→   573→                    <span className="text-xs text-viralyze-muted shrink-0">{act.time}</span>
+   574→   574→   574→                  </motion.div>
+   575→   575→   575→                );
+   576→   576→   576→              })}
+   577→   577→   577→            </CardContent>
+   578→   578→   578→          </Card>
+   579→   579→   579→        </motion.div>
+   580→   580→   580→      )}
+   581→   581→   581→
+   582→   582→   582→      {/* Recent Analyses - Enhanced */}
+   583→   583→   583→      <motion.div variants={item}>
+   584→   584→   584→        <div className="flex items-center justify-between mb-3">
+   585→   585→   585→          <h3 className="text-sm font-medium text-viralyze-muted uppercase tracking-wider">
+   586→   586→   586→            Recent Analyses
+   587→   587→   587→          </h3>
+   588→   588→   588→          {savedAnalyses.length > 5 && (
+   589→   589→   589→            <button
+   590→   590→   590→              onClick={() => setCurrentView('library')}
+   591→   591→   591→              className="text-xs text-wine-accent hover:underline"
+   592→   592→   592→            >
+   593→   593→   593→              View all
+   594→   594→   594→            </button>
+   595→   595→   595→          )}
+   596→   596→   596→        </div>
+   597→   597→   597→
+   598→   598→   598→        {recentAnalyses.length === 0 ? (
+   599→   599→   599→          <Card className="border-dashed border-2 border-white/[0.08] bg-transparent">
+   600→   600→   600→            <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
+   601→   601→   601→              <div className="relative">
+   602→   602→   602→                <Search className="h-12 w-12 text-viralyze-muted/20" />
+   603→   603→   603→                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-wine-accent/20" />
+   604→   604→   604→              </div>
+   605→   605→   605→              <div>
+   606→   606→   606→                <p className="text-viralyze-muted text-sm font-medium">No analyses yet</p>
+   607→   607→   607→                <p className="text-viralyze-muted/50 text-xs mt-1">
+   608→   608→   608→                  Your recent content predictions will appear here.
+   609→   609→   609→                  <br />
+   610→   610→   610→                  Start by analyzing your first piece of content.
+   611→   611→   611→                </p>
+   612→   612→   612→              </div>
+   613→   613→   613→            </CardContent>
+   614→   614→   614→          </Card>
+   615→   615→   615→        ) : (
+   616→   616→   616→          <div className="flex flex-col gap-2">
+   617→   617→   617→            {recentAnalyses.map((analysis) => {
+   618→   618→   618→              const PIcon = platformIcons[analysis.platform];
+   619→   619→   619→              return (
+   620→   620→   620→                <Card
+   621→   621→   621→                  key={analysis.id}
+   622→   622→   622→                  className="glass cursor-pointer hover:bg-white/[0.03] transition-colors"
+   623→   623→   623→                  onClick={() => handleAnalysisClick(analysis.id)}
+   624→   624→   624→                >
+   625→   625→   625→                  <CardContent className="p-3 px-4 flex items-center gap-3">
+   626→   626→   626→                    <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   627→   627→   627→                    <span className="text-sm text-viralyze-white flex-1 truncate">
+   628→   628→   628→                      {analysis.title || 'Untitled'}
+   629→   629→   629→                    </span>
+   630→   630→   630→                    <div className="flex items-center gap-1.5">
+   631→   631→   631→                      <span
+   632→   632→   632→                        className={cn(
+   633→   633→   633→                          'h-2 w-2 rounded-full shrink-0',
+   634→   634→   634→                          classificationDotColors[analysis.classification]
+   635→   635→   635→                        )}
+   636→   636→   636→                        aria-hidden="true"
+   637→   637→   637→                      />
+   638→   638→   638→                      <Badge
+   639→   639→   639→                        variant="outline"
+   640→   640→   640→                        className={cn('text-xs', classificationStyles[analysis.classification])}
+   641→   641→   641→                      >
+   642→   642→   642→                        {analysis.overallScore}
+   643→   643→   643→                      </Badge>
+   644→   644→   644→                    </div>
+   645→   645→   645→                    <span className="text-xs text-viralyze-muted hidden sm:block">
+   646→   646→   646→                      {new Date(analysis.createdAt).toLocaleDateString()}
+   647→   647→   647→                    </span>
+   648→   648→   648→                  </CardContent>
+   649→   649→   649→                </Card>
+   650→   650→   650→              );
+   651→   651→   651→            })}
+   652→   652→   652→          </div>
+   653→   653→   653→        )}
+   654→   654→   654→      </motion.div>
+   655→   655→   655→    </motion.div>
+   656→   656→   656→  );
+   657→   657→   657→}
+   658→   658→   658→

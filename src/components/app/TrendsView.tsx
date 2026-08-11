@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock, Lightbulb, Search, Bookmark, BookmarkCheck, Sparkles } from 'lucide-react';
+import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock, Lightbulb, Search, Bookmark, BookmarkCheck, Sparkles, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,6 +37,7 @@ interface MockTrend {
   growth: string;
   platforms: Platform[];
   category: string;
+  description?: string;
 }
 
 interface TrendCategory {
@@ -50,38 +51,38 @@ const fallbackTrendData: TrendCategory[] = [
     category: 'Technology',
     icon: Flame,
     trends: [
-      { name: 'AI-powered content creation tools', heat: 5, growth: '+142%', platforms: ['youtube', 'tiktok', 'x'], category: 'technology', label: 'Hot' },
-      { name: 'Claude vs ChatGPT comparisons', heat: 4, growth: '+89%', platforms: ['youtube', 'x'], category: 'technology' },
-      { name: 'Apple Vision Pro apps', heat: 3, growth: '+67%', platforms: ['youtube', 'instagram'], category: 'technology' },
-      { name: 'No-code app builders', heat: 3, growth: '+54%', platforms: ['youtube', 'tiktok'], category: 'technology' },
+      { name: 'AI-powered content creation tools', heat: 5, growth: '+142%', platforms: ['youtube', 'tiktok', 'x'], category: 'technology', label: 'Hot', description: 'AI tools for generating, editing, and optimizing social media content are exploding in popularity across creator communities.' },
+      { name: 'Claude vs ChatGPT comparisons', heat: 4, growth: '+89%', platforms: ['youtube', 'x'], category: 'technology', description: 'Head-to-head AI model comparisons drive massive engagement as users seek the best tool for their workflows.' },
+      { name: 'Apple Vision Pro apps', heat: 3, growth: '+67%', platforms: ['youtube', 'instagram'], category: 'technology', description: 'Spatial computing apps and use cases continue to gain traction as early adopters share experiences.' },
+      { name: 'No-code app builders', heat: 3, growth: '+54%', platforms: ['youtube', 'tiktok'], category: 'technology', description: 'Building apps without coding remains a popular topic with tutorials and showcase content performing well.' },
     ],
   },
   {
     category: 'Social Media',
     icon: TrendingUp,
     trends: [
-      { name: 'Day in the life content format', heat: 5, growth: '+201%', platforms: ['instagram', 'tiktok'], category: 'social media', label: 'Hot' },
-      { name: 'Storytelling carousels', heat: 4, growth: '+156%', platforms: ['instagram', 'linkedin'], category: 'social media', label: 'Rising' },
-      { name: 'Authentic behind-the-scenes', heat: 4, growth: '+98%', platforms: ['instagram', 'tiktok', 'youtube'], category: 'social media' },
-      { name: 'AI-generated thumbnails', heat: 3, growth: '+78%', platforms: ['youtube'], category: 'social media' },
+      { name: 'Day in the life content format', heat: 5, growth: '+201%', platforms: ['instagram', 'tiktok'], category: 'social media', label: 'Hot', description: 'Authentic daily routines and lifestyle content continues to dominate short-form video with high save rates.' },
+      { name: 'Storytelling carousels', heat: 4, growth: '+156%', platforms: ['instagram', 'linkedin'], category: 'social media', label: 'Rising', description: 'Multi-slide educational carousels with narrative structures are driving high engagement on Instagram and LinkedIn.' },
+      { name: 'Authentic behind-the-scenes', heat: 4, growth: '+98%', platforms: ['instagram', 'tiktok', 'youtube'], category: 'social media', description: 'Unfiltered behind-the-scenes content showing real work processes resonates strongly with audiences.' },
+      { name: 'AI-generated thumbnails', heat: 3, growth: '+78%', platforms: ['youtube'], category: 'social media', description: 'Creators experimenting with AI tools for thumbnail design is sparking debate and driving curiosity clicks.' },
     ],
   },
   {
     category: 'Business',
     icon: ArrowUpRight,
     trends: [
-      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'], category: 'business', label: 'Hot' },
-      { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'], category: 'business' },
-      { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'], category: 'business' },
+      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'], category: 'business', label: 'Hot', description: 'Documenting the real journey of building a business alone creates deep audience connection and loyalty.' },
+      { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'], category: 'business', description: 'Testing and sharing real results from passive income strategies drives high comments and shares.' },
+      { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'], category: 'business', description: 'Regular transparency updates about product development attract engaged niche communities.' },
     ],
   },
   {
     category: 'Culture',
     icon: Flame,
     trends: [
-      { name: 'Nostalgia content (90s/2000s)', heat: 4, growth: '+134%', platforms: ['tiktok', 'instagram'], category: 'culture', label: 'Rising' },
-      { name: 'POV-style educational content', heat: 4, growth: '+112%', platforms: ['tiktok', 'instagram'], category: 'culture' },
-      { name: 'Cultural commentary', heat: 3, growth: '+65%', platforms: ['youtube', 'x'], category: 'culture' },
+      { name: 'Nostalgia content (90s/2000s)', heat: 4, growth: '+134%', platforms: ['tiktok', 'instagram'], category: 'culture', label: 'Rising', description: 'Throwback content tapping into collective nostalgia memories drives high shares and comments.' },
+      { name: 'POV-style educational content', heat: 4, growth: '+112%', platforms: ['tiktok', 'instagram'], category: 'culture', description: 'Point-of-view educational content that puts viewers in specific scenarios is a powerful engagement format.' },
+      { name: 'Cultural commentary', heat: 3, growth: '+65%', platforms: ['youtube', 'x'], category: 'culture', description: 'Thoughtful analysis of cultural trends and phenomena attracts niche but highly engaged audiences.' },
     ],
   },
 ];
@@ -141,14 +142,30 @@ function HeatIndicator({ heat }: { heat: number }) {
 }
 
 function HeatBar({ heat }: { heat: number }) {
+  const heatColor = heat >= 5 ? 'from-wine-accent via-orange-400 to-red-500' : heat >= 4 ? 'from-wine-accent via-orange-400 to-wine-accent' : heat >= 3 ? 'from-wine-accent/80 via-amber-400 to-wine-accent/80' : 'from-wine-accent/50 via-amber-400/50 to-wine-accent/50';
   return (
-    <div className="h-1 rounded-full bg-white/[0.06] w-full overflow-hidden">
+    <div className="h-1.5 rounded-full bg-white/[0.06] w-full overflow-hidden relative">
+      {/* Heat level segments (1-5) */}
+      <div className="absolute inset-0 flex">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex-1 border-r border-white/[0.04] last:border-r-0" />
+        ))}
+      </div>
       <motion.div
-        className="h-full rounded-full bg-gradient-to-r from-wine-accent via-orange-400 to-wine-accent"
+        className={cn('h-full rounded-full bg-gradient-to-r', heatColor)}
         initial={{ width: 0 }}
         animate={{ width: `${(heat / 5) * 100}%` }}
         transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
       />
+      {/* Glow at the tip */}
+      {heat >= 4 && (
+        <motion.div
+          className="absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-orange-400/40 blur-sm pointer-events-none"
+          initial={{ opacity: 0, left: 0 }}
+          animate={{ opacity: [0.4, 0.8, 0.4], left: `${(heat / 5) * 100}%`, x: '-5px' }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2, opacity: { repeat: Infinity, duration: 1.5 } }}
+        />
+      )}
     </div>
   );
 }
@@ -197,6 +214,37 @@ export default function TrendsView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
   const [bookmarkedTrends, setBookmarkedTrends] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(filteredTrendData.map((c) => c.category)));
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+
+  const allCategoriesExpanded = filteredTrendData.length > 0 && filteredTrendData.every((c) => expandedCategories.has(c.category));
+  const allCategoriesCollapsed = filteredTrendData.every((c) => !expandedCategories.has(c.category));
+
+  const toggleExpandAll = () => {
+    if (allCategoriesExpanded) {
+      setExpandedCategories(new Set());
+    } else {
+      setExpandedCategories(new Set(filteredTrendData.map((c) => c.category)));
+    }
+  };
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
+
+  const toggleDescription = (trendName: string) => {
+    setExpandedDescriptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(trendName)) next.delete(trendName);
+      else next.add(trendName);
+      return next;
+    });
+  };
 
   const handleUseAsIdea = (trendName: string) => {
     setPrefilledIdea(`Create content about: ${trendName}`);
@@ -343,20 +391,28 @@ export default function TrendsView() {
         </Button>
       </motion.div>
 
-      {/* Search input */}
+      {/* Search input with gradient shift on focus */}
       <motion.div variants={item} className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted/50 pointer-events-none" />
+        <motion.div
+          className="absolute inset-0 rounded-lg pointer-events-none z-0 opacity-0 transition-opacity duration-500"
+          style={{
+            background: 'linear-gradient(135deg, rgba(127,29,58,0.08) 0%, rgba(184,50,90,0.12) 50%, rgba(74,16,36,0.06) 100%)',
+          }}
+          animate={{ opacity: searchQuery ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted/50 pointer-events-none z-10" />
         <input
           type="text"
           placeholder="Search trends..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-10 pl-10 pr-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-viralyze-white placeholder:text-viralyze-muted/40 focus:outline-none focus-glow-wine transition-all duration-200"
+          className="w-full h-10 pl-10 pr-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-viralyze-white placeholder:text-viralyze-muted/40 focus:outline-none focus-glow-wine focus:border-wine-accent/40 transition-all duration-200 relative z-10"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-viralyze-muted/40 hover:text-viralyze-white transition-colors text-xs"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-viralyze-muted/40 hover:text-viralyze-white transition-colors text-xs z-10"
           >
             Clear
           </button>
@@ -395,13 +451,25 @@ export default function TrendsView() {
             {filteredTrendData.map((cat) => {
               const CatIcon = cat.icon;
               return (
-                <motion.div key={cat.category} variants={item} className="mb-8 last:mb-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CatIcon className="h-4 w-4 text-wine-accent" />
-                    <h3 className="text-sm font-semibold text-viralyze-white uppercase tracking-wider">
-                      {cat.category}
-                    </h3>
-                  </div>
+                <motion.div
+                  key={cat.category}
+                  variants={item}
+                  className="mb-8 last:mb-0"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CatIcon className="h-4 w-4 text-wine-accent" />
+                      <h3 className="text-sm font-semibold text-viralyze-white uppercase tracking-wider">
+                        {cat.category}
+                      </h3>
+                      <span className="text-[10px] text-viralyze-muted/50 tabular-nums">{cat.trends.length} trends</span>
+                    </div>
+                  </motion.div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {cat.trends.map((trend, i) => {
                       const isBookmarked = bookmarkedTrends.has(trend.name);
@@ -413,21 +481,59 @@ export default function TrendsView() {
                         <Card
                           key={i}
                           className={cn(
-                            'glass group hover:bg-white/[0.03] hover:glow-wine-sm transition-all duration-300 relative',
+                            'glass group hover:bg-white/[0.03] transition-all duration-300 relative overflow-hidden',
                             hasPulseLabel && 'animate-pulse-glow'
                           )}
                         >
-                          <CardContent className="p-4 relative">
-                            {/* Hot / Rising pulse label */}
+                          {/* Glass-morphism shimmer on hover */}
+                          <motion.div
+                            className="absolute inset-0 pointer-events-none z-10"
+                            initial={{ backgroundPosition: '200% 0' }}
+                            whileHover={{ backgroundPosition: '-200% 0' }}
+                            transition={{ duration: 1, ease: 'easeInOut' }}
+                            style={{
+                              background: 'linear-gradient(105deg, transparent 35%, rgba(184,50,90,0.04) 42%, rgba(255,255,255,0.02) 50%, rgba(184,50,90,0.04) 58%, transparent 65%)',
+                              backgroundSize: '200% 100%',
+                            }}
+                          />
+                          {/* Glowing border on hover */}
+                          <motion.div
+                            className="absolute inset-0 rounded-lg pointer-events-none z-0"
+                            initial={{ boxShadow: '0 0 0px rgba(184,50,90,0)' }}
+                            whileHover={{
+                              boxShadow: '0 0 16px rgba(184,50,90,0.12), 0 0 32px rgba(127,29,58,0.06)',
+                            }}
+                            transition={{ duration: 0.4 }}
+                          />
+                          <CardContent className="p-4 relative z-10">
+                            {/* Hot / Rising pulse label with pulsing dot */}
                             {hasPulseLabel && (
-                              <div className="absolute top-2 right-2">
+                              <div className="absolute top-2 right-2 z-20">
                                 <span className={cn(
-                                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+                                  'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
                                   isHot
                                     ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
                                     : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                                 )}>
-                                  <Flame className="h-2.5 w-2.5" />
+                                  <motion.span
+                                    className={cn(
+                                      'h-1.5 w-1.5 rounded-full',
+                                      isHot ? 'bg-orange-400' : 'bg-emerald-400'
+                                    )}
+                                    animate={{ opacity: [1, 0.3, 1], scale: [1, 0.7, 1] }}
+                                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                                  />
+                                  {isHot ? (
+                                    <motion.span
+                                      className="inline-block"
+                                      animate={{ rotate: [0, -8, 8, -6, 6, 0] }}
+                                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
+                                    >
+                                      <Flame className="h-2.5 w-2.5" />
+                                    </motion.span>
+                                  ) : (
+                                    <Flame className="h-2.5 w-2.5" />
+                                  )}
                                   {isHot ? 'Hot' : 'Rising'}
                                 </span>
                               </div>
@@ -462,14 +568,17 @@ export default function TrendsView() {
                                 </div>
                               </div>
                             </div>
-                            {/* Bookmark button */}
-                            <button
+                            {/* Bookmark button with scale animation */}
+                            <motion.button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleBookmark(trend.name);
                               }}
+                              whileHover={{ scale: 1.15 }}
+                              whileTap={{ scale: 0.8 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                               className={cn(
-                                'absolute bottom-3 left-3 h-7 w-7 rounded-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100',
+                                'absolute bottom-3 left-3 h-7 w-7 rounded-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 z-20',
                                 isBookmarked
                                   ? 'bg-wine-accent/20 text-wine-accent opacity-100'
                                   : 'bg-white/[0.06] text-viralyze-muted hover:text-viralyze-white'
@@ -481,7 +590,7 @@ export default function TrendsView() {
                               ) : (
                                 <Bookmark className="h-3.5 w-3.5" />
                               )}
-                            </button>
+                            </motion.button>
                             {/* Use as Idea button — visible on hover */}
                             <Button
                               size="sm"

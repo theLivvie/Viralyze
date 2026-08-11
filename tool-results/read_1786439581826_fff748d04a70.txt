@@ -1,0 +1,627 @@
+     1→'use client';
+     2→
+     3→import { useState, useCallback, useEffect, useMemo } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import { TrendingUp, Instagram, Youtube, Tv, Twitter, Linkedin, Flame, ArrowUpRight, RefreshCw, Loader2, AlertCircle, Clock, Lightbulb, Search, Bookmark, BookmarkCheck, Sparkles } from 'lucide-react';
+     6→import { toast } from 'sonner';
+     7→import { useAppStore } from '@/lib/store';
+     8→import { Card, CardContent } from '@/components/ui/card';
+     9→import { Button } from '@/components/ui/button';
+    10→import type { Platform } from '@/lib/types';
+    11→import { cn } from '@/lib/utils';
+    12→
+    13→const platformIcons: Record<Platform, React.ElementType> = {
+    14→  instagram: Instagram,
+    15→  youtube: Youtube,
+    16→  tiktok: Tv,
+    17→  x: Twitter,
+    18→  linkedin: Linkedin,
+    19→};
+    20→
+    21→const filterCategories = ['All', 'Technology', 'Entertainment', 'Lifestyle', 'Business', 'Health'] as const;
+    22→type FilterCategory = (typeof filterCategories)[number];
+    23→
+    24→// Map filter categories to the trend data categories
+    25→const filterToDataCategory: Record<string, string[]> = {
+    26→  All: [],
+    27→  Technology: ['technology'],
+    28→  Entertainment: ['social media', 'culture'],
+    29→  Lifestyle: ['culture', 'social media'],
+    30→  Business: ['business'],
+    31→  Health: ['health & wellness', 'health'],
+    32→};
+    33→
+    34→interface MockTrend {
+    35→  name: string;
+    36→  heat: number;
+    37→  growth: string;
+    38→  platforms: Platform[];
+    39→  category: string;
+    40→}
+    41→
+    42→interface TrendCategory {
+    43→  category: string;
+    44→  icon: React.ElementType;
+    45→  trends: MockTrend[];
+    46→}
+    47→
+    48→const fallbackTrendData: TrendCategory[] = [
+    49→  {
+    50→    category: 'Technology',
+    51→    icon: Flame,
+    52→    trends: [
+    53→      { name: 'AI-powered content creation tools', heat: 5, growth: '+142%', platforms: ['youtube', 'tiktok', 'x'], category: 'technology', label: 'Hot' },
+    54→      { name: 'Claude vs ChatGPT comparisons', heat: 4, growth: '+89%', platforms: ['youtube', 'x'], category: 'technology' },
+    55→      { name: 'Apple Vision Pro apps', heat: 3, growth: '+67%', platforms: ['youtube', 'instagram'], category: 'technology' },
+    56→      { name: 'No-code app builders', heat: 3, growth: '+54%', platforms: ['youtube', 'tiktok'], category: 'technology' },
+    57→    ],
+    58→  },
+    59→  {
+    60→    category: 'Social Media',
+    61→    icon: TrendingUp,
+    62→    trends: [
+    63→      { name: 'Day in the life content format', heat: 5, growth: '+201%', platforms: ['instagram', 'tiktok'], category: 'social media', label: 'Hot' },
+    64→      { name: 'Storytelling carousels', heat: 4, growth: '+156%', platforms: ['instagram', 'linkedin'], category: 'social media', label: 'Rising' },
+    65→      { name: 'Authentic behind-the-scenes', heat: 4, growth: '+98%', platforms: ['instagram', 'tiktok', 'youtube'], category: 'social media' },
+    66→      { name: 'AI-generated thumbnails', heat: 3, growth: '+78%', platforms: ['youtube'], category: 'social media' },
+    67→    ],
+    68→  },
+    69→  {
+    70→    category: 'Business',
+    71→    icon: ArrowUpRight,
+    72→    trends: [
+    73→      { name: 'Solopreneur journey documentation', heat: 5, growth: '+167%', platforms: ['youtube', 'x'], category: 'business', label: 'Hot' },
+    74→      { name: 'Passive income experiments', heat: 4, growth: '+124%', platforms: ['youtube', 'tiktok'], category: 'business' },
+    75→      { name: 'Building in public updates', heat: 3, growth: '+91%', platforms: ['x', 'linkedin'], category: 'business' },
+    76→    ],
+    77→  },
+    78→  {
+    79→    category: 'Culture',
+    80→    icon: Flame,
+    81→    trends: [
+    82→      { name: 'Nostalgia content (90s/2000s)', heat: 4, growth: '+134%', platforms: ['tiktok', 'instagram'], category: 'culture', label: 'Rising' },
+    83→      { name: 'POV-style educational content', heat: 4, growth: '+112%', platforms: ['tiktok', 'instagram'], category: 'culture' },
+    84→      { name: 'Cultural commentary', heat: 3, growth: '+65%', platforms: ['youtube', 'x'], category: 'culture' },
+    85→    ],
+    86→  },
+    87→];
+    88→
+    89→const emergingNiches = [
+    90→  { name: 'AI Agent Building', growth: '+340%', heat: 5 },
+    91→  { name: 'Climate Tech', growth: '+210%', heat: 4 },
+    92→  { name: 'Longevity & Biohacking', growth: '+189%', heat: 4 },
+    93→  { name: 'Creator Economy Tools', growth: '+167%', heat: 4 },
+    94→  { name: 'Rust Programming', growth: '+156%', heat: 3 },
+    95→  { name: 'Spatial Computing', growth: '+143%', heat: 3 },
+    96→];
+    97→
+    98→// Map category names to icons
+    99→const categoryIconMap: Record<string, React.ElementType> = {
+   100→  technology: Flame,
+   101→  tech: Flame,
+   102→  social: TrendingUp,
+   103→  'social media': TrendingUp,
+   104→  business: ArrowUpRight,
+   105→  culture: Flame,
+   106→  health: TrendingUp,
+   107→  'health & wellness': TrendingUp,
+   108→  wellness: TrendingUp,
+   109→  entertainment: Flame,
+   110→  politics: ArrowUpRight,
+   111→  finance: ArrowUpRight,
+   112→  education: TrendingUp,
+   113→  lifestyle: Flame,
+   114→  sports: Flame,
+   115→};
+   116→
+   117→const container = {
+   118→  hidden: { opacity: 0 },
+   119→  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+   120→};
+   121→
+   122→const item = {
+   123→  hidden: { opacity: 0, y: 12 },
+   124→  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+   125→};
+   126→
+   127→function HeatIndicator({ heat }: { heat: number }) {
+   128→  return (
+   129→    <div className="flex gap-0.5">
+   130→      {Array.from({ length: 5 }).map((_, i) => (
+   131→        <Flame
+   132→          key={i}
+   133→          className={cn(
+   134→            'h-3.5 w-3.5',
+   135→            i < heat ? 'text-orange-400' : 'text-white/10'
+   136→          )}
+   137→        />
+   138→      ))}
+   139→    </div>
+   140→  );
+   141→}
+   142→
+   143→function HeatBar({ heat }: { heat: number }) {
+   144→  const heatColor = heat >= 5 ? 'from-wine-accent via-orange-400 to-red-500' : heat >= 4 ? 'from-wine-accent via-orange-400 to-wine-accent' : heat >= 3 ? 'from-wine-accent/80 via-amber-400 to-wine-accent/80' : 'from-wine-accent/50 via-amber-400/50 to-wine-accent/50';
+   145→  return (
+   146→    <div className="h-1.5 rounded-full bg-white/[0.06] w-full overflow-hidden relative">
+   147→      {/* Heat level segments (1-5) */}
+   148→      <div className="absolute inset-0 flex">
+   149→        {Array.from({ length: 5 }).map((_, i) => (
+   150→          <div key={i} className="flex-1 border-r border-white/[0.04] last:border-r-0" />
+   151→        ))}
+   152→      </div>
+   153→      <motion.div
+   154→        className={cn('h-full rounded-full bg-gradient-to-r', heatColor)}
+   155→        initial={{ width: 0 }}
+   156→        animate={{ width: `${(heat / 5) * 100}%` }}
+   157→        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+   158→      />
+   159→      {/* Glow at the tip */}
+   160→      {heat >= 4 && (
+   161→        <motion.div
+   162→          className="absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-orange-400/40 blur-sm pointer-events-none"
+   163→          initial={{ opacity: 0, left: 0 }}
+   164→          animate={{ opacity: [0.4, 0.8, 0.4], left: `${(heat / 5) * 100}%`, x: '-5px' }}
+   165→          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2, opacity: { repeat: Infinity, duration: 1.5 } }}
+   166→        />
+   167→      )}
+   168→    </div>
+   169→  );
+   170→}
+   171→
+   172→// Empty state component for no matching trends
+   173→function TrendsEmptyState({ searchQuery, hasFilter, onClear }: { searchQuery: string; hasFilter: boolean; onClear: () => void }) {
+   174→  return (
+   175→    <motion.div
+   176→      initial={{ opacity: 0, y: 10 }}
+   177→      animate={{ opacity: 1, y: 0 }}
+   178→      className="flex flex-col items-center justify-center py-16 px-4 text-center"
+   179→    >
+   180→      <div className="h-16 w-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
+   181→        <Search className="h-7 w-7 text-viralyze-muted/50" />
+   182→      </div>
+   183→      <h3 className="text-lg font-semibold text-viralyze-white mb-1">
+   184→        No trends found
+   185→      </h3>
+   186→      <p className="text-sm text-viralyze-muted max-w-sm mb-5">
+   187→        {searchQuery && hasFilter
+   188→          ? 'No trends match both your search and filter. Try broadening your criteria.'
+   189→          : searchQuery
+   190→          ? `No trends match "${searchQuery}". Try a different keyword.`
+   191→          : 'No trends found in this category. Try selecting "All" to see everything.'}
+   192→      </p>
+   193→      <Button
+   194→        variant="outline"
+   195→        size="sm"
+   196→        onClick={onClear}
+   197→        className="border-wine-accent/30 text-wine-accent hover:bg-wine-accent/10"
+   198→      >
+   199→        <Sparkles className="mr-2 h-4 w-4" />
+   200→        Clear Filters
+   201→      </Button>
+   202→    </motion.div>
+   203→  );
+   204→}
+   205→
+   206→export default function TrendsView() {
+   207→  const { setPrefilledIdea, setPredictMode, setCurrentView } = useAppStore();
+   208→  const [trendData, setTrendData] = useState<TrendCategory[]>(fallbackTrendData);
+   209→  const [loading, setLoading] = useState(false);
+   210→  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+   211→  const [error, setError] = useState(false);
+   212→  const [liveClock, setLiveClock] = useState(new Date());
+   213→  const [searchQuery, setSearchQuery] = useState('');
+   214→  const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
+   215→  const [bookmarkedTrends, setBookmarkedTrends] = useState<Set<string>>(new Set());
+   216→
+   217→  const handleUseAsIdea = (trendName: string) => {
+   218→    setPrefilledIdea(`Create content about: ${trendName}`);
+   219→    setPredictMode('idea');
+   220→    setCurrentView('predict');
+   221→    toast.success('Trend loaded — customize and analyze!');
+   222→  };
+   223→
+   224→  const toggleBookmark = (trendName: string) => {
+   225→    setBookmarkedTrends((prev) => {
+   226→      const next = new Set(prev);
+   227→      if (next.has(trendName)) {
+   228→        next.delete(trendName);
+   229→        toast.info('Bookmark removed');
+   230→      } else {
+   231→        next.add(trendName);
+   232→        toast.success('Trend bookmarked!');
+   233→      }
+   234→      return next;
+   235→    });
+   236→  };
+   237→
+   238→  const clearFilters = () => {
+   239→    setSearchQuery('');
+   240→    setActiveFilter('All');
+   241→  };
+   242→
+   243→  // Live clock tick
+   244→  useEffect(() => {
+   245→    const interval = setInterval(() => setLiveClock(new Date()), 1000);
+   246→    return () => clearInterval(interval);
+   247→  }, []);
+   248→
+   249→  const fetchTrends = useCallback(async () => {
+   250→    setLoading(true);
+   251→    setError(false);
+   252→    try {
+   253→      const res = await fetch('/api/trends');
+   254→      if (!res.ok) throw new Error('Failed to fetch');
+   255→      const data = await res.json();
+   256→      if (data.categories && Array.isArray(data.categories)) {
+   257→        const mapped: TrendCategory[] = data.categories.map(
+   258→          (cat: { category: string; trends: { name: string; growth: string; heat: number; platforms: string[]; label?: string }[] }) => ({
+   259→            category: cat.category,
+   260→            icon: categoryIconMap[cat.category.toLowerCase()] || TrendingUp,
+   261→            trends: cat.trends.map((t) => ({
+   262→              name: t.name,
+   263→              heat: t.heat,
+   264→              growth: t.growth,
+   265→              platforms: (t.platforms || []).filter((p: string) => p in platformIcons) as Platform[],
+   266→              category: cat.category.toLowerCase(),
+   267→              label: t.label,
+   268→            })),
+   269→          })
+   270→        );
+   271→        setTrendData(mapped);
+   272→        setLastUpdated(new Date());
+   273→      } else {
+   274→        setTrendData(fallbackTrendData);
+   275→      }
+   276→    } catch {
+   277→      setError(true);
+   278→    } finally {
+   279→      setLoading(false);
+   280→    }
+   281→  }, []);
+   282→
+   283→  // Filtered trend data based on search and category filter
+   284→  const filteredTrendData = useMemo(() => {
+   285→    let data = trendData;
+   286→
+   287→    // Apply category filter
+   288→    if (activeFilter !== 'All') {
+   289→      const matchCategories = filterToDataCategory[activeFilter] || [];
+   290→      if (matchCategories.length > 0) {
+   291→        data = data.filter((cat) =>
+   292→          matchCategories.some((mc) => cat.category.toLowerCase() === mc)
+   293→        );
+   294→      }
+   295→    }
+   296→
+   297→    // Apply search query
+   298→    if (searchQuery.trim()) {
+   299→      const q = searchQuery.toLowerCase().trim();
+   300→      data = data
+   301→        .map((cat) => ({
+   302→          ...cat,
+   303→          trends: cat.trends.filter((t) => t.name.toLowerCase().includes(q)),
+   304→        }))
+   305→        .filter((cat) => cat.trends.length > 0);
+   306→    }
+   307→
+   308→    return data;
+   309→  }, [trendData, activeFilter, searchQuery]);
+   310→
+   311→  const hasAnyResults = filteredTrendData.some((cat) => cat.trends.length > 0);
+   312→
+   313→  return (
+   314→    <motion.div
+   315→      variants={container}
+   316→      initial="hidden"
+   317→      animate="show"
+   318→      className="flex flex-col gap-8 max-w-5xl mx-auto noise-bg relative"
+   319→    >
+   320→      {/* Header with refresh and last updated — live clock feel */}
+   321→      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   322→        <div className="flex flex-col">
+   323→          <div className="flex items-center gap-2">
+   324→            <p className="text-viralyze-muted text-sm">
+   325→              Real-time trending topics across platforms
+   326→            </p>
+   327→            <div className="flex items-center gap-1 text-viralyze-muted/30">
+   328→              <Clock className="h-3 w-3" />
+   329→              <span className="text-[10px] font-mono tabular-nums">
+   330→                {liveClock.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+   331→              </span>
+   332→            </div>
+   333→            {lastUpdated && (
+   334→              <span className="text-xs text-viralyze-muted/50">
+   335→                &middot; Updated {lastUpdated.toLocaleTimeString()}
+   336→              </span>
+   337→            )}
+   338→          </div>
+   339→          {error && (
+   340→            <div className="flex items-center gap-1.5 mt-1">
+   341→              <AlertCircle className="h-3 w-3 text-amber-400" />
+   342→              <span className="text-xs text-amber-400/80">Failed to fetch live trends — showing cached data</span>
+   343→            </div>
+   344→          )}
+   345→        </div>
+   346→        <Button
+   347→          variant="outline"
+   348→          size="sm"
+   349→          onClick={fetchTrends}
+   350→          disabled={loading}
+   351→          className="w-fit border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-colors gap-2"
+   352→        >
+   353→          {loading ? (
+   354→            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   355→          ) : (
+   356→            <RefreshCw className="h-3.5 w-3.5" />
+   357→          )}
+   358→          {loading ? 'Fetching...' : 'Refresh Trends'}
+   359→        </Button>
+   360→      </motion.div>
+   361→
+   362→      {/* Search input with gradient shift on focus */}
+   363→      <motion.div variants={item} className="relative">
+   364→        <motion.div
+   365→          className="absolute inset-0 rounded-lg pointer-events-none z-0 opacity-0 transition-opacity duration-500"
+   366→          style={{
+   367→            background: 'linear-gradient(135deg, rgba(127,29,58,0.08) 0%, rgba(184,50,90,0.12) 50%, rgba(74,16,36,0.06) 100%)',
+   368→          }}
+   369→          animate={{ opacity: searchQuery ? 1 : 0 }}
+   370→          transition={{ duration: 0.5 }}
+   371→        />
+   372→        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted/50 pointer-events-none z-10" />
+   373→        <input
+   374→          type="text"
+   375→          placeholder="Search trends..."
+   376→          value={searchQuery}
+   377→          onChange={(e) => setSearchQuery(e.target.value)}
+   378→          className="w-full h-10 pl-10 pr-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-viralyze-white placeholder:text-viralyze-muted/40 focus:outline-none focus-glow-wine focus:border-wine-accent/40 transition-all duration-200 relative z-10"
+   379→        />
+   380→        {searchQuery && (
+   381→          <button
+   382→            onClick={() => setSearchQuery('')}
+   383→            className="absolute right-3 top-1/2 -translate-y-1/2 text-viralyze-muted/40 hover:text-viralyze-white transition-colors text-xs z-10"
+   384→          >
+   385→            Clear
+   386→          </button>
+   387→        )}
+   388→      </motion.div>
+   389→
+   390→      {/* Category filter pills */}
+   391→      <motion.div variants={item} className="flex flex-wrap gap-2">
+   392→        {filterCategories.map((cat) => (
+   393→          <button
+   394→            key={cat}
+   395→            onClick={() => setActiveFilter(cat)}
+   396→            className={cn(
+   397→              'px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200',
+   398→              activeFilter === cat
+   399→                ? 'bg-wine-accent/20 border-wine-accent/40 text-wine-accent glow-wine-sm'
+   400→                : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:text-viralyze-white hover:border-white/15'
+   401→            )}
+   402→          >
+   403→            {cat}
+   404→          </button>
+   405→        ))}
+   406→      </motion.div>
+   407→
+   408→      {/* Trend categories — with empty state when nothing matches */}
+   409→      <AnimatePresence mode="wait">
+   410→        {!hasAnyResults ? (
+   411→          <TrendsEmptyState
+   412→            key="empty"
+   413→            searchQuery={searchQuery}
+   414→            hasFilter={activeFilter !== 'All'}
+   415→            onClear={clearFilters}
+   416→          />
+   417→        ) : (
+   418→          <motion.div key="trends" variants={container} initial="hidden" animate="show" exit="hidden">
+   419→            {filteredTrendData.map((cat) => {
+   420→              const CatIcon = cat.icon;
+   421→              return (
+   422→                <motion.div
+   423→                  key={cat.category}
+   424→                  variants={item}
+   425→                  className="mb-8 last:mb-0"
+   426→                >
+   427→                  <motion.div
+   428→                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+   429→                    animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+   430→                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+   431→                    className="overflow-hidden"
+   432→                  >
+   433→                    <div className="flex items-center gap-2">
+   434→                      <CatIcon className="h-4 w-4 text-wine-accent" />
+   435→                      <h3 className="text-sm font-semibold text-viralyze-white uppercase tracking-wider">
+   436→                        {cat.category}
+   437→                      </h3>
+   438→                      <span className="text-[10px] text-viralyze-muted/50 tabular-nums">{cat.trends.length} trends</span>
+   439→                    </div>
+   440→                  </motion.div>
+   441→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   442→                    {cat.trends.map((trend, i) => {
+   443→                      const isBookmarked = bookmarkedTrends.has(trend.name);
+   444→                      const isHot = (trend as any).label === 'Hot' || trend.heat >= 5;
+   445→                      const isRising = (trend as any).label === 'Rising' || trend.growth.startsWith('+1');
+   446→                      const hasPulseLabel = isHot || isRising;
+   447→
+   448→                      return (
+   449→                        <Card
+   450→                          key={i}
+   451→                          className={cn(
+   452→                            'glass group hover:bg-white/[0.03] transition-all duration-300 relative overflow-hidden',
+   453→                            hasPulseLabel && 'animate-pulse-glow'
+   454→                          )}
+   455→                        >
+   456→                          {/* Glass-morphism shimmer on hover */}
+   457→                          <motion.div
+   458→                            className="absolute inset-0 pointer-events-none z-10"
+   459→                            initial={{ backgroundPosition: '200% 0' }}
+   460→                            whileHover={{ backgroundPosition: '-200% 0' }}
+   461→                            transition={{ duration: 1, ease: 'easeInOut' }}
+   462→                            style={{
+   463→                              background: 'linear-gradient(105deg, transparent 35%, rgba(184,50,90,0.04) 42%, rgba(255,255,255,0.02) 50%, rgba(184,50,90,0.04) 58%, transparent 65%)',
+   464→                              backgroundSize: '200% 100%',
+   465→                            }}
+   466→                          />
+   467→                          {/* Glowing border on hover */}
+   468→                          <motion.div
+   469→                            className="absolute inset-0 rounded-lg pointer-events-none z-0"
+   470→                            initial={{ boxShadow: '0 0 0px rgba(184,50,90,0)' }}
+   471→                            whileHover={{
+   472→                              boxShadow: '0 0 16px rgba(184,50,90,0.12), 0 0 32px rgba(127,29,58,0.06)',
+   473→                            }}
+   474→                            transition={{ duration: 0.4 }}
+   475→                          />
+   476→                          <CardContent className="p-4 relative z-10">
+   477→                            {/* Hot / Rising pulse label with pulsing dot */}
+   478→                            {hasPulseLabel && (
+   479→                              <div className="absolute top-2 right-2 z-20">
+   480→                                <span className={cn(
+   481→                                  'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+   482→                                  isHot
+   483→                                    ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+   484→                                    : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+   485→                                )}>
+   486→                                  <motion.span
+   487→                                    className={cn(
+   488→                                      'h-1.5 w-1.5 rounded-full',
+   489→                                      isHot ? 'bg-orange-400' : 'bg-emerald-400'
+   490→                                    )}
+   491→                                    animate={{ opacity: [1, 0.3, 1], scale: [1, 0.7, 1] }}
+   492→                                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+   493→                                  />
+   494→                                  {isHot ? (
+   495→                                    <motion.span
+   496→                                      className="inline-block"
+   497→                                      animate={{ rotate: [0, -8, 8, -6, 6, 0] }}
+   498→                                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
+   499→                                    >
+   500→                                      <Flame className="h-2.5 w-2.5" />
+   501→                                    </motion.span>
+   502→                                  ) : (
+   503→                                    <Flame className="h-2.5 w-2.5" />
+   504→                                  )}
+   505→                                  {isHot ? 'Hot' : 'Rising'}
+   506→                                </span>
+   507→                              </div>
+   508→                            )}
+   509→                            <div className="flex items-start justify-between gap-3">
+   510→                              <div className="flex-1 min-w-0">
+   511→                                <p className="text-sm font-medium text-viralyze-white leading-snug pr-16">
+   512→                                  {trend.name}
+   513→                                </p>
+   514→                                <div className="flex items-center gap-2 mt-2">
+   515→                                  <HeatIndicator heat={trend.heat} />
+   516→                                  <span className="text-xs font-medium text-green-400">
+   517→                                    {trend.growth}
+   518→                                  </span>
+   519→                                </div>
+   520→                                {/* Animated heat bar */}
+   521→                                <div className="mt-2">
+   522→                                  <HeatBar heat={trend.heat} />
+   523→                                </div>
+   524→                                <div className="flex gap-1.5 mt-2">
+   525→                                  {trend.platforms.map((p) => {
+   526→                                    const PI = platformIcons[p];
+   527→                                    return (
+   528→                                      <div
+   529→                                        key={p}
+   530→                                        className="h-6 w-6 rounded-md bg-white/[0.06] flex items-center justify-center"
+   531→                                      >
+   532→                                        <PI className="h-3 w-3 text-viralyze-muted" />
+   533→                                      </div>
+   534→                                    );
+   535→                                  })}
+   536→                                </div>
+   537→                              </div>
+   538→                            </div>
+   539→                            {/* Bookmark button with scale animation */}
+   540→                            <motion.button
+   541→                              onClick={(e) => {
+   542→                                e.stopPropagation();
+   543→                                toggleBookmark(trend.name);
+   544→                              }}
+   545→                              whileHover={{ scale: 1.15 }}
+   546→                              whileTap={{ scale: 0.8 }}
+   547→                              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+   548→                              className={cn(
+   549→                                'absolute bottom-3 left-3 h-7 w-7 rounded-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 z-20',
+   550→                                isBookmarked
+   551→                                  ? 'bg-wine-accent/20 text-wine-accent opacity-100'
+   552→                                  : 'bg-white/[0.06] text-viralyze-muted hover:text-viralyze-white'
+   553→                              )}
+   554→                              title={isBookmarked ? 'Remove bookmark' : 'Bookmark this trend'}
+   555→                            >
+   556→                              {isBookmarked ? (
+   557→                                <BookmarkCheck className="h-3.5 w-3.5" />
+   558→                              ) : (
+   559→                                <Bookmark className="h-3.5 w-3.5" />
+   560→                              )}
+   561→                            </motion.button>
+   562→                            {/* Use as Idea button — visible on hover */}
+   563→                            <Button
+   564→                              size="sm"
+   565→                              className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-wine btn-shine text-white h-7 px-2.5 text-xs gap-1"
+   566→                              onClick={(e) => {
+   567→                                e.stopPropagation();
+   568→                                handleUseAsIdea(trend.name);
+   569→                              }}
+   570→                            >
+   571→                              <Lightbulb className="h-3 w-3" />
+   572→                              Use as Idea
+   573→                            </Button>
+   574→                          </CardContent>
+   575→                        </Card>
+   576→                      );
+   577→                    })}
+   578→                  </div>
+   579→                </motion.div>
+   580→              );
+   581→            })}
+   582→          </motion.div>
+   583→        )}
+   584→      </AnimatePresence>
+   585→
+   586→      {/* Emerging Niches */}
+   587→      <motion.div variants={item}>
+   588→        <div className="flex items-center gap-2 mb-3">
+   589→          <ArrowUpRight className="h-4 w-4 text-emerald-400" />
+   590→          <h3 className="text-sm font-semibold text-viralyze-white uppercase tracking-wider">
+   591→            Emerging Niches
+   592→          </h3>
+   593→        </div>
+   594→        <Card className="glass">
+   595→          <CardContent className="p-4">
+   596→            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   597→              {emergingNiches.map((niche, i) => (
+   598→                <div
+   599→                  key={i}
+   600→                  className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-wine-accent/20 transition-colors"
+   601→                >
+   602→                  <div className="flex items-center gap-3">
+   603→                    <HeatIndicator heat={niche.heat} />
+   604→                    <span className="text-sm text-viralyze-white font-medium">
+   605→                      {niche.name}
+   606→                    </span>
+   607→                  </div>
+   608→                  <span className="text-xs font-medium text-green-400">{niche.growth}</span>
+   609→                </div>
+   610→              ))}
+   611→            </div>
+   612→          </CardContent>
+   613→        </Card>
+   614→      </motion.div>
+   615→
+   616→      {/* Disclaimer */}
+   617→      <motion.div variants={item} className="text-center pb-4">
+   618→        <p className="text-xs text-viralyze-muted/50">
+   619→          {lastUpdated
+   620→            ? 'Trend data powered by AI analysis. Click refresh for latest trends.'
+   621→            : 'Trend data is illustrative. Click refresh for AI-powered live trends.'}
+   622→        </p>
+   623→      </motion.div>
+   624→    </motion.div>
+   625→  );
+   626→}
+   627→

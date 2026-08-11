@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, useMotionValue, useTransform, animate, Variants } from 'framer-motion';
 import {
   BarChart3,
@@ -18,6 +18,8 @@ import {
   Twitter,
   Linkedin,
   Clock,
+  Calendar,
+  Trophy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -216,11 +218,16 @@ function EmptyState() {
       className="flex flex-col items-center justify-center py-16 px-4"
     >
       <motion.div
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ y: [0, -6, 0], scale: [1, 1.05, 1] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <div className="h-16 w-16 rounded-2xl bg-wine-accent/10 flex items-center justify-center mb-4">
-          <BarChart3 className="h-8 w-8 text-wine-accent" />
+        <div className="h-20 w-20 rounded-2xl bg-wine-accent/10 flex items-center justify-center mb-4 relative">
+          <motion.div
+            className="absolute inset-0 rounded-2xl bg-wine-accent/20 blur-xl"
+            animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <BarChart3 className="h-10 w-10 text-wine-accent relative z-10" />
         </div>
       </motion.div>
       <h3 className="text-lg font-semibold text-viralyze-white mb-1">
@@ -249,6 +256,7 @@ export default function AnalyticsView() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [liveClock, setLiveClock] = useState(new Date());
+  const [dateRange, setDateRange] = useState<'week' | 'month' | 'all'>('all');
 
   // Live clock tick
   useEffect(() => {
@@ -446,6 +454,19 @@ export default function AnalyticsView() {
   // Guard: no data
   if (!data) return null;
 
+  // --- Date range filter for top content ---
+  const filteredTopContent = useMemo(() => {
+    if (!data || dateRange === 'all') return data?.topContent || [];
+    const now = new Date();
+    const cutoff = new Date();
+    if (dateRange === 'week') cutoff.setDate(now.getDate() - 7);
+    else if (dateRange === 'month') cutoff.setMonth(now.getMonth() - 1);
+    return (data?.topContent || []).filter((item) => {
+      const d = new Date(item.date);
+      return d >= cutoff;
+    });
+  }, [data, dateRange]);
+
   // --- Derived data ---
   const overviewStats = [
     { icon: BarChart3, value: data.totalAnalyses, label: 'Total Analyses', accent: false, trend: 'up' as const, trendPercent: '+12%', isInt: true },
@@ -462,7 +483,7 @@ export default function AnalyticsView() {
       className="flex flex-col gap-6 max-w-5xl mx-auto noise-bg"
     >
       {/* Header */}
-      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
             Analytics
@@ -579,6 +600,102 @@ export default function AnalyticsView() {
             </motion.div>
           );
         })}
+      </motion.div>
+
+      {/* Date Range Filter + Refresh */}
+      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-viralyze-muted" />
+          <span className="text-xs text-viralyze-muted uppercase tracking-wider font-medium">Period</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {(['week', 'month', 'all'] as const).map((range) => (
+            <button
+              key={range}
+              onClick={() => setDateRange(range)}
+              className={cn(
+                'px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200',
+                dateRange === range
+                  ? 'bg-wine-accent/20 border-wine-accent/40 text-wine-accent'
+                  : 'bg-white/[0.03] border-white/[0.08] text-viralyze-muted hover:text-viralyze-white hover:border-white/15'
+              )}
+            >
+              {range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
+            </button>
+          ))}
+          <motion.div className="w-px h-5 bg-white/[0.08] mx-1" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchAnalytics(true)}
+            disabled={refreshing}
+            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5"
+          >
+            <motion.span
+              animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
+              transition={refreshing ? { duration: 0.8, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </motion.span>
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Top Performing Content - Mini Cards */}
+      <motion.div variants={item}>
+        <div className="flex items-center gap-2 mb-3">
+          <Trophy className="h-4 w-4 text-wine-accent" />
+          <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Top Performing Content</span>
+        </div>
+        {filteredTopContent.length >= 1 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {filteredTopContent.slice(0, 3).map((item, i) => {
+              const PIcon = platformIcons[item.platform as Platform] || BarChart3;
+              const cls = getClassification(item.score);
+              const rankColors = ['border-yellow-500/20', 'border-gray-400/20', 'border-amber-600/20'];
+              const rankNumColors = ['text-yellow-400', 'text-gray-300', 'text-amber-600'];
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.3 }}
+                >
+                  <Card className={cn('glass transition-all duration-300 hover:-translate-y-0.5 hover:glow-wine-sm border', rankColors[i] || 'border-white/[0.06]')}>
+                    <CardContent className="p-4 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className={cn('text-lg font-bold tabular-nums', rankNumColors[i] || 'text-viralyze-muted')}>#{i + 1}</span>
+                        <Badge variant="outline" className={cn('text-xs', getScoreColor(item.score))}>
+                          {item.score}
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-medium text-viralyze-white line-clamp-2 leading-snug">
+                        {item.title}
+                      </p>
+                      <div className="flex items-center justify-between mt-auto pt-1">
+                        <div className="flex items-center gap-1.5 text-xs text-viralyze-muted">
+                          <PIcon className="h-3 w-3" />
+                          <span className="capitalize">{item.platform}</span>
+                        </div>
+                        <span className="text-[10px] text-viralyze-muted/60">{item.date}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <Card className="glass">
+            <CardContent className="p-6 flex flex-col items-center gap-2 text-center">
+              <Trophy className="h-6 w-6 text-viralyze-muted/30" />
+              <p className="text-xs text-viralyze-muted">
+                {dateRange === 'all' ? 'No content analyzed yet' : `No content in this ${dateRange}`}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
 
       {/* Gradient Separator */}

@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { rateLimit } from '@/lib/rate-limit';
 
 const SYSTEM_PROMPT = `You are Viralyze, a viral content trend analysis engine.
 
@@ -31,7 +32,14 @@ Requirements:
 - Growth percentages should be realistic (20%-400%)
 - Heat ratings should reflect true viral potential`;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rl = rateLimit(20, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const zai = await ZAI.create();
     const completion = await zai.chat.completions.create({

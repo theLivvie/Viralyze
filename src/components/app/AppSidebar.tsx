@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useAppStore } from '@/lib/store';
 import type { AppView } from '@/lib/types';
 
@@ -48,11 +49,14 @@ const navItems: NavItem[] = [
 ];
 
 export default function AppSidebar() {
-  const { currentView, setCurrentView, user, logout, sidebarOpen, setSidebarOpen, savedAnalyses } = useAppStore();
+  const { currentView, setCurrentView, user, logout, savedAnalyses } = useAppStore();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const handleNav = (view: AppView) => {
     setCurrentView(view);
-    setSidebarOpen(false);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   const predictionsUsed = user?.predictionsUsed || 0;
@@ -98,10 +102,11 @@ export default function AppSidebar() {
                       isActive={isActive}
                       onClick={() => handleNav(item.view)}
                       title={item.label}
+                      aria-label={`Navigate to ${item.label}`}
                       className={
                         isActive
-                          ? 'bg-wine-accent/10 text-wine-accent hover:bg-wine-accent/15 hover:text-wine-accent'
-                          : 'text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04]'
+                          ? 'bg-wine-accent/10 text-wine-accent hover:bg-wine-accent/15 hover:text-wine-accent min-h-[44px]'
+                          : 'text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] min-h-[44px]'
                       }
                     >
                       <Icon className="h-4.5 w-4.5" />
@@ -164,7 +169,8 @@ export default function AppSidebar() {
             <SidebarMenuButton
               onClick={logout}
               title="Log Out"
-              className="text-viralyze-muted hover:text-red-400 hover:bg-red-500/10"
+              aria-label="Log out of your account"
+              className="text-viralyze-muted hover:text-red-400 hover:bg-red-500/10 min-h-[44px]"
             >
               <LogOut className="h-4 w-4" />
               <span>Log Out</span>

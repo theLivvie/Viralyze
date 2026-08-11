@@ -20,6 +20,7 @@ import {
   ArrowDownRight,
   Minus,
   Download,
+  StickyNote,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -313,6 +314,9 @@ export default function LibraryView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [noteExpandedId, setNoteExpandedId] = useState<string | null>(null);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [notesFilter, setNotesFilter] = useState(false);
 
   const fetchLibrary = useCallback(async () => {
     if (!user?.id) {
@@ -338,8 +342,44 @@ export default function LibraryView() {
     fetchLibrary();
   }, [fetchLibrary]);
 
+  // Notes helpers
+  const getNote = (id: string): string => {
+    if (noteDrafts[id] !== undefined) return noteDrafts[id];
+    try {
+      return localStorage.getItem(`viralyze-notes-${id}`) || '';
+    } catch {
+      return '';
+    }
+  };
+
+  const hasNote = (id: string): boolean => {
+    if (noteDrafts[id] !== undefined) return noteDrafts[id].length > 0;
+    try {
+      return (localStorage.getItem(`viralyze-notes-${id}`) || '').length > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const saveNote = (id: string, text: string) => {
+    setNoteDrafts((prev) => ({ ...prev, [id]: text }));
+    try {
+      if (text.trim()) {
+        localStorage.setItem(`viralyze-notes-${id}`, text);
+      } else {
+        localStorage.removeItem(`viralyze-notes-${id}`);
+      }
+    } catch { /* noop */ }
+  };
+
+  const toggleNote = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setNoteExpandedId((prev) => (prev === id ? null : id));
+  };
+
   const filtered = analyses
     .filter((a) => {
+      if (notesFilter && !hasNote(a.id)) return false;
       if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
       if (platformFilter !== 'all' && a.platform !== platformFilter) return false;
       return true;
@@ -466,18 +506,18 @@ export default function LibraryView() {
       </motion.div>
 
       {/* Filters */}
-      <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
+      <motion.div variants={item} className="flex flex-wrap gap-2 sm:gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted" />
           <Input
             placeholder="Search analyses..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent hover:border-white/[0.12] transition-colors"
+            className="pl-9 h-11 bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent hover:border-white/[0.12] transition-colors"
           />
         </div>
         <Select value={platformFilter} onValueChange={setPlatformFilter}>
-          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+          <SelectTrigger className="w-full sm:w-40 h-11 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
             <SelectValue placeholder="Platform" />
           </SelectTrigger>
           <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
@@ -490,7 +530,7 @@ export default function LibraryView() {
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+          <SelectTrigger className="w-full sm:w-40 h-11 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
           <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
@@ -500,9 +540,21 @@ export default function LibraryView() {
             <SelectItem value="score-low" className="text-viralyze-white">Score: Low to High</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant={notesFilter ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setNotesFilter(!notesFilter)}
+          className={cn(
+            'shrink-0 gap-1.5 transition-all w-full sm:w-auto min-h-[44px]',
+            notesFilter
+              ? 'bg-wine-accent hover:bg-wine-accent/80 text-white border-wine-accent'
+              : 'border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20'
+          )}
+        >
+          <StickyNote className="h-3.5 w-3.5" />
+          Notes
+        </Button>
       </motion.div>
-
-      {/* Score Trend sparkline */}
       {!loading && analyses.length >= 3 && (
         <motion.div variants={item}>
           <div className="flex items-center gap-2 mb-2">
@@ -514,7 +566,8 @@ export default function LibraryView() {
                 const last15 = analyses.slice(-15);
                 const avg = Math.round(last15.reduce((s, a) => s + a.overallScore, 0) / last15.length);
                 return (
-                  <div className="relative flex items-end gap-1.5 h-20">
+                  <div className="relative h-20 overflow-x-auto scrollbar-thin -mx-1 px-1">
+                    <div className="flex items-end gap-1.5 min-w-[240px] h-full">
                     {last15.map((a, i) => {
                       const h = Math.max(4, (a.overallScore / 100) * 100);
                       const barColor = a.overallScore >= 70 ? 'bg-green-400' : a.overallScore >= 50 ? 'bg-amber-400' : 'bg-red-400';
@@ -529,9 +582,10 @@ export default function LibraryView() {
                         />
                       );
                     })}
+                    </div>
                     {/* Average dashed line */}
                     <div
-                      className="absolute left-0 right-0 border-t border-dashed border-viralyze-muted/30 pointer-events-none"
+                      className="absolute left-1 right-1 border-t border-dashed border-viralyze-muted/30 pointer-events-none"
                       style={{ bottom: `${avg}%` }}
                     />
                   </div>
@@ -635,7 +689,7 @@ export default function LibraryView() {
             className="overflow-hidden"
           >
             <Card className="glass glow-wine-sm mb-2">
-              <CardContent className="p-5">
+              <CardContent className="p-5 overflow-x-auto">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <GitCompareArrows className="h-4 w-4 text-wine-accent" />
@@ -651,7 +705,7 @@ export default function LibraryView() {
                     Clear Comparison
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 min-w-[280px]">
                   {[compareA, compareB].map((item) => {
                     if (!item) return null;
                     const PI = platformIcons[item.platform];
@@ -821,6 +875,9 @@ export default function LibraryView() {
                         <span className="text-sm font-medium text-viralyze-white truncate">
                           {analysis.title || 'Untitled'}
                         </span>
+                        {hasNote(analysis.id) && (
+                          <span className="h-2 w-2 rounded-full bg-wine-accent shrink-0 animate-pulse" title="Has note" />
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5">
                         <QuickScoreWidget
@@ -878,23 +935,76 @@ export default function LibraryView() {
                           {deleting === analysis.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Confirm?'}
                         </motion.button>
                       ) : (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => handleDelete(e, analysis.id)}
-                          disabled={deleting === analysis.id}
-                        >
-                          {deleting === analysis.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              'h-7 w-7 transition-opacity',
+                              noteExpandedId === analysis.id
+                                ? 'text-wine-accent opacity-100'
+                                : 'text-viralyze-muted/50 hover:text-wine-accent opacity-0 group-hover:opacity-100'
+                            )}
+                            onClick={(e) => toggleNote(e, analysis.id)}
+                          >
+                            <StickyNote className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleDelete(e, analysis.id)}
+                            disabled={deleting === analysis.id}
+                          >
+                            {deleting === analysis.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardContent>
                 </Card>
+                {/* Inline Note Panel */}
+                <AnimatePresence>
+                  {noteExpandedId === analysis.id && (
+                    <motion.div
+                      key={`note-${analysis.id}`}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-1 px-1">
+                        <div className="glass rounded-lg p-3 border border-wine-accent/20">
+                          <textarea
+                            autoFocus
+                            maxLength={200}
+                            placeholder="Add a quick note..."
+                            value={getNote(analysis.id)}
+                            onChange={(e) => saveNote(analysis.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full bg-transparent text-sm text-viralyze-white placeholder:text-viralyze-muted/40 resize-none outline-none min-h-[48px] max-h-[120px] scrollbar-thin"
+                          />
+                          <div className="flex items-center justify-between mt-1.5">
+                            <span className="text-[10px] tabular-nums text-viralyze-muted/50">
+                              {getNote(analysis.id).length}/200
+                            </span>
+                            <button
+                              className="text-[10px] text-viralyze-muted hover:text-viralyze-white transition-colors"
+                              onClick={(e) => { e.stopPropagation(); setNoteExpandedId(null); }}
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}

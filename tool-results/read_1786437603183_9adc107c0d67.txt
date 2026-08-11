@@ -1,0 +1,841 @@
+     1→'use client';
+     2→
+     3→import { useState, useCallback, useEffect } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays, Bookmark, StickyNote, Sun, SunDim, Moon, GripVertical } from 'lucide-react';
+     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Textarea } from '@/components/ui/textarea';
+    10→import { Label } from '@/components/ui/label';
+    11→import {
+    12→  Dialog,
+    13→  DialogContent,
+    14→  DialogHeader,
+    15→  DialogTitle,
+    16→  DialogDescription,
+    17→  DialogFooter,
+    18→} from '@/components/ui/dialog';
+    19→import {
+    20→  Select,
+    21→  SelectContent,
+    22→  SelectItem,
+    23→  SelectTrigger,
+    24→  SelectValue,
+    25→} from '@/components/ui/select';
+    26→import type { Platform, ContentType } from '@/lib/types';
+    27→import { cn } from '@/lib/utils';
+    28→import { useAppStore } from '@/lib/store';
+    29→import { toast } from 'sonner';
+    30→
+    31→const platformIcons: Record<Platform, React.ElementType> = {
+    32→  instagram: Instagram,
+    33→  youtube: Youtube,
+    34→  tiktok: Tv,
+    35→  x: Twitter,
+    36→  linkedin: Linkedin,
+    37→};
+    38→
+    39→interface CalendarSlot {
+    40→  id: string;
+    41→  title: string;
+    42→  platform: Platform;
+    43→  time: string;
+    44→  contentType: ContentType;
+    45→  note?: string;
+    46→}
+    47→
+    48→type WeekSlots = Record<string, CalendarSlot[]>;
+    49→
+    50→const STORAGE_KEY = 'viralyze-calendar-slots';
+    51→const SLOT_LIMIT = 3;
+    52→
+    53→const contentTypeColors: Record<string, string> = {
+    54→  reel: 'border-l-wine-accent',
+    55→  video: 'border-l-wine-accent',
+    56→  short: 'border-l-wine-accent',
+    57→  post: 'border-l-emerald-500',
+    58→  image: 'border-l-emerald-500',
+    59→  thread: 'border-l-emerald-500',
+    60→  story: 'border-l-amber-500',
+    61→  article: 'border-l-blue-500',
+    62→  carousel: 'border-l-purple-500',
+    63→};
+    64→
+    65→const contentTypeGradients: Record<string, string> = {
+    66→  reel: 'bg-gradient-to-br from-wine-accent/8 to-transparent',
+    67→  video: 'bg-gradient-to-br from-wine-accent/6 to-transparent',
+    68→  short: 'bg-gradient-to-br from-wine-accent/8 to-transparent',
+    69→  post: 'bg-gradient-to-br from-emerald-500/6 to-transparent',
+    70→  image: 'bg-gradient-to-br from-emerald-500/6 to-transparent',
+    71→  thread: 'bg-gradient-to-br from-emerald-500/6 to-transparent',
+    72→  story: 'bg-gradient-to-br from-amber-500/6 to-transparent',
+    73→  article: 'bg-gradient-to-br from-blue-500/6 to-transparent',
+    74→  carousel: 'bg-gradient-to-br from-purple-500/6 to-transparent',
+    75→};
+    76→
+    77→function getTimeOfDayIcon(timeStr: string) {
+    78→  if (!timeStr) return Clock;
+    79→  const hour = parseInt(timeStr.split(':')[0], 10);
+    80→  if (hour >= 5 && hour < 12) return Sun;
+    81→  if (hour >= 12 && hour < 18) return SunDim;
+    82→  return Moon;
+    83→}
+    84→
+    85→function getTimeOfDayColor(timeStr: string) {
+    86→  if (!timeStr) return 'text-viralyze-muted';
+    87→  const hour = parseInt(timeStr.split(':')[0], 10);
+    88→  if (hour >= 5 && hour < 12) return 'text-amber-400';
+    89→  if (hour >= 12 && hour < 18) return 'text-orange-400';
+    90→  return 'text-purple-400';
+    91→}
+    92→
+    93→function getWeekDays(weekOffset: number): Date[] {
+    94→  const now = new Date();
+    95→  const currentDay = now.getDay();
+    96→  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    97→  const monday = new Date(now);
+    98→  monday.setDate(now.getDate() + mondayOffset + weekOffset * 7);
+    99→  monday.setHours(0, 0, 0, 0);
+   100→
+   101→  const days: Date[] = [];
+   102→  for (let i = 0; i < 7; i++) {
+   103→    const d = new Date(monday);
+   104→    d.setDate(monday.getDate() + i);
+   105→    days.push(d);
+   106→  }
+   107→  return days;
+   108→}
+   109→
+   110→function dateKey(d: Date): string {
+   111→  return d.toISOString().split('T')[0];
+   112→}
+   113→
+   114→function formatDayLabel(d: Date): string {
+   115→  const today = new Date();
+   116→  today.setHours(0, 0, 0, 0);
+   117→  const target = new Date(d);
+   118→  target.setHours(0, 0, 0, 0);
+   119→  const diff = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+   120→  if (diff === 0) return 'Today';
+   121→  if (diff === 1) return 'Tomorrow';
+   122→  if (diff === -1) return 'Yesterday';
+   123→  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+   124→}
+   125→
+   126→const dayHeaderGradients = [
+   127→  'from-amber-900/20 to-transparent',
+   128→  'from-orange-900/15 to-transparent',
+   129→  'from-viralyze-muted/10 to-transparent',
+   130→  'from-viralyze-muted/10 to-transparent',
+   131→  'from-wine-accent/20 to-transparent',
+   132→  'from-wine-deep/25 to-transparent',
+   133→  'from-wine/30 to-transparent',
+   134→];
+   135→
+   136→function isToday(d: Date): boolean {
+   137→  const today = new Date();
+   138→  return d.getDate() === today.getDate() &&
+   139→    d.getMonth() === today.getMonth() &&
+   140→    d.getFullYear() === today.getFullYear();
+   141→}
+   142→
+   143→function loadSlots(): WeekSlots {
+   144→  if (typeof window === 'undefined') return {};
+   145→  try {
+   146→    const raw = localStorage.getItem(STORAGE_KEY);
+   147→    if (!raw) return {};
+   148→    const parsed = JSON.parse(raw);
+   149→    // Migrate old slots that may not have contentType
+   150→    let needsSave = false;
+   151→    for (const dk of Object.keys(parsed)) {
+   152→      const updated = parsed[dk].map((slot: CalendarSlot) => {
+   153→        if (!slot.contentType) { needsSave = true; return { ...slot, contentType: 'post' as ContentType }; }
+   154→        return slot;
+   155→      });
+   156→      parsed[dk] = updated;
+   157→    }
+   158→    if (needsSave) localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+   159→    return parsed;
+   160→  } catch {
+   161→    return {};
+   162→  }
+   163→}
+   164→
+   165→function saveSlots(slots: WeekSlots) {
+   166→  if (typeof window === 'undefined') return;
+   167→  localStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
+   168→}
+   169→
+   170→const container = {
+   171→  hidden: { opacity: 0 },
+   172→  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+   173→};
+   174→
+   175→const item = {
+   176→  hidden: { opacity: 0, y: 12 },
+   177→  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+   178→};
+   179→
+   180→export default function CalendarView() {
+   181→  const [weekOffset, setWeekOffset] = useState(0);
+   182→  const [slots, setSlots] = useState<WeekSlots>(() => loadSlots());
+   183→  const [activeDay, setActiveDay] = useState<string | null>(null);
+   184→  const [newTitle, setNewTitle] = useState('');
+   185→  const [newPlatform, setNewPlatform] = useState<Platform>('instagram');
+   186→  const [newTime, setNewTime] = useState('09:00');
+   187→  const [newContentType, setNewContentType] = useState<ContentType>('reel');
+   188→  const [libraryDropdownOpen, setLibraryDropdownOpen] = useState(false);
+   189→
+   190→  // Mobile 3-day page
+   191→  const [mobilePage, setMobilePage] = useState(0);
+   192→
+   193→  // Note dialog state
+   194→  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+   195→  const [noteDialogDay, setNoteDialogDay] = useState<string | null>(null);
+   196→  const [noteText, setNoteText] = useState('');
+   197→
+   198→  const savedAnalyses = useAppStore((s) => s.savedAnalyses);
+   199→  const recentAnalyses = savedAnalyses.slice(0, 5);
+   200→
+   201→  const days = getWeekDays(weekOffset);
+   202→
+   203→  // Derive mobilePage reset: when weekOffset changes, mobilePage should be 0
+   204→  // We handle this in the click handlers instead of an effect to avoid cascading renders
+   205→
+   206→  const persistSlots = useCallback((updated: WeekSlots) => {
+   207→    setSlots(updated);
+   208→    saveSlots(updated);
+   209→  }, []);
+   210→
+   211→  const addSlot = useCallback(() => {
+   212→    if (!activeDay || !newTitle.trim()) return;
+   213→    const daySlots = slots[activeDay] || [];
+   214→    if (daySlots.length >= SLOT_LIMIT) return;
+   215→    const slot: CalendarSlot = {
+   216→      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+   217→      title: newTitle.trim(),
+   218→      platform: newPlatform,
+   219→      time: newTime,
+   220→      contentType: newContentType,
+   221→    };
+   222→    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
+   223→    persistSlots(updated);
+   224→    setNewTitle('');
+   225→    setNewTime('09:00');
+   226→    setNewPlatform('instagram');
+   227→    setNewContentType('reel');
+   228→  }, [activeDay, newTitle, newPlatform, newTime, newContentType, slots, persistSlots]);
+   229→
+   230→  const addSlotFromAnalysis = useCallback((analysis: { title: string; platform: Platform }) => {
+   231→    if (!activeDay) return;
+   232→    const daySlots = slots[activeDay] || [];
+   233→    if (daySlots.length >= SLOT_LIMIT) return;
+   234→    const slot: CalendarSlot = {
+   235→      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+   236→      title: analysis.title,
+   237→      platform: analysis.platform,
+   238→      time: newTime,
+   239→      contentType: newContentType,
+   240→    };
+   241→    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
+   242→    persistSlots(updated);
+   243→    setLibraryDropdownOpen(false);
+   244→    setActiveDay(null);
+   245→  }, [activeDay, newTime, newContentType, slots, persistSlots]);
+   246→
+   247→  const removeSlot = useCallback((dayKey: string, slotId: string) => {
+   248→    const daySlots = (slots[dayKey] || []).filter((s) => s.id !== slotId);
+   249→    const updated = { ...slots, [dayKey]: daySlots };
+   250→    if (daySlots.length === 0) delete updated[dayKey];
+   251→    persistSlots(updated);
+   252→  }, [slots, persistSlots]);
+   253→
+   254→  const openNoteDialog = useCallback((dayKey: string) => {
+   255→    setNoteDialogDay(dayKey);
+   256→    const daySlots = slots[dayKey];
+   257→    if (daySlots && daySlots.length > 0 && daySlots[0].note) {
+   258→      setNoteText(daySlots[0].note);
+   259→    } else {
+   260→      setNoteText('');
+   261→    }
+   262→    setNoteDialogOpen(true);
+   263→  }, [slots]);
+   264→
+   265→  const saveNote = useCallback(() => {
+   266→    if (!noteDialogDay) return;
+   267→    if (!noteText.trim()) { setNoteDialogOpen(false); return; }
+   268→    const daySlots = slots[noteDialogDay] || [];
+   269→    const noteSlot: CalendarSlot = {
+   270→      id: `note-${Date.now()}`,
+   271→      title: noteText.trim(),
+   272→      platform: 'instagram',
+   273→      time: '00:00',
+   274→      contentType: 'post',
+   275→      note: noteText.trim(),
+   276→    };
+   277→    const updated = { ...slots, [noteDialogDay]: [...daySlots, noteSlot] };
+   278→    persistSlots(updated);
+   279→    setNoteDialogOpen(false);
+   280→    setNoteText('');
+   281→    toast.success('Reminder added');
+   282→  }, [noteDialogDay, noteText, slots, persistSlots]);
+   283→
+   284→  const weekLabel = `${days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+   285→
+   286→  const totalSlots = Object.values(slots).reduce((s, arr) => s + arr.length, 0);
+   287→
+   288→  const daysWithContent = days.filter((d) => {
+   289→    const key = dateKey(d);
+   290→    return slots[key] && slots[key].length > 0;
+   291→  }).length;
+   292→  const weekFillPercent = (daysWithContent / 7) * 100;
+   293→
+   294→  // Mobile: show 3 days at a time
+   295→  const mobileDayStart = mobilePage * 3;
+   296→  const mobileDays = days.slice(mobileDayStart, mobileDayStart + 3);
+   297→  const hasMorePages = mobileDayStart + 3 < 7;
+   298→  const hasPrevPages = mobilePage > 0;
+   299→
+   300→  const displayDays = mobileDays; // Will be overridden for desktop below
+   301→
+   302→  return (
+   303→    <motion.div
+   304→      variants={container}
+   305→      initial="hidden"
+   306→      animate="show"
+   307→      className="flex flex-col gap-6 max-w-5xl mx-auto"
+   308→    >
+   309→      {/* Header */}
+   310→      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   311→        <div className="flex flex-col">
+   312→          <div className="flex items-center gap-2.5">
+   313→            <CalendarDays className="h-6 w-6 text-wine-accent/40" />
+   314→            <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   315→              Content Calendar
+   316→            </h2>
+   317→            {totalSlots > 0 && (
+   318→              <span className="text-xs font-medium tabular-nums px-2 py-0.5 rounded-full bg-wine-accent/10 text-wine-accent border border-wine-accent/30">
+   319→                {totalSlots} scheduled
+   320→              </span>
+   321→            )}
+   322→          </div>
+   323→          <p className="text-viralyze-muted mt-1">
+   324→            Plan your content across the week
+   325→          </p>
+   326→        </div>
+   327→
+   328→        {/* Week Navigation */}
+   329→        <div className="flex items-center gap-2">
+   330→          <Button
+   331→            variant="outline"
+   332→            size="icon"
+   333→            onClick={() => { setWeekOffset((w) => w - 1); setMobilePage(0); }}
+   334→            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:scale-105 transition-transform"
+   335→          >
+   336→            <ChevronLeft className="h-4 w-4" />
+   337→          </Button>
+   338→          <span className="text-sm text-viralyze-white font-medium min-w-[180px] text-center">
+   339→            {weekLabel}
+   340→          </span>
+   341→          <Button
+   342→            variant="outline"
+   343→            size="icon"
+   344→            onClick={() => { setWeekOffset((w) => w + 1); setMobilePage(0); }}
+   345→            className="h-8 w-8 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:scale-105 transition-transform"
+   346→          >
+   347→            <ChevronRight className="h-4 w-4" />
+   348→          </Button>
+   349→          {weekOffset === 0 ? (
+   350→            <motion.span
+   351→              initial={{ opacity: 0, scale: 0.8 }}
+   352→              animate={{ opacity: 1, scale: 1 }}
+   353→              className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25 text-wine-accent text-xs font-medium"
+   354→            >
+   355→              <motion.span
+   356→                className="absolute inset-0 rounded-full border border-wine-accent/30"
+   357→                animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.15, 1] }}
+   358→                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+   359→              />
+   360→              <CalendarDays className="h-3 w-3 relative z-10" />
+   361→              <span className="relative z-10">Today</span>
+   362→            </motion.span>
+   363→          ) : (
+   364→            <motion.div
+   365→              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25"
+   366→              animate={{ opacity: weekOffset !== 0 ? 1 : 0, scale: weekOffset !== 0 ? 1 : 0.8 }}
+   367→              transition={{ duration: 0.3 }}
+   368→            >
+   369→              <CalendarDays className="h-3 w-3 text-wine-accent" />
+   370→              <Button
+   371→                variant="ghost"
+   372→                size="sm"
+   373→                onClick={() => { setWeekOffset(0); setMobilePage(0); }}
+   374→                className="text-wine-accent hover:text-wine-accent hover:bg-wine-accent/10 text-xs h-auto p-0"
+   375→              >
+   376→                Today
+   377→              </Button>
+   378→            </motion.div>
+   379→          )}
+   380→        </div>
+   381→      </motion.div>
+   382→
+   383→      {/* Week Overview Stats Bar */}
+   384→      <motion.div variants={item}>
+   385→        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+   386→          <div className="flex items-center gap-2">
+   387→            <motion.div
+   388→              className="h-2 w-2 rounded-full bg-wine-accent"
+   389→              animate={{ opacity: [0.6, 1, 0.6] }}
+   390→              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+   391→            />
+   392→            <span className="text-xs text-viralyze-muted">
+   393→              <span className="text-viralyze-white font-medium tabular-nums">{daysWithContent}</span>/7 days with content
+   394→            </span>
+   395→          </div>
+   396→          <div className="flex items-center gap-2 flex-1 max-w-[160px]">
+   397→            <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+   398→              <motion.div
+   399→                className="h-full rounded-full"
+   400→                style={{
+   401→                  background: 'linear-gradient(90deg, #7F1D3A 0%, #B8325A 50%, #7F1D3A 100%)',
+   402→                  backgroundSize: '200% 100%',
+   403→                }}
+   404→                initial={{ width: 0, backgroundPosition: '0% 0' }}
+   405→                animate={{
+   406→                  width: `${weekFillPercent}%`,
+   407→                  backgroundPosition: ['0% 0', '100% 0', '0% 0'],
+   408→                }}
+   409→                transition={{
+   410→                  width: { duration: 0.8, ease: 'easeOut' },
+   411→                  backgroundPosition: { duration: 3, repeat: Infinity, ease: 'linear' },
+   412→                }}
+   413→              />
+   414→            </div>
+   415→            <span className="text-[10px] text-viralyze-muted/60 tabular-nums w-7 text-right">
+   416→              {Math.round(weekFillPercent)}%
+   417→            </span>
+   418→          </div>
+   419→        </div>
+   420→      </motion.div>
+   421→
+   422→      {/* Glow-line separator */}
+   423→      <div className="glow-line" />
+   424→
+   425→      {/* Gradient mesh background with dot-grid pattern */}
+   426→      <div className="relative">
+   427→        <div className="pointer-events-none absolute -top-20 -right-20 h-[300px] w-[300px] rounded-full bg-wine-accent/[0.06] blur-[100px]" />
+   428→        <div className="pointer-events-none absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-wine/[0.08] blur-[100px]" />
+   429→        {/* Dot-grid pattern overlay */}
+   430→        <div
+   431→          className="pointer-events-none absolute inset-0 z-0 opacity-[0.03]"
+   432→          style={{
+   433→            backgroundImage: 'radial-gradient(circle, rgba(250,250,249,0.8) 1px, transparent 1px)',
+   434→            backgroundSize: '20px 20px',
+   435→          }}
+   436→        />
+   437→
+   438→        {/* Mobile: 3-day navigation arrows */}
+   439→        <div className="flex md:hidden items-center justify-between mb-3">
+   440→          <Button
+   441→            variant="ghost"
+   442→            size="icon"
+   443→            onClick={() => setMobilePage((p) => Math.max(0, p - 1))}
+   444→            disabled={!hasPrevPages}
+   445→            className="h-7 w-7 text-viralyze-muted disabled:opacity-30 hover:bg-white/[0.05]"
+   446→          >
+   447→            <ChevronLeft className="h-4 w-4" />
+   448→          </Button>
+   449→          <span className="text-xs text-viralyze-muted">
+   450→            {displayDays[0]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })} – {displayDays[displayDays.length - 1]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
+   451→          </span>
+   452→          <Button
+   453→            variant="ghost"
+   454→            size="icon"
+   455→            onClick={() => setMobilePage((p) => Math.min(2, p + 1))}
+   456→            disabled={!hasMorePages}
+   457→            className="h-7 w-7 text-viralyze-muted disabled:opacity-30 hover:bg-white/[0.05]"
+   458→          >
+   459→            <ChevronRight className="h-4 w-4" />
+   460→          </Button>
+   461→        </div>
+   462→
+   463→        {/* Desktop: Full 7-day grid */}
+   464→        <div className="hidden md:grid grid-cols-7 gap-3">
+   465→          {days.map((day) => {
+   466→            const key = dateKey(day);
+   467→            const daySlots = slots[key] || [];
+   468→            const isDayToday = isToday(day);
+   469→            const isActive = activeDay === key;
+   470→            return renderDayCard({
+   471→              day, key, daySlots, isDayToday, isActive,
+   472→              activeDay, setActiveDay, slots,
+   473→              newTitle, setNewTitle, newPlatform, setNewPlatform,
+   474→              newTime, setNewTime, newContentType, setNewContentType,
+   475→              addSlot, addSlotFromAnalysis, removeSlot,
+   476→              openNoteDialog, recentAnalyses,
+   477→              libraryDropdownOpen, setLibraryDropdownOpen,
+   478→            });
+   479→          })}
+   480→        </div>
+   481→
+   482→        {/* Mobile: 3-day grid (1 col) */}
+   483→        <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-3">
+   484→          {displayDays.map((day) => {
+   485→            const key = dateKey(day);
+   486→            const daySlots = slots[key] || [];
+   487→            const isDayToday = isToday(day);
+   488→            const isActive = activeDay === key;
+   489→            return renderDayCard({
+   490→              day, key, daySlots, isDayToday, isActive,
+   491→              activeDay, setActiveDay, slots,
+   492→              newTitle, setNewTitle, newPlatform, setNewPlatform,
+   493→              newTime, setNewTime, newContentType, setNewContentType,
+   494→              addSlot, addSlotFromAnalysis, removeSlot,
+   495→              openNoteDialog, recentAnalyses,
+   496→              libraryDropdownOpen, setLibraryDropdownOpen,
+   497→            });
+   498→          })}
+   499→        </div>
+   500→      </div>
+   501→
+   502→      {/* Note Dialog */}
+   503→      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+   504→        <DialogContent className="bg-viralyze-soft-black border-white/[0.1] max-w-sm">
+   505→          <DialogHeader>
+   506→            <DialogTitle className="text-viralyze-white flex items-center gap-2">
+   507→              <StickyNote className="h-4 w-4 text-wine-accent" />
+   508→              Content Reminder
+   509→            </DialogTitle>
+   510→            <DialogDescription className="text-viralyze-muted">
+   511→              Add a quick note or reminder for this day
+   512→            </DialogDescription>
+   513→          </DialogHeader>
+   514→          <Textarea
+   515→            placeholder="e.g., Draft carousel for product launch, film behind-the-scenes reel..."
+   516→            value={noteText}
+   517→            onChange={(e) => setNoteText(e.target.value)}
+   518→            className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent resize-none min-h-[80px]"
+   519→            autoFocus
+   520→          />
+   521→          <DialogFooter>
+   522→            <Button
+   523→              variant="ghost"
+   524→              onClick={() => setNoteDialogOpen(false)}
+   525→              className="text-viralyze-muted hover:text-viralyze-white"
+   526→            >
+   527→              Cancel
+   528→            </Button>
+   529→            <Button
+   530→              onClick={saveNote}
+   531→              disabled={!noteText.trim()}
+   532→              className="bg-gradient-wine hover:opacity-90 text-white"
+   533→            >
+   534→              Save Note
+   535→            </Button>
+   536→          </DialogFooter>
+   537→        </DialogContent>
+   538→      </Dialog>
+   539→
+   540→      {/* Empty state hint */}
+   541→      {totalSlots === 0 && (
+   542→        <motion.div variants={item} className="text-center pb-4">
+   543→          <div className="flex flex-col items-center gap-2">
+   544→            <Sparkles className="h-6 w-6 text-viralyze-muted/20" />
+   545→            <p className="text-xs text-viralyze-muted/50">
+   546→              Click on any day to schedule your first content idea
+   547→            </p>
+   548→          </div>
+   549→        </motion.div>
+   550→      )}
+   551→    </motion.div>
+   552→  );
+   553→}
+   554→
+   555→// --- Render helpers (pure functions, no hooks) ---
+   556→
+   557→interface DayCardProps {
+   558→  day: Date;
+   559→  key: string;
+   560→  daySlots: CalendarSlot[];
+   561→  isDayToday: boolean;
+   562→  isActive: boolean;
+   563→  activeDay: string | null;
+   564→  setActiveDay: (k: string | null) => void;
+   565→  slots: WeekSlots;
+   566→  newTitle: string;
+   567→  setNewTitle: (v: string) => void;
+   568→  newPlatform: Platform;
+   569→  setNewPlatform: (p: Platform) => void;
+   570→  newTime: string;
+   571→  setNewTime: (v: string) => void;
+   572→  newContentType: ContentType;
+   573→  setNewContentType: (c: ContentType) => void;
+   574→  addSlot: () => void;
+   575→  addSlotFromAnalysis: (a: { title: string; platform: Platform }) => void;
+   576→  removeSlot: (d: string, id: string) => void;
+   577→  openNoteDialog: (d: string) => void;
+   578→  recentAnalyses: { id: string; title: string; platform: Platform; overallScore: number }[];
+   579→  libraryDropdownOpen: boolean;
+   580→  setLibraryDropdownOpen: (o: boolean) => void;
+   581→}
+   582→
+   583→function renderDayCard(props: DayCardProps) {
+   584→  const {
+   585→    day, key, daySlots, isDayToday, isActive,
+   586→    setActiveDay,
+   587→    newTitle, setNewTitle, newPlatform, setNewPlatform,
+   588→    newTime, setNewTime, newContentType, setNewContentType,
+   589→    addSlot, addSlotFromAnalysis, removeSlot,
+   590→    openNoteDialog, recentAnalyses,
+   591→    libraryDropdownOpen, setLibraryDropdownOpen,
+   592→  } = props;
+   593→
+   594→  return (
+   595→    <motion.div key={key} variants={item}>
+   596→      <motion.div
+   597→        whileHover={{ y: -2 }}
+   598→        transition={{ duration: 0.2 }}
+   599→      >
+   600→        <Card
+   601→          className={cn(
+   602→            'glass relative transition-all duration-200 hover:shadow-lg hover:shadow-wine-accent/[0.08]',
+   603→            isDayToday && 'border-wine-accent/30',
+   604→            isActive && 'border-wine-accent/50 glow-wine-sm',
+   605→            daySlots.length > 0 && !isActive && 'hover:glow-wine-sm',
+   606→          )}
+   607→        >
+   608→        <CardHeader className={cn('p-3 pb-2 bg-gradient-to-br rounded-t-xl', dayHeaderGradients[day.getDay() === 0 ? 6 : day.getDay() - 1])}>
+   609→          <div className="flex items-center justify-between">
+   610→            <CardTitle className="text-xs font-semibold text-viralyze-white">
+   611→              {day.toLocaleDateString('en-US', { weekday: 'short' })}
+   612→            </CardTitle>
+   613→            {isDayToday && (
+   614→              <span className="h-1.5 w-1.5 rounded-full bg-wine-accent" />
+   615→            )}
+   616→          </div>
+   617→          <p className={cn(
+   618→            'text-[11px] text-viralyze-muted',
+   619→            isDayToday && 'text-wine-accent'
+   620→          )}>
+   621→            {formatDayLabel(day)}
+   622→          </p>
+   623→        </CardHeader>
+   624→        <CardContent className="p-3 pt-0">
+   625→          {/* Existing slots with content type color coding and drag feedback */}
+   626→          <div className="flex flex-col gap-1.5 mb-2">
+   627→            {daySlots.map((slot) => {
+   628→              const PIcon = platformIcons[slot.platform];
+   629→              const borderColor = contentTypeColors[slot.contentType] || 'border-l-wine-accent';
+   630→              const gradientBg = contentTypeGradients[slot.contentType] || '';
+   631→              const TimeIcon = slot.note ? Clock : getTimeOfDayIcon(slot.time);
+   632→              const timeColor = slot.note ? 'text-viralyze-muted' : getTimeOfDayColor(slot.time);
+   633→              return (
+   634→                <motion.div
+   635→                  key={slot.id}
+   636→                  initial={{ opacity: 0, scale: 0.95 }}
+   637→                  animate={{ opacity: 1, scale: 1 }}
+   638→                  exit={{ opacity: 0, scale: 0.95 }}
+   639→                  className={cn(
+   640→                    'flex items-start gap-1.5 p-1.5 rounded-md border border-white/[0.06] group relative border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-[1px] hover:shadow-md hover:shadow-black/20 transition-all duration-200',
+   641→                    borderColor,
+   642→                    gradientBg
+   643→                  )}
+   644→                >
+   645→                  {/* Drag handle indicator */}
+   646→                  <div className="flex flex-col gap-px mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity shrink-0">
+   647→                    <div className="h-0.5 w-2.5 rounded-full bg-viralyze-white" />
+   648→                    <div className="h-0.5 w-2.5 rounded-full bg-viralyze-white" />
+   649→                  </div>
+   650→                  <PIcon className="h-3 w-3 text-viralyze-muted mt-0.5 shrink-0" />
+   651→                  <div className="flex-1 min-w-0">
+   652→                    <p className="text-[11px] font-medium text-viralyze-white leading-tight truncate">
+   653→                      {slot.title}
+   654→                    </p>
+   655→                    <p className={cn('text-[10px] flex items-center gap-0.5', timeColor)}>
+   656→                      <TimeIcon className="h-2.5 w-2.5" />
+   657→                      {slot.note ? 'Reminder' : slot.time}
+   658→                    </p>
+   659→                  </div>
+   660→                  <button
+   661→                    onClick={(e) => { e.stopPropagation(); removeSlot(key, slot.id); }}
+   662→                    className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-viralyze-black border border-white/10 items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:border-red-500/30 transition-all hidden sm:flex"
+   663→                  >
+   664→                    <X className="h-2.5 w-2.5 text-viralyze-muted" />
+   665→                  </button>
+   666→                </motion.div>
+   667→              );
+   668→            })}
+   669→          </div>
+   670→
+   671→          {/* Add slot button or inline form */}
+   672→          {daySlots.length < SLOT_LIMIT && (
+   673→            <AnimatePresence mode="wait">
+   674→              {isActive ? (
+   675→                <motion.div
+   676→                  key="form"
+   677→                  initial={{ opacity: 0, height: 0 }}
+   678→                  animate={{ opacity: 1, height: 'auto' }}
+   679→                  exit={{ opacity: 0, height: 0 }}
+   680→                  className="flex flex-col gap-1.5"
+   681→                >
+   682→                  <Input
+   683→                    placeholder="Title..."
+   684→                    value={newTitle}
+   685→                    onChange={(e) => setNewTitle(e.target.value)}
+   686→                    onKeyDown={(e) => { if (e.key === 'Enter') addSlot(); if (e.key === 'Escape') setActiveDay(null); }}
+   687→                    className="h-7 text-[11px] bg-white/[0.04] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent focus-visible:ring-1 px-2"
+   688→                    autoFocus
+   689→                  />
+   690→                  <div className="flex gap-1.5">
+   691→                    <Select value={newPlatform} onValueChange={(v) => setNewPlatform(v as Platform)}>
+   692→                      <SelectTrigger className="h-6 text-[10px] bg-white/[0.04] border-white/[0.08] text-viralyze-muted px-1.5 flex-1">
+   693→                        <SelectValue />
+   694→                      </SelectTrigger>
+   695→                      <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   696→                        {Object.entries(platformIcons).map(([pKey, PI]) => (
+   697→                          <SelectItem key={pKey} value={pKey} className="text-viralyze-white text-xs">
+   698→                            <div className="flex items-center gap-1.5"><PI className="h-3 w-3" />{pKey}</div>
+   699→                          </SelectItem>
+   700→                        ))}
+   701→                      </SelectContent>
+   702→                    </Select>
+   703→                    <Select value={newContentType} onValueChange={(v) => setNewContentType(v as ContentType)}>
+   704→                      <SelectTrigger className="h-6 text-[10px] bg-white/[0.04] border-white/[0.08] text-viralyze-muted px-1.5 w-[68px]">
+   705→                        <SelectValue />
+   706→                      </SelectTrigger>
+   707→                      <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   708→                        {(['reel','post','story','article','carousel','video','short','thread'] as ContentType[]).map((ct) => (
+   709→                          <SelectItem key={ct} value={ct} className="text-viralyze-white text-xs capitalize">
+   710→                            {ct}
+   711→                          </SelectItem>
+   712→                        ))}
+   713→                      </SelectContent>
+   714→                    </Select>
+   715→                    <Input
+   716→                      type="time"
+   717→                      value={newTime}
+   718→                      onChange={(e) => setNewTime(e.target.value)}
+   719→                      className="h-6 text-[10px] bg-white/[0.04] border-white/[0.08] text-viralyze-muted px-1.5 w-[68px]"
+   720→                    />
+   721→                  </div>
+   722→                  <div className="flex gap-1">
+   723→                    <Button
+   724→                      size="sm"
+   725→                      onClick={addSlot}
+   726→                      disabled={!newTitle.trim()}
+   727→                      className="h-6 text-[10px] bg-wine-accent hover:bg-wine-accent/80 text-white px-2 flex-1"
+   728→                    >
+   729→                      Add
+   730→                    </Button>
+   731→                    <Button
+   732→                      size="sm"
+   733→                      variant="ghost"
+   734→                      onClick={() => setActiveDay(null)}
+   735→                      className="h-6 text-[10px] text-viralyze-muted hover:text-viralyze-white px-2"
+   736→                    >
+   737→                      Cancel
+   738→                    </Button>
+   739→                  </div>
+   740→                  {/* Link from Library */}
+   741→                  {recentAnalyses.length > 0 && (
+   742→                    <div className="relative mt-1">
+   743→                      <Button
+   744→                        type="button"
+   745→                        size="sm"
+   746→                        variant="outline"
+   747→                        onClick={() => setLibraryDropdownOpen(!libraryDropdownOpen)}
+   748→                        className="h-6 text-[10px] border-dashed text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] w-full"
+   749→                      >
+   750→                        <Bookmark className="h-3 w-3 mr-1" />
+   751→                        Link from Library
+   752→                      </Button>
+   753→                      {libraryDropdownOpen && (
+   754→                        <motion.div
+   755→                          initial={{ opacity: 0, y: -4 }}
+   756→                          animate={{ opacity: 1, y: 0 }}
+   757→                          exit={{ opacity: 0, y: -4 }}
+   758→                          className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-viralyze-soft-black border border-white/[0.1] shadow-xl overflow-hidden"
+   759→                        >
+   760→                          <div className="max-h-48 overflow-y-auto flex flex-col divide-y divide-white/[0.06]">
+   761→                            {recentAnalyses.map((analysis) => {
+   762→                              const PI = platformIcons[analysis.platform];
+   763→                              return (
+   764→                                <button
+   765→                                  key={analysis.id}
+   766→                                  onClick={() => addSlotFromAnalysis({ title: analysis.title, platform: analysis.platform })}
+   767→                                  className="flex items-center gap-2 px-2.5 py-2 hover:bg-white/[0.05] transition-colors text-left w-full"
+   768→                                >
+   769→                                  <PI className="h-3 w-3 text-viralyze-muted shrink-0" />
+   770→                                  <span className="text-[11px] text-viralyze-white truncate flex-1">
+   771→                                    {analysis.title}
+   772→                                  </span>
+   773→                                  <span className={cn(
+   774→                                    'text-[9px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full shrink-0',
+   775→                                    analysis.overallScore >= 70
+   776→                                      ? 'bg-green-500/15 text-green-400'
+   777→                                      : analysis.overallScore >= 45
+   778→                                        ? 'bg-amber-500/15 text-amber-400'
+   779→                                        : 'bg-red-500/15 text-red-400'
+   780→                                  )}>
+   781→                                    {analysis.overallScore}
+   782→                                  </span>
+   783→                                </button>
+   784→                              );
+   785→                            })}
+   786→                          </div>
+   787→                        </motion.div>
+   788→                      )}
+   789→                    </div>
+   790→                  )}
+   791→                </motion.div>
+   792→              ) : (
+   793→                <motion.button
+   794→                  key="btn"
+   795→                  initial={{ opacity: 0 }}
+   796→                  animate={{ opacity: 1 }}
+   797→                  exit={{ opacity: 0 }}
+   798→                  onClick={() => setActiveDay(key)}
+   799→                  className={cn(
+   800→                    'relative flex items-center justify-center gap-1 py-1.5 rounded-md border text-viralyze-muted/60 hover:text-wine-accent transition-all text-[11px] group/empty',
+   801→                    daySlots.length === 0
+   802→                      ? 'border-dashed border-wine-accent/25'
+   803→                      : 'border-dashed border-white/[0.08] hover:border-wine-accent/30'
+   804→                  )}
+   805→                >
+   806→                  <Plus className="h-3 w-3" />
+   807→                  {daySlots.length === 0 ? 'Add content' : 'Add more'}
+   808→                  {/* Hover glow + icon for empty slots */}
+   809→                  {daySlots.length === 0 && (
+   810→                    <motion.div
+   811→                      className="absolute inset-0 rounded-md pointer-events-none"
+   812→                      initial={{ boxShadow: '0 0 0px rgba(184,50,90,0)' }}
+   813→                      whileHover={{ boxShadow: '0 0 16px rgba(184,50,90,0.2), 0 0 32px rgba(127,29,58,0.1)' }}
+   814→                    />
+   815→                  )}
+   816→                </motion.button>
+   817→              )}
+   818→            </AnimatePresence>
+   819→          )}
+   820→
+   821→          {/* Note button for empty slots — appears with hover */}
+   822→          {!isActive && daySlots.length < SLOT_LIMIT && (
+   823→            <motion.button
+   824→              onClick={(e) => { e.stopPropagation(); openNoteDialog(key); }}
+   825→              className="absolute bottom-3 right-3 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity text-viralyze-muted/30 hover:text-wine-accent"
+   826→              title="Add a quick reminder"
+   827→            >
+   828→              <StickyNote className="h-3.5 w-3.5" />
+   829→            </motion.button>
+   830→          )}
+   831→
+   832→          {daySlots.length >= SLOT_LIMIT && (
+   833→            <p className="text-[10px] text-viralyze-muted/40 text-center py-1">3/3 slots filled</p>
+   834→          )}
+   835→        </CardContent>
+   836→      </Card>
+   837→      </motion.div>
+   838→    </motion.div>
+   839→  );
+   840→}
+   841→

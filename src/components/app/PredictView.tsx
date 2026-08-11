@@ -51,8 +51,10 @@ export default function PredictView() {
     setCurrentAnalysis,
     setCurrentView,
     user,
+    updateUser,
     prefilledIdea,
     setPrefilledIdea,
+    addSavedAnalysis,
     savedAnalyses,
   } = useAppStore();
 
@@ -153,6 +155,38 @@ export default function PredictView() {
         return;
       }
 
+      // Update usage counter if server returned updated count
+      if (data.userUsage) {
+        updateUser(data.userUsage);
+      } else {
+        // Fallback: increment locally
+        updateUser({ predictionsUsed: (user?.predictionsUsed || 0) + 1 });
+      }
+
+      // Add to saved analyses for library
+      addSavedAnalysis({
+        id: data.id,
+        title: title || (ideaText || contentText || '').slice(0, 80),
+        platform: predictPlatform,
+        contentType: predictContentType,
+        contentText: ideaText || contentText || '',
+        overallScore: data.overallScore,
+        confidence: data.confidence,
+        classification: data.classification,
+        createdAt: new Date().toISOString(),
+        scores: data.scores,
+        platformFit: data.platformFit,
+        strengths: data.strengths,
+        weaknesses: data.weaknesses,
+        improvements: data.improvements,
+        optimizedHook: data.optimizedHook,
+        optimizedCaption: data.optimizedCaption,
+        optimizedTitle: data.optimizedTitle,
+        variations: data.variations,
+        emotionalBreakdown: data.emotionalBreakdown,
+        predictedEngagement: data.predictedEngagement,
+      });
+
       setCurrentAnalysis(data);
       setTimeout(() => {
         setCurrentView('analysis');
@@ -187,14 +221,14 @@ export default function PredictView() {
             className="flex flex-col gap-2"
           >
             <span className="text-[11px] text-viralyze-muted/60 uppercase tracking-wider font-medium">Recent</span>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-thin -mx-1 px-1 pb-1 sm:overflow-x-visible sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap">
               {recentPredictions.map((analysis) => (
                 <motion.button
                   key={analysis.id}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => handleRecentClick(analysis)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-wine-accent/30 hover:bg-wine-accent/10 transition-all duration-200 text-xs text-viralyze-muted hover:text-viralyze-white max-w-[200px]"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-wine-accent/30 hover:bg-wine-accent/10 transition-all duration-200 text-xs text-viralyze-muted hover:text-viralyze-white max-w-[200px] shrink-0 min-h-[36px]"
                 >
                   <span className={cn(
                     'h-1.5 w-1.5 rounded-full shrink-0',
@@ -214,16 +248,16 @@ export default function PredictView() {
         value={predictMode}
         onValueChange={(v) => setPredictMode(v as 'idea' | 'post')}
       >
-        <TabsList className="bg-white/[0.05] border border-white/[0.08]">
+        <TabsList className="bg-white/[0.05] border border-white/[0.08] w-full sm:w-auto">
           <TabsTrigger
             value="idea"
-            className="data-[state=active]:bg-wine-accent/20 data-[state=active]:text-wine-accent"
+            className="data-[state=active]:bg-wine-accent/20 data-[state=active]:text-wine-accent flex-1 min-h-[44px]"
           >
             New Idea
           </TabsTrigger>
           <TabsTrigger
             value="post"
-            className="data-[state=active]:bg-wine-accent/20 data-[state=active]:text-wine-accent"
+            className="data-[state=active]:bg-wine-accent/20 data-[state=active]:text-wine-accent flex-1 min-h-[44px]"
           >
             Existing Content
           </TabsTrigger>
@@ -295,7 +329,7 @@ export default function PredictView() {
                 value={predictContentType}
                 onValueChange={(v) => setPredictContentType(v as ContentType)}
               >
-                <SelectTrigger className="bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-wine-accent/30 hover:shadow-[0_0_12px_rgba(127,29,58,0.15)] transition-all duration-200">
+                <SelectTrigger className="w-full bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-wine-accent/30 hover:shadow-[0_0_12px_rgba(127,29,58,0.15)] transition-all duration-200 h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
@@ -325,7 +359,7 @@ export default function PredictView() {
                 placeholder="e.g., young entrepreneurs, 18-30, interested in tech"
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent"
+                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent h-11"
               />
             </div>
 
@@ -338,7 +372,7 @@ export default function PredictView() {
                 placeholder="Give your content a title..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent"
+                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent h-11"
               />
             </div>
 
@@ -351,7 +385,7 @@ export default function PredictView() {
                 placeholder="#viral #startup #content..."
                 value={hashtags}
                 onChange={(e) => setHashtags(e.target.value)}
-                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent"
+                className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent h-11"
               />
             </div>
 
@@ -406,8 +440,8 @@ export default function PredictView() {
                       }}
                     />
 
-                    {/* 3-step progress indicator */}
-                    <div className="flex items-center gap-3 relative z-10">
+                    {/* 3-step progress indicator — stacks vertically on mobile */}
+                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-3 relative z-10">
                       {enhancedLoadingSteps.map((step, i) => (
                         <motion.div
                           key={step}
@@ -446,10 +480,10 @@ export default function PredictView() {
                           >
                             {step}
                           </motion.span>
-                          {/* Connector line between steps */}
+                          {/* Connector line between steps — hidden on mobile, shown on sm+ */}
                           {i < enhancedLoadingSteps.length - 1 && (
                             <motion.div
-                              className="absolute top-4 left-[calc(50%+20px)] h-[2px] w-[calc(100%-40px)] -translate-x-1/2 rounded-full"
+                              className="hidden sm:block absolute top-4 left-[calc(50%+20px)] h-[2px] w-[calc(100%-40px)] -translate-x-1/2 rounded-full"
                               style={{
                                 background: i < loadingStep
                                   ? 'linear-gradient(90deg, #B8325A, rgba(184,50,90,0.3))'

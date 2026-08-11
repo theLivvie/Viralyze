@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
+  const rl = rateLimit(60, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

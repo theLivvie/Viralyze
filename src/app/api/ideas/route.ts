@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { rateLimit } from '@/lib/rate-limit';
 
 const SYSTEM_PROMPT = `You are Viralyze's content idea generator.
 
@@ -16,6 +17,13 @@ Mix styles: tutorials, stories, hot takes, comparisons, challenges, listicles.
 Be specific and honest with scores. 90+ = exceptional, 80-89 = good, 70-79 = solid.`;
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(15, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const { topic, platform, audience } = await request.json();
 

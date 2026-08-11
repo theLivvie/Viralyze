@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays, Bookmark, StickyNote } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Instagram, Youtube, Tv, Twitter, Linkedin, Clock, Sparkles, CalendarDays, Bookmark, StickyNote, Sun, SunDim, Moon, GripVertical, Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,11 +43,12 @@ interface CalendarSlot {
   time: string;
   contentType: ContentType;
   note?: string;
+  date: string;
+  analysisId?: string | null;
 }
 
 type WeekSlots = Record<string, CalendarSlot[]>;
 
-const STORAGE_KEY = 'viralyze-calendar-slots';
 const SLOT_LIMIT = 3;
 
 const contentTypeColors: Record<string, string> = {
@@ -61,6 +62,34 @@ const contentTypeColors: Record<string, string> = {
   article: 'border-l-blue-500',
   carousel: 'border-l-purple-500',
 };
+
+const contentTypeGradients: Record<string, string> = {
+  reel: 'bg-gradient-to-br from-wine-accent/8 to-transparent',
+  video: 'bg-gradient-to-br from-wine-accent/6 to-transparent',
+  short: 'bg-gradient-to-br from-wine-accent/8 to-transparent',
+  post: 'bg-gradient-to-br from-emerald-500/6 to-transparent',
+  image: 'bg-gradient-to-br from-emerald-500/6 to-transparent',
+  thread: 'bg-gradient-to-br from-emerald-500/6 to-transparent',
+  story: 'bg-gradient-to-br from-amber-500/6 to-transparent',
+  article: 'bg-gradient-to-br from-blue-500/6 to-transparent',
+  carousel: 'bg-gradient-to-br from-purple-500/6 to-transparent',
+};
+
+function getTimeOfDayIcon(timeStr: string) {
+  if (!timeStr) return Clock;
+  const hour = parseInt(timeStr.split(':')[0], 10);
+  if (hour >= 5 && hour < 12) return Sun;
+  if (hour >= 12 && hour < 18) return SunDim;
+  return Moon;
+}
+
+function getTimeOfDayColor(timeStr: string) {
+  if (!timeStr) return 'text-viralyze-muted';
+  const hour = parseInt(timeStr.split(':')[0], 10);
+  if (hour >= 5 && hour < 12) return 'text-amber-400';
+  if (hour >= 12 && hour < 18) return 'text-orange-400';
+  return 'text-purple-400';
+}
 
 function getWeekDays(weekOffset: number): Date[] {
   const now = new Date();
@@ -112,33 +141,6 @@ function isToday(d: Date): boolean {
     d.getFullYear() === today.getFullYear();
 }
 
-function loadSlots(): WeekSlots {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    // Migrate old slots that may not have contentType
-    let needsSave = false;
-    for (const dk of Object.keys(parsed)) {
-      const updated = parsed[dk].map((slot: CalendarSlot) => {
-        if (!slot.contentType) { needsSave = true; return { ...slot, contentType: 'post' as ContentType }; }
-        return slot;
-      });
-      parsed[dk] = updated;
-    }
-    if (needsSave) localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-    return parsed;
-  } catch {
-    return {};
-  }
-}
-
-function saveSlots(slots: WeekSlots) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
-}
-
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.05 } },
@@ -149,9 +151,42 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
+interface DBEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string | null;
+  platform: string;
+  contentType: string;
+  notes: string | null;
+  analysisId: string | null;
+}
+
+function eventsToWeekSlots(events: DBEvent[]): WeekSlots {
+  const slots: WeekSlots = {};
+  for (const ev of events) {
+    const key = ev.date;
+    if (!slots[key]) slots[key] = [];
+    slots[key].push({
+      id: ev.id,
+      title: ev.title,
+      platform: ev.platform as Platform,
+      time: ev.time || '',
+      contentType: ev.contentType as ContentType,
+      note: ev.notes || undefined,
+      date: ev.date,
+      analysisId: ev.analysisId,
+    });
+  }
+  return slots;
+}
+
 export default function CalendarView() {
+  const userId = useAppStore((s) => s.user?.id);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [slots, setSlots] = useState<WeekSlots>(() => loadSlots());
+  const [slots, setSlots] = useState<WeekSlots>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeDay, setActiveDay] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newPlatform, setNewPlatform] = useState<Platform>('instagram');
@@ -165,6 +200,7 @@ export default function CalendarView() {
   // Note dialog state
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [noteDialogDay, setNoteDialogDay] = useState<string | null>(null);
+  const [noteDialogSlotId, setNoteDialogSlotId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
 
   const savedAnalyses = useAppStore((s) => s.savedAnalyses);
@@ -172,88 +208,225 @@ export default function CalendarView() {
 
   const days = getWeekDays(weekOffset);
 
-  // Derive mobilePage reset: when weekOffset changes, mobilePage should be 0
-  // We handle this in the click handlers instead of an effect to avoid cascading renders
+  // Fetch events from DB
+  const fetchEvents = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/calendar?userId=${userId}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch calendar events');
+      }
+      const events: DBEvent[] = await res.json();
+      setSlots(eventsToWeekSlots(events));
+    } catch (err) {
+      console.error('Calendar fetch error:', err);
+      setError('Failed to load calendar events');
+      toast.error('Failed to load calendar events');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
-  const persistSlots = useCallback((updated: WeekSlots) => {
-    setSlots(updated);
-    saveSlots(updated);
-  }, []);
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
-  const addSlot = useCallback(() => {
-    if (!activeDay || !newTitle.trim()) return;
+  const addSlot = useCallback(async () => {
+    if (!activeDay || !newTitle.trim() || !userId) return;
     const daySlots = slots[activeDay] || [];
     if (daySlots.length >= SLOT_LIMIT) return;
-    const slot: CalendarSlot = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      title: newTitle.trim(),
-      platform: newPlatform,
-      time: newTime,
-      contentType: newContentType,
-    };
-    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
-    persistSlots(updated);
-    setNewTitle('');
-    setNewTime('09:00');
-    setNewPlatform('instagram');
-    setNewContentType('reel');
-  }, [activeDay, newTitle, newPlatform, newTime, newContentType, slots, persistSlots]);
+    try {
+      const res = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          title: newTitle.trim(),
+          date: activeDay,
+          time: newTime,
+          platform: newPlatform,
+          contentType: newContentType,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create event');
+      }
+      const created: DBEvent = await res.json();
+      const newSlot: CalendarSlot = {
+        id: created.id,
+        title: created.title,
+        date: created.date,
+        platform: created.platform as Platform,
+        time: created.time || newTime,
+        contentType: created.contentType as ContentType,
+        note: created.notes || undefined,
+        analysisId: created.analysisId,
+      };
+      setSlots((prev) => ({ ...prev, [activeDay]: [...(prev[activeDay] || []), newSlot] }));
+      setNewTitle('');
+      setNewTime('09:00');
+      setNewPlatform('instagram');
+      setNewContentType('reel');
+      toast.success('Event added to calendar');
+    } catch (err) {
+      console.error('Calendar add error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to add event');
+    }
+  }, [activeDay, newTitle, newPlatform, newTime, newContentType, slots, userId]);
 
-  const addSlotFromAnalysis = useCallback((analysis: { title: string; platform: Platform }) => {
-    if (!activeDay) return;
+  const addSlotFromAnalysis = useCallback(async (analysis: { title: string; platform: Platform; id: string }) => {
+    if (!activeDay || !userId) return;
     const daySlots = slots[activeDay] || [];
     if (daySlots.length >= SLOT_LIMIT) return;
-    const slot: CalendarSlot = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      title: analysis.title,
-      platform: analysis.platform,
-      time: newTime,
-      contentType: newContentType,
-    };
-    const updated = { ...slots, [activeDay]: [...daySlots, slot] };
-    persistSlots(updated);
-    setLibraryDropdownOpen(false);
-    setActiveDay(null);
-  }, [activeDay, newTime, newContentType, slots, persistSlots]);
+    try {
+      const res = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          title: analysis.title,
+          date: activeDay,
+          time: newTime,
+          platform: analysis.platform,
+          contentType: newContentType,
+          analysisId: analysis.id,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create event');
+      }
+      const created: DBEvent = await res.json();
+      const newSlot: CalendarSlot = {
+        id: created.id,
+        title: created.title,
+        date: created.date,
+        platform: created.platform as Platform,
+        time: created.time || newTime,
+        contentType: created.contentType as ContentType,
+        note: created.notes || undefined,
+        analysisId: created.analysisId,
+      };
+      setSlots((prev) => ({ ...prev, [activeDay]: [...(prev[activeDay] || []), newSlot] }));
+      setLibraryDropdownOpen(false);
+      setActiveDay(null);
+      toast.success('Analysis linked to calendar');
+    } catch (err) {
+      console.error('Calendar add from analysis error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to add event');
+    }
+  }, [activeDay, newTime, newContentType, slots, userId]);
 
-  const removeSlot = useCallback((dayKey: string, slotId: string) => {
-    const daySlots = (slots[dayKey] || []).filter((s) => s.id !== slotId);
-    const updated = { ...slots, [dayKey]: daySlots };
-    if (daySlots.length === 0) delete updated[dayKey];
-    persistSlots(updated);
-  }, [slots, persistSlots]);
+  const removeSlot = useCallback(async (dayKey: string, slotId: string) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/calendar?id=${slotId}&userId=${userId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete event');
+      }
+      setSlots((prev) => {
+        const daySlots = (prev[dayKey] || []).filter((s) => s.id !== slotId);
+        const updated = { ...prev, [dayKey]: daySlots };
+        if (daySlots.length === 0) delete updated[dayKey];
+        return updated;
+      });
+      toast.success('Event removed');
+    } catch (err) {
+      console.error('Calendar delete error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to delete event');
+    }
+  }, [userId]);
 
   const openNoteDialog = useCallback((dayKey: string) => {
     setNoteDialogDay(dayKey);
     const daySlots = slots[dayKey];
     if (daySlots && daySlots.length > 0 && daySlots[0].note) {
       setNoteText(daySlots[0].note);
+      setNoteDialogSlotId(daySlots[0].id);
     } else {
       setNoteText('');
+      setNoteDialogSlotId(daySlots && daySlots.length > 0 ? daySlots[0].id : null);
     }
     setNoteDialogOpen(true);
   }, [slots]);
 
-  const saveNote = useCallback(() => {
-    if (!noteDialogDay) return;
+  const saveNote = useCallback(async () => {
+    if (!noteDialogDay || !userId) return;
     if (!noteText.trim()) { setNoteDialogOpen(false); return; }
-    const daySlots = slots[noteDialogDay] || [];
-    const noteSlot: CalendarSlot = {
-      id: `note-${Date.now()}`,
-      title: noteText.trim(),
-      platform: 'instagram',
-      time: '00:00',
-      contentType: 'post',
-      note: noteText.trim(),
-    };
-    const updated = { ...slots, [noteDialogDay]: [...daySlots, noteSlot] };
-    persistSlots(updated);
-    setNoteDialogOpen(false);
-    setNoteText('');
-    toast.success('Reminder added');
-  }, [noteDialogDay, noteText, slots, persistSlots]);
+    try {
+      if (noteDialogSlotId) {
+        // Update existing event's notes
+        const res = await fetch('/api/calendar', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: noteDialogSlotId, notes: noteText.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to update note');
+        }
+        setSlots((prev) => {
+          const daySlots = (prev[noteDialogDay] || []).map((s) =>
+            s.id === noteDialogSlotId ? { ...s, note: noteText.trim() } : s
+          );
+          return { ...prev, [noteDialogDay]: daySlots };
+        });
+      } else {
+        // Create new event with note
+        const res = await fetch('/api/calendar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            title: noteText.trim(),
+            date: noteDialogDay,
+            time: '00:00',
+            platform: 'instagram',
+            contentType: 'post',
+            notes: noteText.trim(),
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to save note');
+        }
+        const created: DBEvent = await res.json();
+        setSlots((prev) => ({
+          ...prev,
+          [noteDialogDay]: [
+            ...(prev[noteDialogDay] || []),
+            {
+              id: created.id,
+              title: created.title,
+              date: created.date,
+              platform: created.platform as Platform,
+              time: created.time || '00:00',
+              contentType: created.contentType as ContentType,
+              note: created.notes || undefined,
+              analysisId: created.analysisId,
+            },
+          ],
+        }));
+      }
+      setNoteDialogOpen(false);
+      setNoteText('');
+      toast.success('Reminder added');
+    } catch (err) {
+      console.error('Calendar note save error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to save note');
+    }
+  }, [noteDialogDay, noteDialogSlotId, noteText, userId]);
 
-  const weekLabel = `${days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const weekLabel = `${days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
   const totalSlots = Object.values(slots).reduce((s, arr) => s + arr.length, 0);
 
@@ -270,6 +443,37 @@ export default function CalendarView() {
   const hasPrevPages = mobilePage > 0;
 
   const displayDays = mobileDays; // Will be overridden for desktop below
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 text-wine-accent animate-spin" />
+          <p className="text-sm text-viralyze-muted">Loading calendar...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <AlertTriangle className="h-8 w-8 text-amber-400" />
+          <p className="text-sm text-viralyze-muted">{error}</p>
+          <Button
+            variant="outline"
+            onClick={fetchEvents}
+            className="border-wine-accent/30 text-wine-accent hover:bg-wine-accent/10"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -322,10 +526,15 @@ export default function CalendarView() {
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25 text-wine-accent text-xs font-medium"
+              className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-wine-accent/10 border border-wine-accent/25 text-wine-accent text-xs font-medium"
             >
-              <CalendarDays className="h-3 w-3" />
-              Today
+              <motion.span
+                className="absolute inset-0 rounded-full border border-wine-accent/30"
+                animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <CalendarDays className="h-3 w-3 relative z-10" />
+              <span className="relative z-10">Today</span>
             </motion.span>
           ) : (
             <motion.div
@@ -351,18 +560,32 @@ export default function CalendarView() {
       <motion.div variants={item}>
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-wine-accent/60" />
+            <motion.div
+              className="h-2 w-2 rounded-full bg-wine-accent"
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            />
             <span className="text-xs text-viralyze-muted">
               <span className="text-viralyze-white font-medium tabular-nums">{daysWithContent}</span>/7 days with content
             </span>
           </div>
           <div className="flex items-center gap-2 flex-1 max-w-[160px]">
-            <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-wine"
-                initial={{ width: 0 }}
-                animate={{ width: `${weekFillPercent}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className="h-full rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg, #7F1D3A 0%, #B8325A 50%, #7F1D3A 100%)',
+                  backgroundSize: '200% 100%',
+                }}
+                initial={{ width: 0, backgroundPosition: '0% 0' }}
+                animate={{
+                  width: `${weekFillPercent}%`,
+                  backgroundPosition: ['0% 0', '100% 0', '0% 0'],
+                }}
+                transition={{
+                  width: { duration: 0.8, ease: 'easeOut' },
+                  backgroundPosition: { duration: 3, repeat: Infinity, ease: 'linear' },
+                }}
               />
             </div>
             <span className="text-[10px] text-viralyze-muted/60 tabular-nums w-7 text-right">
@@ -375,10 +598,18 @@ export default function CalendarView() {
       {/* Glow-line separator */}
       <div className="glow-line" />
 
-      {/* Gradient mesh background */}
+      {/* Gradient mesh background with dot-grid pattern */}
       <div className="relative">
         <div className="pointer-events-none absolute -top-20 -right-20 h-[300px] w-[300px] rounded-full bg-wine-accent/[0.06] blur-[100px]" />
         <div className="pointer-events-none absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-wine/[0.08] blur-[100px]" />
+        {/* Dot-grid pattern overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(250,250,249,0.8) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
 
         {/* Mobile: 3-day navigation arrows */}
         <div className="flex md:hidden items-center justify-between mb-3">
@@ -392,7 +623,7 @@ export default function CalendarView() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-xs text-viralyze-muted">
-            {displayDays[0]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })} – {displayDays[displayDays.length - 1]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
+            {displayDays[0]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })} \u2013 {displayDays[displayDays.length - 1]?.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
           </span>
           <Button
             variant="ghost"
@@ -517,7 +748,7 @@ interface DayCardProps {
   newContentType: ContentType;
   setNewContentType: (c: ContentType) => void;
   addSlot: () => void;
-  addSlotFromAnalysis: (a: { title: string; platform: Platform }) => void;
+  addSlotFromAnalysis: (a: { title: string; platform: Platform; id: string }) => void;
   removeSlot: (d: string, id: string) => void;
   openNoteDialog: (d: string) => void;
   recentAnalyses: { id: string; title: string; platform: Platform; overallScore: number }[];
@@ -538,14 +769,18 @@ function renderDayCard(props: DayCardProps) {
 
   return (
     <motion.div key={key} variants={item}>
-      <Card
-        className={cn(
-          'glass relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-wine-accent/[0.05]',
-          isDayToday && 'border-wine-accent/30',
-          isActive && 'border-wine-accent/50 glow-wine-sm',
-          daySlots.length > 0 && !isActive && 'hover:glow-wine-sm',
-        )}
+      <motion.div
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.2 }}
       >
+        <Card
+          className={cn(
+            'glass relative transition-all duration-200 hover:shadow-lg hover:shadow-wine-accent/[0.08]',
+            isDayToday && 'border-wine-accent/30',
+            isActive && 'border-wine-accent/50 glow-wine-sm',
+            daySlots.length > 0 && !isActive && 'hover:glow-wine-sm',
+          )}
+        >
         <CardHeader className={cn('p-3 pb-2 bg-gradient-to-br rounded-t-xl', dayHeaderGradients[day.getDay() === 0 ? 6 : day.getDay() - 1])}>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xs font-semibold text-viralyze-white">
@@ -568,6 +803,9 @@ function renderDayCard(props: DayCardProps) {
             {daySlots.map((slot) => {
               const PIcon = platformIcons[slot.platform];
               const borderColor = contentTypeColors[slot.contentType] || 'border-l-wine-accent';
+              const gradientBg = contentTypeGradients[slot.contentType] || '';
+              const TimeIcon = slot.note ? Clock : getTimeOfDayIcon(slot.time);
+              const timeColor = slot.note ? 'text-viralyze-muted' : getTimeOfDayColor(slot.time);
               return (
                 <motion.div
                   key={slot.id}
@@ -575,17 +813,23 @@ function renderDayCard(props: DayCardProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   className={cn(
-                    'flex items-start gap-1.5 p-1.5 rounded-md bg-white/[0.04] border border-white/[0.06] group relative border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-[1px] hover:shadow-md hover:shadow-black/20 transition-all duration-200',
-                    borderColor
+                    'flex items-start gap-1.5 p-1.5 rounded-md border border-white/[0.06] group relative border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-[1px] hover:shadow-md hover:shadow-black/20 transition-all duration-200',
+                    borderColor,
+                    gradientBg
                   )}
                 >
+                  {/* Drag handle indicator */}
+                  <div className="flex flex-col gap-px mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity shrink-0">
+                    <div className="h-0.5 w-2.5 rounded-full bg-viralyze-white" />
+                    <div className="h-0.5 w-2.5 rounded-full bg-viralyze-white" />
+                  </div>
                   <PIcon className="h-3 w-3 text-viralyze-muted mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-medium text-viralyze-white leading-tight truncate">
                       {slot.title}
                     </p>
-                    <p className="text-[10px] text-viralyze-muted flex items-center gap-0.5">
-                      <Clock className="h-2.5 w-2.5" />
+                    <p className={cn('text-[10px] flex items-center gap-0.5', timeColor)}>
+                      <TimeIcon className="h-2.5 w-2.5" />
                       {slot.note ? 'Reminder' : slot.time}
                     </p>
                   </div>
@@ -695,7 +939,7 @@ function renderDayCard(props: DayCardProps) {
                               return (
                                 <button
                                   key={analysis.id}
-                                  onClick={() => addSlotFromAnalysis({ title: analysis.title, platform: analysis.platform })}
+                                  onClick={() => addSlotFromAnalysis({ title: analysis.title, platform: analysis.platform, id: analysis.id })}
                                   className="flex items-center gap-2 px-2.5 py-2 hover:bg-white/[0.05] transition-colors text-left w-full"
                                 >
                                   <PI className="h-3 w-3 text-viralyze-muted shrink-0" />
@@ -750,7 +994,7 @@ function renderDayCard(props: DayCardProps) {
             </AnimatePresence>
           )}
 
-          {/* Note button for empty slots — appears with hover */}
+          {/* Note button for empty slots \u2014 appears with hover */}
           {!isActive && daySlots.length < SLOT_LIMIT && (
             <motion.button
               onClick={(e) => { e.stopPropagation(); openNoteDialog(key); }}
@@ -766,6 +1010,7 @@ function renderDayCard(props: DayCardProps) {
           )}
         </CardContent>
       </Card>
+      </motion.div>
     </motion.div>
   );
 }

@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function PUT(request: NextRequest) {
+  const rl = rateLimit(60, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const { id, name } = await request.json();
 
@@ -29,6 +37,13 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(60, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const { action, email, name, password } = await request.json();
 
@@ -75,5 +90,47 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Auth error:', error);
     return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const rl = rateLimit(60, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
+  try {
+    // Accept userId from query params or body
+    const { searchParams } = new URL(request.url);
+    let userId = searchParams.get('userId');
+
+    if (!userId) {
+      try {
+        const body = await request.json();
+        userId = body.userId || body.id;
+      } catch {
+        // Body parse failed, continue without
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    // Delete all related content analyses (calendar events will cascade via SetNull)
+    await db.contentAnalysis.deleteMany({ where: { userId } });
+
+    // Delete calendar events explicitly
+    await db.calendarEvent.deleteMany({ where: { userId } });
+
+    // Delete the user
+    await db.user.delete({ where: { id: userId } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Auth DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }

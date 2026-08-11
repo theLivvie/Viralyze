@@ -12,6 +12,7 @@ interface AppState {
   user: UserProfile | null;
   login: (user: UserProfile) => void;
   logout: () => void;
+  updateUser: (updates: Partial<UserProfile>) => void;
 
   // Analysis
   currentAnalysis: AnalysisResult | null;
@@ -47,6 +48,10 @@ interface AppState {
   // Landing scroll section
   scrollToSection: string | null;
   setScrollToSection: (section: string | null) => void;
+
+  // Onboarding
+  onboardingComplete: boolean;
+  setOnboardingComplete: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -59,6 +64,7 @@ export const useAppStore = create<AppState>((set) => ({
   isLoggedIn: false,
   user: null,
   login: (user) => set({ isLoggedIn: true, user, currentView: 'dashboard', authModalOpen: false }),
+  updateUser: (updates) => set((state) => ({ user: state.user ? { ...state.user, ...updates } : null })),
   logout: () => set({ isLoggedIn: false, user: null, currentView: 'landing', savedAnalyses: [], currentAnalysis: null }),
 
   // Analysis
@@ -93,6 +99,13 @@ export const useAppStore = create<AppState>((set) => ({
   // Landing scroll section
   scrollToSection: null,
   setScrollToSection: (section) => set({ scrollToSection: section }),
+
+  // Onboarding — persisted to localStorage
+  onboardingComplete: false,
+  setOnboardingComplete: (v) => {
+    try { localStorage.setItem('viralyze-onboarding', JSON.stringify(v)); } catch { /* noop */ }
+    set({ onboardingComplete: v });
+  },
 
   // Pre-filled idea from Ideas page
   prefilledIdea: '',

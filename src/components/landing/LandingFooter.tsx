@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Sparkles, Twitter, Github, Linkedin, Instagram, ArrowRight, Send, Check } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 const footerLinks = {
   Product: [
@@ -48,10 +49,13 @@ export default function LandingFooter() {
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setEmail('');
+    if (!email.trim()) {
+      toast.error('Please enter your email address');
+      return;
     }
+    toast.success('Thanks for subscribing! We\'ll keep you updated.');
+    setSubscribed(true);
+    setEmail('');
   };
 
   return (

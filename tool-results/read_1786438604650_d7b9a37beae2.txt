@@ -1,0 +1,557 @@
+   465→    setCompareMode(false);
+   466→    setSelectedIds(new Set());
+   467→  };
+   468→
+   469→  const isFilteredEmpty = !loading && filtered.length === 0 && analyses.length > 0;
+   470→  const isEmpty = !loading && analyses.length === 0;
+   471→
+   472→  const compareItems = compareMode && selectedIds.size === 2
+   473→    ? analyses.filter((a) => selectedIds.has(a.id))
+   474→    : [];
+   475→  const showComparePanel = compareItems.length === 2;
+   476→  const [compareA, compareB] = showComparePanel ? compareItems : [null, null];
+   477→  const compareScoreDiff = showComparePanel ? compareA!.overallScore - compareB!.overallScore : 0;
+   478→
+   479→  return (
+   480→    <motion.div
+   481→      variants={container}
+   482→      initial="hidden"
+   483→      animate="show"
+   484→      className="flex flex-col gap-4 max-w-4xl mx-auto"
+   485→    >
+   486→      {/* Header with count badge */}
+   487→      <motion.div variants={item} className="flex items-center gap-3">
+   488→        <div className="flex flex-col">
+   489→          <div className="flex items-center gap-2.5">
+   490→            <h2 className="text-2xl md:text-3xl font-bold text-viralyze-white">
+   491→              Content Library
+   492→            </h2>
+   493→            {!loading && analyses.length > 0 && (
+   494→              <Badge
+   495→                variant="outline"
+   496→                className="text-xs border-wine-accent/30 text-wine-accent bg-wine-accent/10 tabular-nums"
+   497→              >
+   498→                {analyses.length}
+   499→              </Badge>
+   500→            )}
+   501→          </div>
+   502→          <p className="text-viralyze-muted mt-1">
+   503→            Your saved content analyses
+   504→          </p>
+   505→        </div>
+   506→      </motion.div>
+   507→
+   508→      {/* Filters */}
+   509→      <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
+   510→        <div className="relative flex-1">
+   511→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-viralyze-muted" />
+   512→          <Input
+   513→            placeholder="Search analyses..."
+   514→            value={search}
+   515→            onChange={(e) => setSearch(e.target.value)}
+   516→            className="pl-9 bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent hover:border-white/[0.12] transition-colors"
+   517→          />
+   518→        </div>
+   519→        <Select value={platformFilter} onValueChange={setPlatformFilter}>
+   520→          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+   521→            <SelectValue placeholder="Platform" />
+   522→          </SelectTrigger>
+   523→          <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   524→            <SelectItem value="all" className="text-viralyze-white">All Platforms</SelectItem>
+   525→            <SelectItem value="instagram" className="text-viralyze-white">Instagram</SelectItem>
+   526→            <SelectItem value="youtube" className="text-viralyze-white">YouTube</SelectItem>
+   527→            <SelectItem value="tiktok" className="text-viralyze-white">TikTok</SelectItem>
+   528→            <SelectItem value="x" className="text-viralyze-white">X</SelectItem>
+   529→            <SelectItem value="linkedin" className="text-viralyze-white">LinkedIn</SelectItem>
+   530→          </SelectContent>
+   531→        </Select>
+   532→        <Select value={sort} onValueChange={setSort}>
+   533→          <SelectTrigger className="w-full sm:w-40 bg-white/[0.05] border-white/[0.08] text-viralyze-white hover:border-white/[0.12] transition-colors">
+   534→            <SelectValue placeholder="Sort" />
+   535→          </SelectTrigger>
+   536→          <SelectContent className="bg-viralyze-soft-black border-white/[0.08]">
+   537→            <SelectItem value="newest" className="text-viralyze-white">Newest First</SelectItem>
+   538→            <SelectItem value="oldest" className="text-viralyze-white">Oldest First</SelectItem>
+   539→            <SelectItem value="score-high" className="text-viralyze-white">Score: High to Low</SelectItem>
+   540→            <SelectItem value="score-low" className="text-viralyze-white">Score: Low to High</SelectItem>
+   541→          </SelectContent>
+   542→        </Select>
+   543→        <Button
+   544→          variant={notesFilter ? 'default' : 'outline'}
+   545→          size="sm"
+   546→          onClick={() => setNotesFilter(!notesFilter)}
+   547→          className={cn(
+   548→            'shrink-0 gap-1.5 transition-all w-full sm:w-auto',
+   549→            notesFilter
+   550→              ? 'bg-wine-accent hover:bg-wine-accent/80 text-white border-wine-accent'
+   551→              : 'border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20'
+   552→          )}
+   553→        >
+   554→          <StickyNote className="h-3.5 w-3.5" />
+   555→          Notes
+   556→        </Button>
+   557→      </motion.div>
+   558→      {!loading && analyses.length >= 3 && (
+   559→        <motion.div variants={item}>
+   560→          <div className="flex items-center gap-2 mb-2">
+   561→            <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Score Trend</span>
+   562→          </div>
+   563→          <Card className="glass">
+   564→            <CardContent className="p-4">
+   565→              {(() => {
+   566→                const last15 = analyses.slice(-15);
+   567→                const avg = Math.round(last15.reduce((s, a) => s + a.overallScore, 0) / last15.length);
+   568→                return (
+   569→                  <div className="relative flex items-end gap-1.5 h-20">
+   570→                    {last15.map((a, i) => {
+   571→                      const h = Math.max(4, (a.overallScore / 100) * 100);
+   572→                      const barColor = a.overallScore >= 70 ? 'bg-green-400' : a.overallScore >= 50 ? 'bg-amber-400' : 'bg-red-400';
+   573→                      return (
+   574→                        <motion.div
+   575→                          key={a.id}
+   576→                          initial={{ height: 0 }}
+   577→                          animate={{ height: `${h}%` }}
+   578→                          transition={{ duration: 0.5, delay: i * 0.04, ease: 'easeOut' }}
+   579→                          className={cn('flex-1 rounded-sm min-w-[4px] max-w-[20px]', barColor)}
+   580→                          title={`Score: ${a.overallScore}`}
+   581→                        />
+   582→                      );
+   583→                    })}
+   584→                    {/* Average dashed line */}
+   585→                    <div
+   586→                      className="absolute left-0 right-0 border-t border-dashed border-viralyze-muted/30 pointer-events-none"
+   587→                      style={{ bottom: `${avg}%` }}
+   588→                    />
+   589→                  </div>
+   590→                );
+   591→              })()}
+   592→            </CardContent>
+   593→          </Card>
+   594→        </motion.div>
+   595→      )}
+   596→
+   597→      {/* Compare controls */}
+   598→      {!loading && analyses.length > 1 && (
+   599→        <motion.div variants={item} className="flex items-center gap-2">
+   600→          <Button
+   601→            variant={compareMode ? 'default' : 'outline'}
+   602→            size="sm"
+   603→            onClick={() => {
+   604→              if (compareMode) {
+   605→                exitCompareMode();
+   606→              } else {
+   607→                setCompareMode(true);
+   608→              }
+   609→            }}
+   610→            className={cn(
+   611→              'gap-1.5 transition-all',
+   612→              compareMode
+   613→                ? 'bg-wine-accent hover:bg-wine-accent/80 text-white border-wine-accent'
+   614→                : 'border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20'
+   615→            )}
+   616→          >
+   617→            <GitCompareArrows className="h-3.5 w-3.5" />
+   618→            {compareMode ? 'Exit Compare' : 'Compare'}
+   619→          </Button>
+   620→          <Button
+   621→            size="sm"
+   622→            variant="outline"
+   623→            onClick={() => {
+   624→              const csvRows = ['Title,Platform,Content Type,Score,Classification,Date'];
+   625→              filtered.forEach((a) => {
+   626→                const row = [
+   627→                  `"${(a.title || 'Untitled').replace(/"/g, '""')}",`,
+   628→                  a.platform,
+   629→                  a.contentType,
+   630→                  a.overallScore,
+   631→                  a.classification,
+   632→                  new Date(a.createdAt).toLocaleDateString(),
+   633→                ].join(',');
+   634→                csvRows.push(row);
+   635→              });
+   636→              const csvString = csvRows.join('\n');
+   637→              const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+   638→              const url = URL.createObjectURL(blob);
+   639→              const link = document.createElement('a');
+   640→              link.href = url;
+   641→              link.download = 'viralyze-library.csv';
+   642→              link.click();
+   643→              URL.revokeObjectURL(url);
+   644→              toast.success('Library exported as CSV');
+   645→            }}
+   646→            className="gap-1.5 border-white/[0.08] text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-all"
+   647→          >
+   648→            <Download className="h-3.5 w-3.5" />
+   649→            Export CSV
+   650→          </Button>
+   651→          {compareMode && selectedIds.size > 0 && (
+   652→            <>
+   653→              <span className="text-xs text-viralyze-muted">
+   654→                {selectedIds.size}/3 selected
+   655→              </span>
+   656→              {selectedIds.size >= 2 && (
+   657→                <Button
+   658→                  size="sm"
+   659→                  onClick={handleCompare}
+   660→                  className="bg-wine-accent hover:bg-wine-accent/80 text-white gap-1.5"
+   661→                >
+   662→                  Compare Selected ({selectedIds.size})
+   663→                </Button>
+   664→              )}
+   665→              <Button
+   666→                size="sm"
+   667→                variant="ghost"
+   668→                onClick={() => setSelectedIds(new Set())}
+   669→                className="text-viralyze-muted hover:text-viralyze-white gap-1"
+   670→              >
+   671→                <X className="h-3 w-3" />
+   672→                Clear
+   673→              </Button>
+   674→            </>
+   675→          )}
+   676→        </motion.div>
+   677→      )}
+   678→
+   679→      {/* Inline Comparison Panel - shows when exactly 2 items selected */}
+   680→      <AnimatePresence>
+   681→        {showComparePanel && compareA && compareB && (
+   682→          <motion.div
+   683→            initial={{ opacity: 0, height: 0, y: -12 }}
+   684→            animate={{ opacity: 1, height: 'auto', y: 0 }}
+   685→            exit={{ opacity: 0, height: 0, y: -12 }}
+   686→            transition={{ duration: 0.35, ease: 'easeOut' }}
+   687→            className="overflow-hidden"
+   688→          >
+   689→            <Card className="glass glow-wine-sm mb-2">
+   690→              <CardContent className="p-5">
+   691→                <div className="flex items-center justify-between mb-4">
+   692→                  <div className="flex items-center gap-2">
+   693→                    <GitCompareArrows className="h-4 w-4 text-wine-accent" />
+   694→                    <span className="text-sm font-semibold text-viralyze-white">Comparison</span>
+   695→                  </div>
+   696→                  <Button
+   697→                    size="sm"
+   698→                    variant="ghost"
+   699→                    onClick={exitCompareMode}
+   700→                    className="text-viralyze-muted hover:text-viralyze-white gap-1 h-7 text-xs"
+   701→                  >
+   702→                    <X className="h-3 w-3" />
+   703→                    Clear Comparison
+   704→                  </Button>
+   705→                </div>
+   706→                <div className="grid grid-cols-2 gap-4">
+   707→                  {[compareA, compareB].map((item) => {
+   708→                    if (!item) return null;
+   709→                    const PI = platformIcons[item.platform];
+   710→                    return (
+   711→                      <div key={item.id} className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+   712→                        <div className="flex items-center gap-2 text-viralyze-white">
+   713→                          <PI className="h-4 w-4 text-viralyze-muted" />
+   714→                          <span className="text-sm font-medium capitalize">{item.platform}</span>
+   715→                        </div>
+   716→                        <QuickScoreWidget
+   717→                          score={item.overallScore}
+   718→                          size="lg"
+   719→                          classification={item.classification}
+   720→                        />
+   721→                        <p className="text-xs text-viralyze-white text-center font-medium leading-snug line-clamp-2">
+   722→                          {item.title || 'Untitled'}
+   723→                        </p>
+   724→                      </div>
+   725→                    );
+   726→                  })}
+   727→                </div>
+   728→                {/* Score difference */}
+   729→                <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
+   730→                  <span className="text-xs text-viralyze-muted">Score difference:</span>
+   731→                  {compareScoreDiff > 0 ? (
+   732→                    <span className="flex items-center gap-1 text-xs font-bold text-green-400">
+   733→                      <ArrowUp className="h-3 w-3" />
+   734→                      +{compareScoreDiff} for {compareA.title || 'Item 1'}
+   735→                    </span>
+   736→                  ) : compareScoreDiff < 0 ? (
+   737→                    <span className="flex items-center gap-1 text-xs font-bold text-red-400">
+   738→                      <ArrowDown className="h-3 w-3" />
+   739→                      +{Math.abs(compareScoreDiff)} for {compareB.title || 'Item 2'}
+   740→                    </span>
+   741→                  ) : (
+   742→                    <span className="text-xs font-bold text-viralyze-muted">Tied!</span>
+   743→                  )}
+   744→                </div>
+   745→              </CardContent>
+   746→            </Card>
+   747→          </motion.div>
+   748→        )}
+   749→      </AnimatePresence>
+   750→
+   751→      {/* Loading skeleton */}
+   752→      {loading && (
+   753→        <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   754→          {Array.from({ length: 4 }).map((_, i) => (
+   755→            <SkeletonCard key={i} />
+   756→          ))}
+   757→        </motion.div>
+   758→      )}
+   759→
+   760→      {/* Empty state — no analyses at all — animated dashed border */}
+   761→      {!loading && isEmpty && (
+   762→        <motion.div variants={item}>
+   763→          <div className="relative rounded-xl p-px animate-pulse-glow">
+   764→            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/[0.08]" />
+   765→            <Card className="glass relative z-0">
+   766→              <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+   767→                <motion.div
+   768→                  animate={{ y: [0, -8, 0], rotate: [0, 3, -3, 0] }}
+   769→                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+   770→                >
+   771→                  <Inbox className="h-10 w-10 text-viralyze-muted/40" />
+   772→                </motion.div>
+   773→                <p className="text-viralyze-muted text-sm">No analyses yet</p>
+   774→                <p className="text-viralyze-muted/60 text-xs">Your saved content predictions will appear here</p>
+   775→                <Button
+   776→                  onClick={() => useAppStore.getState().setCurrentView('predict')}
+   777→                  className="bg-gradient-wine hover:opacity-90 text-white mt-2 btn-shine"
+   778→                >
+   779→                  Analyze Content
+   780→                </Button>
+   781→              </CardContent>
+   782→            </Card>
+   783→          </div>
+   784→        </motion.div>
+   785→      )}
+   786→
+   787→      {/* Empty state — filtered results — animated dashed border */}
+   788→      {isFilteredEmpty && (
+   789→        <motion.div variants={item}>
+   790→          <div className="relative rounded-xl p-px">
+   791→            <div className="absolute inset-0 rounded-xl border-2 border-dashed border-white/[0.08]" />
+   792→            <Card className="glass relative z-0">
+   793→              <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
+   794→                <Search className="h-10 w-10 text-viralyze-muted/40" />
+   795→                <p className="text-viralyze-muted text-sm">No results found</p>
+   796→                <p className="text-viralyze-muted/60 text-xs">Try adjusting your search or filter</p>
+   797→                <Button
+   798→                  variant="outline"
+   799→                  onClick={() => { setSearch(''); setPlatformFilter('all'); }}
+   800→                  className="mt-2 border-white/10 text-viralyze-white hover:bg-white/[0.05] hover:border-white/20 transition-colors"
+   801→                >
+   802→                  Clear Filters
+   803→                </Button>
+   804→              </CardContent>
+   805→            </Card>
+   806→          </div>
+   807→        </motion.div>
+   808→      )}
+   809→
+   810→      {/* Results */}
+   811→      {!loading && filtered.length > 0 && (
+   812→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   813→          {filtered.map((analysis) => {
+   814→            const PIcon = platformIcons[analysis.platform];
+   815→            const isSelected = selectedIds.has(analysis.id);
+   816→
+   817→            // Compute top 3 score categories
+   818→            const scoreKeys = ['hook', 'engagement', 'shareability', 'retention', 'originality', 'audienceFit'] as const;
+   819→            const topScores = analysis.scores
+   820→              ? scoreKeys
+   821→                  .map((k) => ({ key: k, value: analysis.scores![k] ?? 50 }))
+   822→                  .sort((a, b) => b.value - a.value)
+   823→                  .slice(0, 3)
+   824→              : null;
+   825→
+   826→            return (
+   827→              <motion.div key={analysis.id} variants={item}>
+   828→                <Card
+   829→                  className={cn(
+   830→                    'glass group transition-all duration-300 cursor-pointer relative overflow-hidden',
+   831→                    compareMode && 'hover:bg-white/[0.03]',
+   832→                    !compareMode && 'hover:bg-white/[0.03] hover:glow-wine-sm',
+   833→                    isSelected && 'border-2 border-wine-accent/60 glow-wine-sm bg-wine-accent/[0.04]',
+   834→                    !isSelected && compareMode && 'hover:border-wine-accent/30'
+   835→                  )}
+   836→                  onClick={() => handleCardClick(analysis.id)}
+   837→                >
+   838→                  {/* Shimmer overlay on hover */}
+   839→                  <motion.div
+   840→                    className="absolute inset-0 z-10 pointer-events-none"
+   841→                    initial={{ opacity: 0 }}
+   842→                    whileHover={{ opacity: 1 }}
+   843→                    transition={{ duration: 0.3 }}
+   844→                  >
+   845→                    <motion.div
+   846→                      className="absolute inset-0"
+   847→                      style={{
+   848→                        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 60%)',
+   849→                      }}
+   850→                      initial={{ x: '-100%' }}
+   851→                      whileHover={{ x: '200%' }}
+   852→                      transition={{ duration: 0.8, ease: 'easeInOut' }}
+   853→                    />
+   854→                  </motion.div>
+   855→                  <CardContent className="p-4 relative z-20">
+   856→                    <div className="flex items-start justify-between gap-2 mb-3">
+   857→                      <div className="flex items-center gap-2 min-w-0">
+   858→                        {compareMode && (
+   859→                          <div className={cn(
+   860→                            'h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+   861→                            isSelected
+   862→                              ? 'bg-wine-accent border-wine-accent'
+   863→                              : 'border-white/20 group-hover:border-wine-accent/40'
+   864→                          )}>
+   865→                            {isSelected && (
+   866→                              <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+   867→                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+   868→                              </svg>
+   869→                            )}
+   870→                          </div>
+   871→                        )}
+   872→                        <PIcon className="h-4 w-4 text-viralyze-muted shrink-0" />
+   873→                        <span className="text-sm font-medium text-viralyze-white truncate">
+   874→                          {analysis.title || 'Untitled'}
+   875→                        </span>
+   876→                        {hasNote(analysis.id) && (
+   877→                          <span className="h-2 w-2 rounded-full bg-wine-accent shrink-0 animate-pulse" title="Has note" />
+   878→                        )}
+   879→                      </div>
+   880→                      <div className="flex items-center gap-1.5">
+   881→                        <QuickScoreWidget
+   882→                          score={analysis.overallScore}
+   883→                          size="sm"
+   884→                          classification={analysis.classification}
+   885→                        />
+   886→                        {/* Trend indicator based on position in sorted array */}
+   887→                        {(() => {
+   888→                          const idx = filtered.findIndex((a) => a.id === analysis.id);
+   889→                          const mid = Math.floor(filtered.length / 2);
+   890→                          if (filtered.length < 2) return <Minus className="h-3 w-3 text-viralyze-muted/30" />;
+   891→                          if (idx < mid) return <ArrowDownRight className="h-3.5 w-3.5 text-red-400/70" />;
+   892→                          if (idx > mid) return <ArrowUpRight className="h-3.5 w-3.5 text-green-400/70" />;
+   893→                          return <Minus className="h-3 w-3 text-viralyze-muted/30" />;
+   894→                        })()}
+   895→                      </div>
+   896→                    </div>
+   897→                    {/* Score category sparklines */}
+   898→                    {topScores && (
+   899→                      <div className="flex items-center gap-2 mb-3">
+   900→                        {topScores.map(({ key, value }) => (
+   901→                          <div
+   902→                            key={key}
+   903→                            className="flex flex-col items-center gap-0.5 min-w-0"
+   904→                          >
+   905→                            <span className="text-[10px] leading-tight text-viralyze-muted/70 font-medium tabular-nums whitespace-nowrap">
+   906→                              {categoryLabels[key]}: {value}
+   907→                            </span>
+   908→                            <div className="h-[1.5px] w-10 rounded-full bg-white/[0.06] overflow-hidden">
+   909→                              <div
+   910→                                className={cn('h-full rounded-full', scoreBarColor(value))}
+   911→                                style={{ width: `${value}%` }}
+   912→                              />
+   913→                            </div>
+   914→                          </div>
+   915→                        ))}
+   916→                      </div>
+   917→                    )}
+   918→                    <div className="flex items-center justify-between">
+   919→                      <div className="flex items-center gap-2 text-xs text-viralyze-muted">
+   920→                        <Badge variant="outline" className="text-xs border-white/10 text-viralyze-muted">
+   921→                          {analysis.contentType}
+   922→                        </Badge>
+   923→                        <span>{new Date(analysis.createdAt).toLocaleDateString()}</span>
+   924→                      </div>
+   925→                      {confirmDeleteId === analysis.id ? (
+   926→                        <motion.button
+   927→                          initial={{ opacity: 0, scale: 0.9 }}
+   928→                          animate={{ opacity: 1, scale: 1 }}
+   929→                          className="text-xs text-red-400 font-medium hover:text-red-300 transition-colors"
+   930→                          onClick={(e) => handleDelete(e, analysis.id)}
+   931→                          disabled={deleting === analysis.id}
+   932→                        >
+   933→                          {deleting === analysis.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Confirm?'}
+   934→                        </motion.button>
+   935→                      ) : (
+   936→                        <div className="flex items-center gap-0.5">
+   937→                          <Button
+   938→                            variant="ghost"
+   939→                            size="icon"
+   940→                            className={cn(
+   941→                              'h-7 w-7 transition-opacity',
+   942→                              noteExpandedId === analysis.id
+   943→                                ? 'text-wine-accent opacity-100'
+   944→                                : 'text-viralyze-muted/50 hover:text-wine-accent opacity-0 group-hover:opacity-100'
+   945→                            )}
+   946→                            onClick={(e) => toggleNote(e, analysis.id)}
+   947→                          >
+   948→                            <StickyNote className="h-3.5 w-3.5" />
+   949→                          </Button>
+   950→                          <Button
+   951→                            variant="ghost"
+   952→                            size="icon"
+   953→                            className="h-7 w-7 text-viralyze-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+   954→                            onClick={(e) => handleDelete(e, analysis.id)}
+   955→                            disabled={deleting === analysis.id}
+   956→                          >
+   957→                            {deleting === analysis.id ? (
+   958→                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   959→                            ) : (
+   960→                              <Trash2 className="h-3.5 w-3.5" />
+   961→                            )}
+   962→                          </Button>
+   963→                        </div>
+   964→                      )}
+   965→                    </div>
+   966→                  </CardContent>
+   967→                </Card>
+   968→                {/* Inline Note Panel */}
+   969→                <AnimatePresence>
+   970→                  {noteExpandedId === analysis.id && (
+   971→                    <motion.div
+   972→                      key={`note-${analysis.id}`}
+   973→                      initial={{ opacity: 0, height: 0 }}
+   974→                      animate={{ opacity: 1, height: 'auto' }}
+   975→                      exit={{ opacity: 0, height: 0 }}
+   976→                      transition={{ duration: 0.25, ease: 'easeOut' }}
+   977→                      className="overflow-hidden"
+   978→                    >
+   979→                      <div className="mt-1 px-1">
+   980→                        <div className="glass rounded-lg p-3 border border-wine-accent/20">
+   981→                          <textarea
+   982→                            autoFocus
+   983→                            maxLength={200}
+   984→                            placeholder="Add a quick note..."
+   985→                            value={getNote(analysis.id)}
+   986→                            onChange={(e) => saveNote(analysis.id, e.target.value)}
+   987→                            onClick={(e) => e.stopPropagation()}
+   988→                            className="w-full bg-transparent text-sm text-viralyze-white placeholder:text-viralyze-muted/40 resize-none outline-none min-h-[48px] max-h-[120px] scrollbar-thin"
+   989→                          />
+   990→                          <div className="flex items-center justify-between mt-1.5">
+   991→                            <span className="text-[10px] tabular-nums text-viralyze-muted/50">
+   992→                              {getNote(analysis.id).length}/200
+   993→                            </span>
+   994→                            <button
+   995→                              className="text-[10px] text-viralyze-muted hover:text-viralyze-white transition-colors"
+   996→                              onClick={(e) => { e.stopPropagation(); setNoteExpandedId(null); }}
+   997→                            >
+   998→                              Done
+   999→                            </button>
+  1000→                          </div>
+  1001→                        </div>
+  1002→                      </div>
+  1003→                    </motion.div>
+  1004→                  )}
+  1005→                </AnimatePresence>
+  1006→              </motion.div>
+  1007→            );
+  1008→          })}
+  1009→        </div>
+  1010→      )}
+  1011→
+  1012→      {/* Compare Modal */}
+  1013→      <CompareModal
+  1014→        analyses={selectedAnalyses}
+  1015→        open={compareOpen}
+  1016→        onOpenChange={setCompareOpen}
+  1017→      />
+  1018→    </motion.div>
+  1019→  );
+  1020→}
+  1021→

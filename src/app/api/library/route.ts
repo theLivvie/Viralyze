@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import type { Platform, Confidence, Classification, PlatformFitScore, ContentVariation } from '@/lib/types';
+import { rateLimit } from '@/lib/rate-limit';
 
 function parseSafeJson<T>(str: string | null | undefined, fallback: T): T {
   if (!str) return fallback;
@@ -55,6 +56,13 @@ function formatFullAnalysis(a: Record<string, unknown>) {
 }
 
 export async function GET(request: NextRequest) {
+  const rl = rateLimit(60, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -96,6 +104,25 @@ export async function GET(request: NextRequest) {
       overallScore: a.overallScore,
       confidence: (a.confidence as Confidence) || 'medium',
       classification: (a.classification as Classification) || 'moderate',
+      scores: {
+        hook: a.hookScore || 0,
+        engagement: a.engagementScore || 0,
+        shareability: a.shareabilityScore || 0,
+        retention: a.retentionScore || 0,
+        originality: a.originalityScore || 0,
+        audienceFit: a.audienceFitScore || 0,
+        emotionalImpact: a.emotionalImpactScore || 0,
+        contentQuality: a.contentQualityScore || 0,
+        trendAlignment: a.trendAlignmentScore || 0,
+      },
+      platformFit: parseSafeJson<PlatformFitScore[]>(a.platformFitScores as string, []),
+      strengths: parseSafeJson<string[]>(a.strengths as string, []),
+      weaknesses: parseSafeJson<string[]>(a.weaknesses as string, []),
+      improvements: parseSafeJson<string[]>(a.recommendations as string, []),
+      optimizedHook: a.optimizedHook || undefined,
+      optimizedCaption: a.optimizedCaption || undefined,
+      optimizedTitle: a.optimizedTitle || undefined,
+      variations: parseSafeJson<ContentVariation[]>(a.variations as string, []),
       createdAt: a.createdAt.toISOString(),
     }));
 
@@ -107,6 +134,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const rl = rateLimit(60, 60_000);
+  const identifier = request.headers.get('x-forwarded-for') || 'unknown';
+  const { allowed, retryAfter } = rl.check(identifier);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded', retryAfter }, { status: 429 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

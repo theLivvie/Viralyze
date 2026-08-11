@@ -28,10 +28,13 @@ import {
   AlertTriangle,
   AlertCircle,
   Lightbulb,
+  X,
+  Minus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppStore } from '@/lib/store';
 import ScoreRing from '@/components/shared/ScoreRing';
 import ScoreBar from '@/components/shared/ScoreBar';
@@ -63,6 +66,14 @@ export default function AnalysisView() {
   const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses } = useAppStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
+  const [compareTo, setCompareTo] = useState<string | null>(null);
+
+  // Other saved analyses with scores (exclude current) for Compare with Past
+  const otherAnalyses = savedAnalyses.filter(
+    (a) => a.id !== currentAnalysis?.id && a.scores && Object.keys(a.scores).length > 0
+  );
+  const canCompare = savedAnalyses.length >= 2;
+  const selectedPastAnalysis = compareTo ? savedAnalyses.find((a) => a.id === compareTo) : null;
 
   if (!currentAnalysis) {
     return (
@@ -237,7 +248,7 @@ export default function AnalysisView() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           New Analysis
         </Button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <div className="flex items-center gap-1.5 text-sm text-green-400/80">
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline">Saved</span>
@@ -263,6 +274,68 @@ export default function AnalysisView() {
               Share
             </Button>
           </div>
+          {canCompare && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5',
+                    compareTo && 'border-wine-accent/40 text-wine-accent bg-wine-accent/10'
+                  )}
+                >
+                  <GitCompareArrows className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Compare</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 bg-viralyze-soft-black border-white/[0.08] p-2" align="end">
+                <div className="flex items-center gap-2 px-2 pb-2 border-b border-white/[0.06]">
+                  <GitCompareArrows className="h-3.5 w-3.5 text-wine-accent" />
+                  <span className="text-xs font-medium text-viralyze-white">Compare with Past Analysis</span>
+                </div>
+                <div className="max-h-64 overflow-y-auto scrollbar-thin mt-1">
+                  {compareTo && (
+                    <button
+                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] transition-colors mb-1"
+                      onClick={() => setCompareTo(null)}
+                    >
+                      <X className="h-3 w-3" />
+                      Clear comparison
+                    </button>
+                  )}
+                  {otherAnalyses.length === 0 ? (
+                    <p className="text-xs text-viralyze-muted/60 px-2 py-3 text-center">No other analyses with scores</p>
+                  ) : (
+                    otherAnalyses.map((a) => {
+                      const PI = platformIcons[a.platform];
+                      return (
+                        <button
+                          key={a.id}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                            compareTo === a.id
+                              ? 'bg-wine-accent/10 border border-wine-accent/30'
+                              : 'hover:bg-white/[0.04] border border-transparent'
+                          )}
+                          onClick={() => setCompareTo(compareTo === a.id ? null : a.id)}
+                        >
+                          <span className="text-sm">{PI}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-viralyze-white truncate">{a.title || 'Untitled'}</p>
+                            <p className="text-[10px] text-viralyze-muted">
+                              {new Date(a.createdAt).toLocaleDateString()} &middot; {a.overallScore}/100
+                            </p>
+                          </div>
+                          {compareTo === a.id && <Check className="h-3.5 w-3.5 text-wine-accent shrink-0" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -323,7 +396,7 @@ export default function AnalysisView() {
                 <div title={scoreEntries.map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}>
                   <ScoreRing
                     score={overallScore}
-                    size={200}
+                    size={160}
                     classification={classification}
                     confidence={confidence}
                   />
@@ -349,7 +422,7 @@ export default function AnalysisView() {
 
                 {/* Predicted Engagement */}
                 {predictedEngagement && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     {[
                       { icon: Heart, label: 'Likes', value: predictedEngagement.likes, color: 'text-red-400' },
                       { icon: MessageCircle, label: 'Comments', value: predictedEngagement.comments, color: 'text-blue-400' },
@@ -396,6 +469,159 @@ export default function AnalysisView() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Compare with Past Analysis Panel */}
+      <AnimatePresence>
+        {selectedPastAnalysis && selectedPastAnalysis.scores && (
+          <motion.div
+            key={selectedPastAnalysis.id}
+            initial={{ opacity: 0, height: 0, y: -8 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <Card className="glass glow-wine-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+                    <GitCompareArrows className="h-4 w-4 text-wine-accent" />
+                    Score Comparison
+                  </CardTitle>
+                  <button
+                    className="text-viralyze-muted hover:text-viralyze-white transition-colors"
+                    onClick={() => setCompareTo(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-viralyze-muted mt-1">
+                  Comparing with <span className="text-viralyze-white font-medium">{selectedPastAnalysis.title || 'Untitled'}</span>
+                </p>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 overflow-x-auto">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-viralyze-muted">Current</span>
+                      <span className="text-sm font-bold tabular-nums text-wine-accent">{overallScore}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${overallScore}%` }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        className={cn(
+                          'h-full rounded-full',
+                          overallScore >= selectedPastAnalysis.overallScore ? 'bg-wine-accent' : 'bg-white/30'
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center shrink-0">
+                    {(() => {
+                      const diff = overallScore - selectedPastAnalysis.overallScore;
+                      return (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                          className={cn(
+                            'text-sm font-bold tabular-nums flex items-center gap-0.5',
+                            diff > 0 ? 'text-green-400' : diff < 0 ? 'text-red-400' : 'text-viralyze-muted'
+                          )}
+                        >
+                          {diff > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : diff < 0 ? <AlertTriangle className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                          {diff > 0 ? `+${diff}` : diff === 0 ? '0' : `${diff}`}
+                        </motion.span>
+                      );
+                    })()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-viralyze-muted">Past</span>
+                      <span className="text-sm font-bold tabular-nums text-viralyze-muted">{selectedPastAnalysis.overallScore}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${selectedPastAnalysis.overallScore}%` }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        className={cn(
+                          'h-full rounded-full',
+                          selectedPastAnalysis.overallScore > overallScore ? 'bg-wine-accent' : 'bg-white/30'
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dimension-by-dimension comparison */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Dimension Breakdown</span>
+                  {scoreEntries.map(([key, currentVal], i) => {
+                    const pastVal = selectedPastAnalysis.scores?.[key as keyof typeof selectedPastAnalysis.scores];
+                    if (typeof pastVal !== 'number') return null;
+                    const cVal = currentVal as number;
+                    const diff = cVal - pastVal;
+                    const isHigher = cVal >= pastVal;
+                    return (
+                      <motion.div
+                        key={key}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06, duration: 0.3 }}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="text-xs text-viralyze-muted w-24 shrink-0 truncate" title={categoryLabels[key] || key}>
+                          {categoryLabels[key] || key}
+                        </span>
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${cVal}%` }}
+                              transition={{ duration: 0.5, delay: i * 0.06, ease: 'easeOut' }}
+                              className={cn('h-full rounded-full', isHigher ? 'bg-wine-accent' : 'bg-white/20')}
+                            />
+                          </div>
+                          <span className={cn('text-xs font-bold tabular-nums w-6 text-right', isHigher ? 'text-wine-accent' : 'text-viralyze-muted/50')}>
+                            {cVal}
+                          </span>
+                        </div>
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: i * 0.06 + 0.15, type: 'spring', stiffness: 400, damping: 20 }}
+                          className={cn(
+                            'text-[10px] font-bold tabular-nums w-10 text-center shrink-0',
+                            diff > 0 ? 'text-green-400' : diff < 0 ? 'text-red-400' : 'text-viralyze-muted/40'
+                          )}
+                        >
+                          {diff > 0 ? `+${diff}` : diff === 0 ? '--' : `${diff}`}
+                        </motion.span>
+                        <div className="flex-1 flex items-center gap-2">
+                          <span className={cn('text-xs font-bold tabular-nums w-6', !isHigher ? 'text-wine-accent' : 'text-viralyze-muted/50')}>
+                            {pastVal}
+                          </span>
+                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pastVal}%` }}
+                              transition={{ duration: 0.5, delay: i * 0.06, ease: 'easeOut' }}
+                              className={cn('h-full rounded-full', !isHigher ? 'bg-wine-accent' : 'bg-white/20')}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Category Scores with tooltips on hover */}
       {scoreEntries.length > 0 && (
@@ -887,7 +1113,7 @@ export default function AnalysisView() {
                     className="flex flex-col gap-0"
                   >
                     {/* Table header */}
-                    <div className="grid grid-cols-[1fr_80px_80px_80px] sm:grid-cols-[1fr_100px_100px_100px] gap-3 px-4 py-2 border-b border-white/[0.08]">
+                    <div className="grid grid-cols-[1fr_70px_60px_70px] sm:grid-cols-[1fr_100px_100px_100px] gap-2 sm:gap-3 px-4 py-2 border-b border-white/[0.08]">
                       <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Variation</span>
                       <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-center">Score</span>
                       <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-center">Diff</span>
@@ -908,7 +1134,7 @@ export default function AnalysisView() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.08 }}
                             className={cn(
-                              'grid grid-cols-[1fr_80px_80px_80px] sm:grid-cols-[1fr_100px_100px_100px] gap-3 px-4 py-3 border-b border-white/[0.04] items-center',
+                              'grid grid-cols-[1fr_70px_60px_70px] sm:grid-cols-[1fr_100px_100px_100px] gap-2 sm:gap-3 px-4 py-3 border-b border-white/[0.04] items-center',
                               isBest && 'border border-wine-accent/30 rounded-lg bg-wine-accent/[0.05] mb-2'
                             )}
                           >

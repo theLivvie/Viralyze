@@ -1,0 +1,1195 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import {
+     6→  ArrowLeft,
+     7→  Copy,
+     8→  Check,
+     9→  TrendingUp,
+    10→  Heart,
+    11→  MessageCircle,
+    12→  Share2,
+    13→  BookmarkIcon,
+    14→  Zap,
+    15→  Target,
+    16→  Sparkles,
+    17→  CheckCircle2,
+    18→  Download,
+    19→  RefreshCw,
+    20→  ClipboardCopy,
+    21→  Plus,
+    22→  FileText,
+    23→  LayoutGrid,
+    24→  GitCompareArrows,
+    25→  Trophy,
+    26→  ArrowUpRight,
+    27→  ShieldCheck,
+    28→  AlertTriangle,
+    29→  AlertCircle,
+    30→  Lightbulb,
+    31→  X,
+    32→  Minus,
+    33→} from 'lucide-react';
+    34→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    35→import { Button } from '@/components/ui/button';
+    36→import { Badge } from '@/components/ui/badge';
+    37→import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+    38→import { useAppStore } from '@/lib/store';
+    39→import ScoreRing from '@/components/shared/ScoreRing';
+    40→import ScoreBar from '@/components/shared/ScoreBar';
+    41→import { toast } from 'sonner';
+    42→import { cn } from '@/lib/utils';
+    43→
+    44→const platformIcons: Record<string, string> = {
+    45→  instagram: '📸',
+    46→  youtube: '▶️',
+    47→  tiktok: '🎵',
+    48→  x: '✖️',
+    49→  linkedin: '💼',
+    50→};
+    51→
+    52→const container = {
+    53→  hidden: { opacity: 0 },
+    54→  show: {
+    55→    opacity: 1,
+    56→    transition: { staggerChildren: 0.08 },
+    57→  },
+    58→};
+    59→
+    60→const item = {
+    61→  hidden: { opacity: 0, y: 16 },
+    62→  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    63→};
+    64→
+    65→export default function AnalysisView() {
+    66→  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses } = useAppStore();
+    67→  const [copiedField, setCopiedField] = useState<string | null>(null);
+    68→  const [compareMode, setCompareMode] = useState(false);
+    69→  const [compareTo, setCompareTo] = useState<string | null>(null);
+    70→
+    71→  // Other saved analyses with scores (exclude current) for Compare with Past
+    72→  const otherAnalyses = savedAnalyses.filter(
+    73→    (a) => a.id !== currentAnalysis?.id && a.scores && Object.keys(a.scores).length > 0
+    74→  );
+    75→  const canCompare = savedAnalyses.length >= 2;
+    76→  const selectedPastAnalysis = compareTo ? savedAnalyses.find((a) => a.id === compareTo) : null;
+    77→
+    78→  if (!currentAnalysis) {
+    79→    return (
+    80→      <motion.div
+    81→        initial={{ opacity: 0 }}
+    82→        animate={{ opacity: 1 }}
+    83→        className="flex flex-col items-center justify-center py-24 gap-4"
+    84→      >
+    85→        <div className="w-16 h-16 rounded-full bg-white/[0.05] flex items-center justify-center">
+    86→          <Sparkles className="w-8 h-8 text-viralyze-muted" />
+    87→        </div>
+    88→        <p className="text-viralyze-muted text-lg">No analysis to display</p>
+    89→        <Button
+    90→          variant="outline"
+    91→          onClick={() => setCurrentView('predict')}
+    92→          className="border-wine-accent/30 text-wine-accent hover:bg-wine-accent/10"
+    93→        >
+    94→          <Sparkles className="mr-2 h-4 w-4" />
+    95→          Analyze Content
+    96→        </Button>
+    97→      </motion.div>
+    98→    );
+    99→  }
+   100→
+   101→  const {
+   102→    overallScore,
+   103→    confidence,
+   104→    classification,
+   105→    scores,
+   106→    platformFit,
+   107→    strengths = [],
+   108→    weaknesses = [],
+   109→    improvements = [],
+   110→    optimizedHook,
+   111→    optimizedCaption,
+   112→    optimizedTitle,
+   113→    variations = [],
+   114→    emotionalBreakdown,
+   115→    predictedEngagement,
+   116→  } = currentAnalysis;
+   117→
+   118→  // Find original content from saved analyses
+   119→  const savedItem = savedAnalyses.find((a) => a.id === currentAnalysis.id);
+   120→  const originalContent = savedItem?.contentText || savedItem?.ideaText || '';
+   121→
+   122→  const copyToClipboard = async (text: string, field: string) => {
+   123→    try {
+   124→      await navigator.clipboard.writeText(text);
+   125→      setCopiedField(field);
+   126→      toast.success('Copied to clipboard!');
+   127→      setTimeout(() => setCopiedField(null), 2000);
+   128→    } catch {
+   129→      toast.error('Failed to copy');
+   130→    }
+   131→  };
+   132→
+   133→  const handleShare = async () => {
+   134→    const text = `My content scored ${overallScore}/100 on Viralyze! ${classification === 'viral' ? '🔥' : classification === 'high' ? '✨' : '📊'}`;
+   135→    try {
+   136→      await navigator.clipboard.writeText(text);
+   137→      toast.success('Summary copied to clipboard!');
+   138→    } catch {
+   139→      toast.error('Failed to copy');
+   140→    }
+   141→  };
+   142→
+   143→  const handleReanalyze = async () => {
+   144→    if (currentAnalysis?.id) {
+   145→      try {
+   146→        const res = await fetch(`/api/library?id=${currentAnalysis.id}`);
+   147→        if (res.ok) {
+   148→          const data = await res.json();
+   149→          const content = data.contentText || data.ideaText || '';
+   150→          if (content) {
+   151→            setPrefilledIdea(content);
+   152→            setCurrentView('predict');
+   153→            toast.success('Content loaded for re-analysis');
+   154→            return;
+   155→          }
+   156→        }
+   157→      } catch {
+   158→        // fall through to default behavior
+   159→      }
+   160→    }
+   161→    setCurrentView('predict');
+   162→    toast.success('Navigate to predict to start a new analysis');
+   163→  };
+   164→
+   165→  const handleCopyAll = async () => {
+   166→    const parts = [optimizedTitle, optimizedHook, optimizedCaption].filter(Boolean);
+   167→    if (parts.length === 0) {
+   168→      toast.error('No optimized content to copy');
+   169→      return;
+   170→    }
+   171→    try {
+   172→      await navigator.clipboard.writeText(parts.join('\n\n'));
+   173→      toast.success('All optimized content copied!');
+   174→    } catch {
+   175→      toast.error('Failed to copy');
+   176→    }
+   177→  };
+   178→
+   179→  const handleExport = () => {
+   180→    const report = {
+   181→      'Viralyze Analysis Report': '',
+   182→      'Overall Score': `${overallScore}/100`,
+   183→      'Classification': classification,
+   184→      'Confidence': confidence,
+   185→      'Category Scores': scores,
+   186→      'Platform Fit': platformFit,
+   187→      'Strengths': strengths,
+   188→      'Weaknesses': weaknesses,
+   189→      'Improvements': improvements,
+   190→      'Optimized Title': optimizedTitle || 'N/A',
+   191→      'Optimized Hook': optimizedHook || 'N/A',
+   192→      'Optimized Caption': optimizedCaption || 'N/A',
+   193→      'Variations': variations.map((v) => ({ label: v.label, score: v.score, content: v.content })),
+   194→      'Predicted Engagement': predictedEngagement,
+   195→      'Emotional Breakdown': emotionalBreakdown,
+   196→    };
+   197→    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+   198→    const url = URL.createObjectURL(blob);
+   199→    const a = document.createElement('a');
+   200→    a.href = url;
+   201→    a.download = `viralyze-analysis-${overallScore}-${Date.now()}.json`;
+   202→    a.click();
+   203→    URL.revokeObjectURL(url);
+   204→    toast.success('Analysis exported!');
+   205→  };
+   206→
+   207→  const categoryLabels: Record<string, string> = {
+   208→    hook: 'Hook Strength',
+   209→    engagement: 'Engagement Potential',
+   210→    shareability: 'Shareability',
+   211→    retention: 'Content Retention',
+   212→    originality: 'Originality',
+   213→    audienceFit: 'Audience Fit',
+   214→    emotionalImpact: 'Emotional Impact',
+   215→    contentQuality: 'Content Quality',
+   216→    trendAlignment: 'Trend Alignment',
+   217→  };
+   218→
+   219→  const scoreEntries = scores
+   220→    ? Object.entries(scores).filter(([, v]) => typeof v === 'number')
+   221→    : [];
+   222→
+   223→  return (
+   224→    <motion.div
+   225→      variants={container}
+   226→      initial="hidden"
+   227→      animate="show"
+   228→      className="flex flex-col gap-6 max-w-4xl mx-auto relative"
+   229→    >
+   230→      {/* Floating Action Button — New Analysis */}
+   231→      <motion.button
+   232→        onClick={() => setCurrentView('predict')}
+   233→        title="New Analysis"
+   234→        className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-full bg-gradient-wine btn-shine flex items-center justify-center text-white shadow-lg glow-wine-sm hover:scale-110 transition-transform duration-200"
+   235→        whileHover={{ scale: 1.1 }}
+   236→        whileTap={{ scale: 0.95 }}
+   237→      >
+   238→        <Plus className="h-6 w-6" />
+   239→      </motion.button>
+   240→
+   241→      {/* Top bar: Back + Actions */}
+   242→      <motion.div variants={item} className="flex items-center justify-between">
+   243→        <Button
+   244→          variant="ghost"
+   245→          onClick={() => setCurrentView('predict')}
+   246→          className="text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   247→        >
+   248→          <ArrowLeft className="mr-2 h-4 w-4" />
+   249→          New Analysis
+   250→        </Button>
+   251→        <div className="flex items-center gap-3">
+   252→          <div className="flex items-center gap-1.5 text-sm text-green-400/80">
+   253→            <CheckCircle2 className="h-4 w-4" />
+   254→            <span className="hidden sm:inline">Saved</span>
+   255→          </div>
+   256→          {/* Button group: Export + Share */}
+   257→          <div className="flex items-center gap-1">
+   258→            <Button
+   259→              variant="outline"
+   260→              size="sm"
+   261→              onClick={handleExport}
+   262→              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-r-none border-r-0"
+   263→            >
+   264→              <Download className="mr-2 h-3.5 w-3.5" />
+   265→              Export
+   266→            </Button>
+   267→            <Button
+   268→              variant="outline"
+   269→              size="sm"
+   270→              onClick={handleShare}
+   271→              className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] rounded-none"
+   272→            >
+   273→              <Share2 className="h-3.5 w-3.5" />
+   274→              Share
+   275→            </Button>
+   276→          </div>
+   277→          {canCompare && (
+   278→            <Popover>
+   279→              <PopoverTrigger asChild>
+   280→                <Button
+   281→                  variant="outline"
+   282→                  size="sm"
+   283→                  className={cn(
+   284→                    'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5',
+   285→                    compareTo && 'border-wine-accent/40 text-wine-accent bg-wine-accent/10'
+   286→                  )}
+   287→                >
+   288→                  <GitCompareArrows className="h-3.5 w-3.5" />
+   289→                  <span className="hidden sm:inline">Compare</span>
+   290→                </Button>
+   291→              </PopoverTrigger>
+   292→              <PopoverContent className="w-72 bg-viralyze-soft-black border-white/[0.08] p-2" align="end">
+   293→                <div className="flex items-center gap-2 px-2 pb-2 border-b border-white/[0.06]">
+   294→                  <GitCompareArrows className="h-3.5 w-3.5 text-wine-accent" />
+   295→                  <span className="text-xs font-medium text-viralyze-white">Compare with Past Analysis</span>
+   296→                </div>
+   297→                <div className="max-h-64 overflow-y-auto scrollbar-thin mt-1">
+   298→                  {compareTo && (
+   299→                    <button
+   300→                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.04] transition-colors mb-1"
+   301→                      onClick={() => setCompareTo(null)}
+   302→                    >
+   303→                      <X className="h-3 w-3" />
+   304→                      Clear comparison
+   305→                    </button>
+   306→                  )}
+   307→                  {otherAnalyses.length === 0 ? (
+   308→                    <p className="text-xs text-viralyze-muted/60 px-2 py-3 text-center">No other analyses with scores</p>
+   309→                  ) : (
+   310→                    otherAnalyses.map((a) => {
+   311→                      const PI = platformIcons[a.platform];
+   312→                      return (
+   313→                        <button
+   314→                          key={a.id}
+   315→                          className={cn(
+   316→                            'w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+   317→                            compareTo === a.id
+   318→                              ? 'bg-wine-accent/10 border border-wine-accent/30'
+   319→                              : 'hover:bg-white/[0.04] border border-transparent'
+   320→                          )}
+   321→                          onClick={() => setCompareTo(compareTo === a.id ? null : a.id)}
+   322→                        >
+   323→                          <span className="text-sm">{PI}</span>
+   324→                          <div className="flex-1 min-w-0">
+   325→                            <p className="text-xs text-viralyze-white truncate">{a.title || 'Untitled'}</p>
+   326→                            <p className="text-[10px] text-viralyze-muted">
+   327→                              {new Date(a.createdAt).toLocaleDateString()} &middot; {a.overallScore}/100
+   328→                            </p>
+   329→                          </div>
+   330→                          {compareTo === a.id && <Check className="h-3.5 w-3.5 text-wine-accent shrink-0" />}
+   331→                        </button>
+   332→                      );
+   333→                    })
+   334→                  )}
+   335→                </div>
+   336→              </PopoverContent>
+   337→            </Popover>
+   338→          )}
+   339→          <Button
+   340→            variant="outline"
+   341→            size="sm"
+   342→            onClick={handleReanalyze}
+   343→            className="border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05]"
+   344→          >
+   345→            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+   346→            Re-analyze
+   347→          </Button>
+   348→        </div>
+   349→      </motion.div>
+   350→
+   351→      {/* Content Preview Card (original content) */}
+   352→      {originalContent && (
+   353→        <motion.div variants={item}>
+   354→          <Card className="glass overflow-hidden relative">
+   355→            <CardHeader className="pb-2">
+   356→              <div className="flex items-center justify-between">
+   357→                <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   358→                  <FileText className="h-4 w-4 text-wine-accent" />
+   359→                  Original Content
+   360→                </CardTitle>
+   361→                <Button
+   362→                  variant="ghost"
+   363→                  size="sm"
+   364→                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+   365→                  onClick={() => copyToClipboard(originalContent, 'original')}
+   366→                >
+   367→                  {copiedField === 'original' ? (
+   368→                    <Check className="h-3.5 w-3.5 text-green-400" />
+   369→                  ) : (
+   370→                    <Copy className="h-3.5 w-3.5" />
+   371→                  )}
+   372→                  Copy
+   373→                </Button>
+   374→              </div>
+   375→            </CardHeader>
+   376→            <CardContent className="pt-0">
+   377→              <p className="text-sm text-viralyze-white/80 leading-relaxed bg-white/[0.02] rounded-lg p-4 border border-white/[0.06] max-h-40 overflow-y-auto scrollbar-thin whitespace-pre-wrap">
+   378→                {originalContent}
+   379→              </p>
+   380→            </CardContent>
+   381→          </Card>
+   382→        </motion.div>
+   383→      )}
+   384→
+   385→      {/* Score Header */}
+   386→      <motion.div variants={item}>
+   387→        <Card className="glass overflow-hidden relative">
+   388→          <div className="scan-line-animated" />
+   389→          <CardContent className="p-6 md:p-8">
+   390→            <div className="flex flex-col md:flex-row items-center gap-8">
+   391→              {/* Score Ring with floating dots + tooltip on segments */}
+   392→              <div className="relative flex-shrink-0 animate-pulse-glow" style={{ animationDuration: '3s', borderRadius: '50%' }}>
+   393→                <div className="absolute -top-3 -left-3 w-2 h-2 rounded-full bg-wine-accent animate-pulse" />
+   394→                <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-wine-accent/60 animate-pulse [animation-delay:0.5s]" />
+   395→                <div className="absolute top-1/2 -right-4 w-1 h-1 rounded-full bg-wine-accent/40 animate-pulse [animation-delay:1s]" />
+   396→                <div title={scoreEntries.map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}>
+   397→                  <ScoreRing
+   398→                    score={overallScore}
+   399→                    size={200}
+   400→                    classification={classification}
+   401→                    confidence={confidence}
+   402→                  />
+   403→                </div>
+   404→                {/* Category score tooltips around the ring */}
+   405→                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[260px]">
+   406→                  <p className="text-[10px] text-viralyze-muted/50 text-center leading-relaxed">
+   407→                    {scoreEntries.slice(0, 3).map(([k, v]) => `${categoryLabels[k] || k}: ${v}`).join(' · ')}
+   408→                  </p>
+   409→                </div>
+   410→              </div>
+   411→
+   412→              {/* Right side info */}
+   413→              <div className="flex-1 flex flex-col gap-4 w-full">
+   414→                <div>
+   415→                  <h2 className="text-xl font-semibold text-viralyze-white mb-1">
+   416→                    Viral Potential Analysis
+   417→                  </h2>
+   418→                  <p className="text-viralyze-muted text-sm">
+   419→                    AI-powered analysis with <span className="text-wine-accent font-medium">{confidence}</span> confidence
+   420→                  </p>
+   421→                </div>
+   422→
+   423→                {/* Predicted Engagement */}
+   424→                {predictedEngagement && (
+   425→                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   426→                    {[
+   427→                      { icon: Heart, label: 'Likes', value: predictedEngagement.likes, color: 'text-red-400' },
+   428→                      { icon: MessageCircle, label: 'Comments', value: predictedEngagement.comments, color: 'text-blue-400' },
+   429→                      { icon: Share2, label: 'Shares', value: predictedEngagement.shares, color: 'text-green-400' },
+   430→                      { icon: BookmarkIcon, label: 'Saves', value: predictedEngagement.saves, color: 'text-amber-400' },
+   431→                    ].map((stat) => (
+   432→                      <div
+   433→                        key={stat.label}
+   434→                        className="glass rounded-lg p-3 flex flex-col items-center gap-1 hover:glow-wine-sm transition-all duration-300"
+   435→                      >
+   436→                        <stat.icon className={`h-4 w-4 ${stat.color}`} />
+   437→                        <span className="text-lg font-bold text-viralyze-white tabular-nums">
+   438→                          {stat.value}
+   439→                        </span>
+   440→                        <span className="text-xs text-viralyze-muted">{stat.label}</span>
+   441→                      </div>
+   442→                    ))}
+   443→                  </div>
+   444→                )}
+   445→
+   446→                {/* Emotional Breakdown */}
+   447→                {emotionalBreakdown && Object.keys(emotionalBreakdown).length > 0 && (
+   448→                  <div>
+   449→                    <h3 className="text-sm font-medium text-viralyze-muted mb-2">Emotional Breakdown</h3>
+   450→                    <div className="flex flex-wrap gap-2">
+   451→                      {Object.entries(emotionalBreakdown)
+   452→                        .sort(([, a], [, b]) => (b as number) - (a as number))
+   453→                        .slice(0, 6)
+   454→                        .map(([emotion, pct]) => (
+   455→                          <span
+   456→                            key={emotion}
+   457→                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/[0.05] border border-white/[0.08] text-viralyze-white hover:border-wine-accent/30 transition-colors"
+   458→                            title={`${emotion}: ${pct}%`}
+   459→                          >
+   460→                            {emotion}
+   461→                            <span className="text-wine-accent font-bold tabular-nums">{pct}%</span>
+   462→                          </span>
+   463→                        ))}
+   464→                    </div>
+   465→                  </div>
+   466→                )}
+   467→              </div>
+   468→            </div>
+   469→          </CardContent>
+   470→        </Card>
+   471→      </motion.div>
+   472→
+   473→      {/* Compare with Past Analysis Panel */}
+   474→      <AnimatePresence>
+   475→        {selectedPastAnalysis && selectedPastAnalysis.scores && (
+   476→          <motion.div
+   477→            key={selectedPastAnalysis.id}
+   478→            initial={{ opacity: 0, height: 0, y: -8 }}
+   479→            animate={{ opacity: 1, height: 'auto', y: 0 }}
+   480→            exit={{ opacity: 0, height: 0, y: -8 }}
+   481→            transition={{ duration: 0.35, ease: 'easeOut' }}
+   482→            className="overflow-hidden"
+   483→          >
+   484→            <Card className="glass glow-wine-sm">
+   485→              <CardHeader className="pb-3">
+   486→                <div className="flex items-center justify-between">
+   487→                  <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   488→                    <GitCompareArrows className="h-4 w-4 text-wine-accent" />
+   489→                    Score Comparison
+   490→                  </CardTitle>
+   491→                  <button
+   492→                    className="text-viralyze-muted hover:text-viralyze-white transition-colors"
+   493→                    onClick={() => setCompareTo(null)}
+   494→                  >
+   495→                    <X className="h-4 w-4" />
+   496→                  </button>
+   497→                </div>
+   498→                <p className="text-xs text-viralyze-muted mt-1">
+   499→                  Comparing with <span className="text-viralyze-white font-medium">{selectedPastAnalysis.title || 'Untitled'}</span>
+   500→                </p>
+   501→              </CardHeader>
+   502→              <CardContent className="flex flex-col gap-4">
+   503→                {/* Overall score comparison */}
+   504→                <div className="flex items-center gap-4">
+   505→                  <div className="flex-1">
+   506→                    <div className="flex items-center justify-between mb-1">
+   507→                      <span className="text-xs text-viralyze-muted">Current</span>
+   508→                      <span className="text-sm font-bold tabular-nums text-wine-accent">{overallScore}</span>
+   509→                    </div>
+   510→                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+   511→                      <motion.div
+   512→                        initial={{ width: 0 }}
+   513→                        animate={{ width: `${overallScore}%` }}
+   514→                        transition={{ duration: 0.6, ease: 'easeOut' }}
+   515→                        className={cn(
+   516→                          'h-full rounded-full',
+   517→                          overallScore >= selectedPastAnalysis.overallScore ? 'bg-wine-accent' : 'bg-white/30'
+   518→                        )}
+   519→                      />
+   520→                    </div>
+   521→                  </div>
+   522→                  <div className="flex flex-col items-center shrink-0">
+   523→                    {(() => {
+   524→                      const diff = overallScore - selectedPastAnalysis.overallScore;
+   525→                      return (
+   526→                        <motion.span
+   527→                          initial={{ scale: 0 }}
+   528→                          animate={{ scale: 1 }}
+   529→                          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+   530→                          className={cn(
+   531→                            'text-sm font-bold tabular-nums flex items-center gap-0.5',
+   532→                            diff > 0 ? 'text-green-400' : diff < 0 ? 'text-red-400' : 'text-viralyze-muted'
+   533→                          )}
+   534→                        >
+   535→                          {diff > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : diff < 0 ? <AlertTriangle className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+   536→                          {diff > 0 ? `+${diff}` : diff === 0 ? '0' : `${diff}`}
+   537→                        </motion.span>
+   538→                      );
+   539→                    })()}
+   540→                  </div>
+   541→                  <div className="flex-1">
+   542→                    <div className="flex items-center justify-between mb-1">
+   543→                      <span className="text-xs text-viralyze-muted">Past</span>
+   544→                      <span className="text-sm font-bold tabular-nums text-viralyze-muted">{selectedPastAnalysis.overallScore}</span>
+   545→                    </div>
+   546→                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+   547→                      <motion.div
+   548→                        initial={{ width: 0 }}
+   549→                        animate={{ width: `${selectedPastAnalysis.overallScore}%` }}
+   550→                        transition={{ duration: 0.6, ease: 'easeOut' }}
+   551→                        className={cn(
+   552→                          'h-full rounded-full',
+   553→                          selectedPastAnalysis.overallScore > overallScore ? 'bg-wine-accent' : 'bg-white/30'
+   554→                        )}
+   555→                      />
+   556→                    </div>
+   557→                  </div>
+   558→                </div>
+   559→
+   560→                {/* Dimension-by-dimension comparison */}
+   561→                <div className="flex flex-col gap-2">
+   562→                  <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Dimension Breakdown</span>
+   563→                  {scoreEntries.map(([key, currentVal], i) => {
+   564→                    const pastVal = selectedPastAnalysis.scores?.[key as keyof typeof selectedPastAnalysis.scores];
+   565→                    if (typeof pastVal !== 'number') return null;
+   566→                    const cVal = currentVal as number;
+   567→                    const diff = cVal - pastVal;
+   568→                    const isHigher = cVal >= pastVal;
+   569→                    return (
+   570→                      <motion.div
+   571→                        key={key}
+   572→                        initial={{ opacity: 0, x: -8 }}
+   573→                        animate={{ opacity: 1, x: 0 }}
+   574→                        transition={{ delay: i * 0.06, duration: 0.3 }}
+   575→                        className="flex items-center gap-3"
+   576→                      >
+   577→                        <span className="text-xs text-viralyze-muted w-24 shrink-0 truncate" title={categoryLabels[key] || key}>
+   578→                          {categoryLabels[key] || key}
+   579→                        </span>
+   580→                        <div className="flex-1 flex items-center gap-2">
+   581→                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+   582→                            <motion.div
+   583→                              initial={{ width: 0 }}
+   584→                              animate={{ width: `${cVal}%` }}
+   585→                              transition={{ duration: 0.5, delay: i * 0.06, ease: 'easeOut' }}
+   586→                              className={cn('h-full rounded-full', isHigher ? 'bg-wine-accent' : 'bg-white/20')}
+   587→                            />
+   588→                          </div>
+   589→                          <span className={cn('text-xs font-bold tabular-nums w-6 text-right', isHigher ? 'text-wine-accent' : 'text-viralyze-muted/50')}>
+   590→                            {cVal}
+   591→                          </span>
+   592→                        </div>
+   593→                        <motion.span
+   594→                          initial={{ scale: 0 }}
+   595→                          animate={{ scale: 1 }}
+   596→                          transition={{ delay: i * 0.06 + 0.15, type: 'spring', stiffness: 400, damping: 20 }}
+   597→                          className={cn(
+   598→                            'text-[10px] font-bold tabular-nums w-10 text-center shrink-0',
+   599→                            diff > 0 ? 'text-green-400' : diff < 0 ? 'text-red-400' : 'text-viralyze-muted/40'
+   600→                          )}
+   601→                        >
+   602→                          {diff > 0 ? `+${diff}` : diff === 0 ? '--' : `${diff}`}
+   603→                        </motion.span>
+   604→                        <div className="flex-1 flex items-center gap-2">
+   605→                          <span className={cn('text-xs font-bold tabular-nums w-6', !isHigher ? 'text-wine-accent' : 'text-viralyze-muted/50')}>
+   606→                            {pastVal}
+   607→                          </span>
+   608→                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+   609→                            <motion.div
+   610→                              initial={{ width: 0 }}
+   611→                              animate={{ width: `${pastVal}%` }}
+   612→                              transition={{ duration: 0.5, delay: i * 0.06, ease: 'easeOut' }}
+   613→                              className={cn('h-full rounded-full', !isHigher ? 'bg-wine-accent' : 'bg-white/20')}
+   614→                            />
+   615→                          </div>
+   616→                        </div>
+   617→                      </motion.div>
+   618→                    );
+   619→                  })}
+   620→                </div>
+   621→              </CardContent>
+   622→            </Card>
+   623→          </motion.div>
+   624→        )}
+   625→      </AnimatePresence>
+   626→
+   627→      {/* Category Scores with tooltips on hover */}
+   628→      {scoreEntries.length > 0 && (
+   629→        <motion.div variants={item}>
+   630→          <Card className="glass">
+   631→            <CardHeader className="pb-3">
+   632→              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   633→                <Target className="h-4 w-4 text-wine-accent" />
+   634→                Category Breakdown
+   635→              </CardTitle>
+   636→            </CardHeader>
+   637→            <CardContent className="flex flex-col gap-3">
+   638→              {scoreEntries.map(([key, value], i) => (
+   639→                <div key={key} title={`${categoryLabels[key] || key}: ${value}/100`}>
+   640→                  <ScoreBar
+   641→                    label={categoryLabels[key] || key}
+   642→                    score={value as number}
+   643→                    delay={i * 0.08}
+   644→                  />
+   645→                </div>
+   646→              ))}
+   647→            </CardContent>
+   648→          </Card>
+   649→        </motion.div>
+   650→      )}
+   651→
+   652→      {/* Score Insights Panel */}
+   653→      {scoreEntries.length > 0 && (
+   654→        <motion.div variants={item}>
+   655→          <Card className="glass overflow-hidden">
+   656→            <CardHeader className="pb-3">
+   657→              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   658→                <ShieldCheck className="h-4 w-4 text-wine-accent" />
+   659→                Score Insights
+   660→              </CardTitle>
+   661→            </CardHeader>
+   662→            <CardContent className="flex flex-col gap-6">
+   663→              {/* Top 3 Strengths */}
+   664→              <div>
+   665→                <h3 className="text-sm font-medium text-green-400 flex items-center gap-1.5 mb-3">
+   666→                  <ArrowUpRight className="h-3.5 w-3.5" />
+   667→                  Top 3 Strengths
+   668→                </h3>
+   669→                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+   670→                  {scoreEntries
+   671→                    .sort(([, a], [, b]) => (b as number) - (a as number))
+   672→                    .slice(0, 3)
+   673→                    .map(([key, value], i) => (
+   674→                      <motion.div
+   675→                        key={key}
+   676→                        initial={{ opacity: 0, y: 12 }}
+   677→                        animate={{ opacity: 1, y: 0 }}
+   678→                        transition={{ delay: i * 0.1, duration: 0.35 }}
+   679→                        className="rounded-lg p-3 border border-green-500/20 bg-green-500/[0.05]"
+   680→                      >
+   681→                        <div className="flex items-center justify-between mb-1">
+   682→                          <span className="text-xs text-viralyze-muted">{categoryLabels[key] || key}</span>
+   683→                          <span className="text-sm font-bold tabular-nums text-green-400">{value as number}</span>
+   684→                        </div>
+   685→                        <p className="text-xs text-viralyze-white/60 leading-relaxed">
+   686→                          {strengths[i] || `${categoryLabels[key] || key} is a key strength of this content.`}
+   687→                        </p>
+   688→                      </motion.div>
+   689→                    ))}
+   690→                </div>
+   691→              </div>
+   692→
+   693→              {/* Top 3 Improvement Areas */}
+   694→              <div>
+   695→                <h3 className="text-sm font-medium text-amber-400 flex items-center gap-1.5 mb-3">
+   696→                  <AlertTriangle className="h-3.5 w-3.5" />
+   697→                  Top 3 Improvement Areas
+   698→                </h3>
+   699→                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+   700→                  {scoreEntries
+   701→                    .sort(([, a], [, b]) => (a as number) - (b as number))
+   702→                    .slice(0, 3)
+   703→                    .map(([key, value], i) => (
+   704→                      <motion.div
+   705→                        key={key}
+   706→                        initial={{ opacity: 0, y: 12 }}
+   707→                        animate={{ opacity: 1, y: 0 }}
+   708→                        transition={{ delay: i * 0.1 + 0.3, duration: 0.35 }}
+   709→                        className="rounded-lg p-3 border border-amber-500/20 bg-amber-500/[0.05]"
+   710→                      >
+   711→                        <div className="flex items-center justify-between mb-1">
+   712→                          <span className="text-xs text-viralyze-muted">{categoryLabels[key] || key}</span>
+   713→                          <span className="text-sm font-bold tabular-nums text-amber-400">{value as number}</span>
+   714→                        </div>
+   715→                        <p className="text-xs text-viralyze-white/60 leading-relaxed">
+   716→                          {improvements[i] || weaknesses[i] || `Consider improving ${categoryLabels[key] || key.toLowerCase()} to boost viral potential.`}
+   717→                        </p>
+   718→                      </motion.div>
+   719→                    ))}
+   720→                </div>
+   721→              </div>
+   722→
+   723→              {/* Score vs Average Comparison */}
+   724→              <div>
+   725→                <h3 className="text-sm font-medium text-viralyze-white flex items-center gap-1.5 mb-3">
+   726→                  <Target className="h-3.5 w-3.5 text-wine-accent" />
+   727→                  Score vs Platform Average
+   728→                </h3>
+   729→                <div className="space-y-3">
+   730→                  <div>
+   731→                    <div className="flex items-center justify-between mb-1">
+   732→                      <span className="text-xs text-viralyze-white">Your Score</span>
+   733→                      <span className="text-xs font-bold tabular-nums text-wine-accent">{overallScore}/100</span>
+   734→                    </div>
+   735→                    <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+   736→                      <motion.div
+   737→                        initial={{ width: 0 }}
+   738→                        animate={{ width: `${overallScore}%` }}
+   739→                        transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+   740→                        className="h-full rounded-full bg-gradient-to-r from-wine-accent to-wine"
+   741→                      />
+   742→                    </div>
+   743→                  </div>
+   744→                  <div>
+   745→                    <div className="flex items-center justify-between mb-1">
+   746→                      <span className="text-xs text-viralyze-muted">Platform Average</span>
+   747→                      <span className="text-xs font-bold tabular-nums text-viralyze-muted">65/100</span>
+   748→                    </div>
+   749→                    <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+   750→                      <motion.div
+   751→                        initial={{ width: 0 }}
+   752→                        animate={{ width: '65%' }}
+   753→                        transition={{ duration: 0.8, delay: 0.35, ease: 'easeOut' }}
+   754→                        className="h-full rounded-full bg-white/20"
+   755→                      />
+   756→                    </div>
+   757→                  </div>
+   758→                </div>
+   759→              </div>
+   760→            </CardContent>
+   761→          </Card>
+   762→        </motion.div>
+   763→      )}
+   764→
+   765→      {/* Platform Fit */}
+   766→      {platformFit && platformFit.length > 0 && (
+   767→        <motion.div variants={item}>
+   768→          <Card className="glass">
+   769→            <CardHeader className="pb-3">
+   770→              <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   771→                <TrendingUp className="h-4 w-4 text-wine-accent" />
+   772→                Platform Fit
+   773→              </CardTitle>
+   774→            </CardHeader>
+   775→            <CardContent>
+   776→              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+   777→                {platformFit.map((pf, i) => (
+   778→                  <motion.div
+   779→                    key={pf.platform}
+   780→                    initial={{ opacity: 0, scale: 0.9 }}
+   781→                    animate={{ opacity: 1, scale: 1 }}
+   782→                    transition={{ delay: i * 0.1 }}
+   783→                    className="glass rounded-lg p-3 flex flex-col items-center gap-2 hover:glow-wine-sm transition-all duration-300 cursor-default"
+   784→                    title={`${pf.platform}: ${pf.score}/100`}
+   785→                  >
+   786→                    <span className="text-2xl">{platformIcons[pf.platform] || '📱'}</span>
+   787→                    <span className="text-xs text-viralyze-muted capitalize">
+   788→                      {pf.platform}
+   789→                    </span>
+   790→                    <span
+   791→                      className={`text-lg font-bold tabular-nums ${
+   792→                        pf.score >= 80
+   793→                          ? 'text-green-400'
+   794→                          : pf.score >= 60
+   795→                          ? 'text-amber-400'
+   796→                          : 'text-red-400'
+   797→                      }`}
+   798→                    >
+   799→                      {pf.score}
+   800→                    </span>
+   801→                  </motion.div>
+   802→                ))}
+   803→              </div>
+   804→            </CardContent>
+   805→          </Card>
+   806→        </motion.div>
+   807→      )}
+   808→
+   809→      {/* Strengths, Weaknesses, Improvements */}
+   810→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   811→        {strengths.length > 0 && (
+   812→          <motion.div variants={item}>
+   813→            <Card className="glass h-full">
+   814→              <div className="h-1 rounded-t-xl bg-gradient-to-r from-green-500 to-green-400" />
+   815→              <CardHeader className="pb-2">
+   816→                <CardTitle className="text-sm font-medium text-green-400 flex items-center gap-2">
+   817→                  <Zap className="h-4 w-4" />
+   818→                  Strengths
+   819→                </CardTitle>
+   820→              </CardHeader>
+   821→              <CardContent className="flex flex-col gap-2">
+   822→                {strengths.map((s, i) => (
+   823→                  <motion.div
+   824→                    key={i}
+   825→                    initial={{ opacity: 0, x: -10 }}
+   826→                    animate={{ opacity: 1, x: 0 }}
+   827→                    transition={{ delay: i * 0.06 }}
+   828→                    className="flex items-start gap-2 text-sm text-viralyze-white/80"
+   829→                  >
+   830→                    <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 shrink-0" />
+   831→                    <span>{s}</span>
+   832→                  </motion.div>
+   833→                ))}
+   834→              </CardContent>
+   835→            </Card>
+   836→          </motion.div>
+   837→        )}
+   838→
+   839→        {weaknesses.length > 0 && (
+   840→          <motion.div variants={item}>
+   841→            <Card className="glass h-full">
+   842→              <div className="h-1 rounded-t-xl bg-gradient-to-r from-amber-500 to-amber-400" />
+   843→              <CardHeader className="pb-2">
+   844→                <CardTitle className="text-sm font-medium text-amber-400 flex items-center gap-2">
+   845→                  <Target className="h-4 w-4" />
+   846→                  Weaknesses
+   847→                </CardTitle>
+   848→              </CardHeader>
+   849→              <CardContent className="flex flex-col gap-2">
+   850→                {weaknesses.map((w, i) => (
+   851→                  <motion.div
+   852→                    key={i}
+   853→                    initial={{ opacity: 0, x: -10 }}
+   854→                    animate={{ opacity: 1, x: 0 }}
+   855→                    transition={{ delay: i * 0.06 }}
+   856→                    className="flex items-start gap-2 text-sm text-viralyze-white/80"
+   857→                  >
+   858→                    <AlertCircle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+   859→                    <span>{w}</span>
+   860→                  </motion.div>
+   861→                ))}
+   862→              </CardContent>
+   863→            </Card>
+   864→          </motion.div>
+   865→        )}
+   866→
+   867→        {improvements.length > 0 && (
+   868→          <motion.div variants={item}>
+   869→            <Card className="glass h-full">
+   870→              <div className="h-1 rounded-t-xl bg-gradient-to-r from-wine-accent to-wine" />
+   871→              <CardHeader className="pb-2">
+   872→                <CardTitle className="text-sm font-medium text-wine-accent flex items-center gap-2">
+   873→                  <Sparkles className="h-4 w-4" />
+   874→                  Improvements
+   875→                </CardTitle>
+   876→              </CardHeader>
+   877→              <CardContent className="flex flex-col gap-2">
+   878→                {improvements.map((imp, i) => (
+   879→                  <motion.div
+   880→                    key={i}
+   881→                    initial={{ opacity: 0, x: -10 }}
+   882→                    animate={{ opacity: 1, x: 0 }}
+   883→                    transition={{ delay: i * 0.06 }}
+   884→                    className="flex items-start gap-2 text-sm text-viralyze-white/80"
+   885→                  >
+   886→                    <Lightbulb className="h-4 w-4 text-wine-accent mt-0.5 shrink-0" />
+   887→                    <span>{imp}</span>
+   888→                  </motion.div>
+   889→                ))}
+   890→              </CardContent>
+   891→            </Card>
+   892→          </motion.div>
+   893→        )}
+   894→      </div>
+   895→
+   896→      {/* Optimized Content */}
+   897→      {(optimizedHook || optimizedCaption || optimizedTitle) && (
+   898→        <motion.div variants={item}>
+   899→          <Card className="glass overflow-hidden relative">
+   900→            <div className="glow-line w-full bg-gradient-to-r from-transparent via-wine-accent to-transparent" />
+   901→            <CardHeader className="pb-3">
+   902→              <div className="flex items-center justify-between">
+   903→                <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+   904→                  <Sparkles className="h-4 w-4 text-wine-accent" />
+   905→                  AI-Optimized Content
+   906→                </CardTitle>
+   907→                <Button
+   908→                  variant="ghost"
+   909→                  size="sm"
+   910→                  className="h-7 px-2.5 text-viralyze-muted hover:text-viralyze-white gap-1.5"
+   911→                  onClick={handleCopyAll}
+   912→                >
+   913→                  <ClipboardCopy className="h-3.5 w-3.5" />
+   914→                  Copy All
+   915→                </Button>
+   916→              </div>
+   917→            </CardHeader>
+   918→            <CardContent className="flex flex-col gap-4">
+   919→              {optimizedTitle && (
+   920→                <div className="flex flex-col gap-1.5">
+   921→                  <div className="flex items-center justify-between">
+   922→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   923→                      Optimized Title
+   924→                    </span>
+   925→                    <Button
+   926→                      variant="ghost"
+   927→                      size="sm"
+   928→                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   929→                      onClick={() => copyToClipboard(optimizedTitle, 'title')}
+   930→                    >
+   931→                      {copiedField === 'title' ? (
+   932→                        <Check className="h-3 w-3 text-green-400" />
+   933→                      ) : (
+   934→                        <Copy className="h-3 w-3" />
+   935→                      )}
+   936→                    </Button>
+   937→                  </div>
+   938→                  <p className="text-sm text-viralyze-white bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
+   939→                    {optimizedTitle}
+   940→                  </p>
+   941→                </div>
+   942→              )}
+   943→
+   944→              {optimizedHook && (
+   945→                <div className="flex flex-col gap-1.5">
+   946→                  <div className="flex items-center justify-between">
+   947→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   948→                      Optimized Hook
+   949→                    </span>
+   950→                    <Button
+   951→                      variant="ghost"
+   952→                      size="sm"
+   953→                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   954→                      onClick={() => copyToClipboard(optimizedHook, 'hook')}
+   955→                    >
+   956→                      {copiedField === 'hook' ? (
+   957→                        <Check className="h-3 w-3 text-green-400" />
+   958→                      ) : (
+   959→                        <Copy className="h-3 w-3" />
+   960→                      )}
+   961→                    </Button>
+   962→                  </div>
+   963→                  <p className="text-sm text-viralyze-white bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
+   964→                    {optimizedHook}
+   965→                  </p>
+   966→                </div>
+   967→              )}
+   968→
+   969→              {optimizedCaption && (
+   970→                <div className="flex flex-col gap-1.5">
+   971→                  <div className="flex items-center justify-between">
+   972→                    <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">
+   973→                      Optimized Caption
+   974→                    </span>
+   975→                    <Button
+   976→                      variant="ghost"
+   977→                      size="sm"
+   978→                      className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+   979→                      onClick={() => copyToClipboard(optimizedCaption, 'caption')}
+   980→                    >
+   981→                      {copiedField === 'caption' ? (
+   982→                        <Check className="h-3 w-3 text-green-400" />
+   983→                      ) : (
+   984→                        <Copy className="h-3 w-3" />
+   985→                      )}
+   986→                    </Button>
+   987→                  </div>
+   988→                  <p className="text-sm text-viralyze-white bg-white/[0.03] rounded-lg p-3 border border-white/[0.06] whitespace-pre-wrap">
+   989→                    {optimizedCaption}
+   990→                  </p>
+   991→                </div>
+   992→              )}
+   993→            </CardContent>
+   994→          </Card>
+   995→        </motion.div>
+   996→      )}
+   997→
+   998→      {/* Content Variations */}
+   999→      {variations.length > 0 && (
+  1000→        <motion.div variants={item}>
+  1001→          <Card className="glass">
+  1002→            <CardHeader className="pb-3">
+  1003→              <div className="flex items-center justify-between">
+  1004→                <div>
+  1005→                  <CardTitle className="text-base font-medium text-viralyze-white flex items-center gap-2">
+  1006→                    <Zap className="h-4 w-4 text-wine-accent" />
+  1007→                    Content Variations
+  1008→                  </CardTitle>
+  1009→                  <p className="text-xs text-viralyze-muted mt-1">
+  1010→                    Alternative versions optimized for different engagement strategies
+  1011→                  </p>
+  1012→                </div>
+  1013→                {variations.length >= 2 && (
+  1014→                  <Button
+  1015→                    variant="outline"
+  1016→                    size="sm"
+  1017→                    onClick={() => setCompareMode(!compareMode)}
+  1018→                    className={cn(
+  1019→                      'border-white/[0.1] text-viralyze-muted hover:text-viralyze-white hover:bg-white/[0.05] gap-1.5',
+  1020→                      compareMode && 'border-wine-accent/40 text-wine-accent bg-wine-accent/10'
+  1021→                    )}
+  1022→                  >
+  1023→                    {compareMode ? <LayoutGrid className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+  1024→                    {compareMode ? 'Grid View' : 'Compare View'}
+  1025→                  </Button>
+  1026→                )}
+  1027→              </div>
+  1028→            </CardHeader>
+  1029→            <CardContent className="flex flex-col gap-4">
+  1030→              <AnimatePresence mode="wait">
+  1031→                {!compareMode ? (
+  1032→                  <motion.div
+  1033→                    key="grid"
+  1034→                    initial={{ opacity: 0 }}
+  1035→                    animate={{ opacity: 1 }}
+  1036→                    exit={{ opacity: 0 }}
+  1037→                    transition={{ duration: 0.25 }}
+  1038→                    className="flex flex-col gap-4"
+  1039→                  >
+  1040→                    {variations.map((v, i) => (
+  1041→                      <motion.div
+  1042→                        key={i}
+  1043→                        initial={{ opacity: 0, y: 10 }}
+  1044→                        animate={{ opacity: 1, y: 0 }}
+  1045→                        transition={{ delay: i * 0.1 }}
+  1046→                        className="group glass-strong rounded-lg p-4 flex flex-col gap-2 hover:glow-wine-sm transition-all duration-300 relative overflow-hidden"
+  1047→                      >
+  1048→                        <div className="flex items-center justify-between">
+  1049→                          <div className="flex items-center gap-2">
+  1050→                            <span className="text-xs font-medium text-wine-accent uppercase tracking-wider">
+  1051→                              {v.label}
+  1052→                            </span>
+  1053→                            <span className="text-xs text-viralyze-muted px-2 py-0.5 rounded-full bg-white/[0.05]">
+  1054→                              {v.style}
+  1055→                            </span>
+  1056→                          </div>
+  1057→                          <div className="flex items-center gap-2">
+  1058→                            <span
+  1059→                              className={`text-sm font-bold tabular-nums ${
+  1060→                                v.score >= 80
+  1061→                                  ? 'text-green-400'
+  1062→                                  : v.score >= 60
+  1063→                                  ? 'text-amber-400'
+  1064→                                  : 'text-red-400'
+  1065→                              }`}
+  1066→                            >
+  1067→                              {v.score}/100
+  1068→                            </span>
+  1069→                            <Button
+  1070→                              variant="ghost"
+  1071→                              size="sm"
+  1072→                              className="h-6 px-2 text-viralyze-muted hover:text-viralyze-white"
+  1073→                              onClick={() => copyToClipboard(v.content, `var-${i}`)}
+  1074→                            >
+  1075→                              {copiedField === `var-${i}` ? (
+  1076→                                <Check className="h-3 w-3 text-green-400" />
+  1077→                              ) : (
+  1078→                                <Copy className="h-3 w-3" />
+  1079→                              )}
+  1080→                            </Button>
+  1081→                          </div>
+  1082→                        </div>
+  1083→                        <p className="text-sm text-viralyze-white/80 leading-relaxed">
+  1084→                          {v.content}
+  1085→                        </p>
+  1086→                        {/* Hover-reveal action */}
+  1087→                        <motion.div
+  1088→                          className="flex justify-end opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 mt-1"
+  1089→                        >
+  1090→                          <Button
+  1091→                            size="sm"
+  1092→                            className="h-7 px-3 bg-gradient-wine/60 hover:bg-gradient-wine text-white btn-shine text-xs gap-1.5"
+  1093→                            onClick={() => {
+  1094→                              setPrefilledIdea(v.content);
+  1095→                              setPredictMode('idea');
+  1096→                              setCurrentView('predict');
+  1097→                              toast.success('Variation loaded for prediction');
+  1098→                            }}
+  1099→                          >
+  1100→                            <Sparkles className="h-3 w-3" />
+  1101→                            Use for Prediction
+  1102→                          </Button>
+  1103→                        </motion.div>
+  1104→                      </motion.div>
+  1105→                    ))}
+  1106→                  </motion.div>
+  1107→                ) : (
+  1108→                  <motion.div
+  1109→                    key="compare"
+  1110→                    initial={{ opacity: 0 }}
+  1111→                    animate={{ opacity: 1 }}
+  1112→                    exit={{ opacity: 0 }}
+  1113→                    transition={{ duration: 0.25 }}
+  1114→                    className="flex flex-col gap-0"
+  1115→                  >
+  1116→                    {/* Table header */}
+  1117→                    <div className="grid grid-cols-[1fr_80px_80px_80px] sm:grid-cols-[1fr_100px_100px_100px] gap-3 px-4 py-2 border-b border-white/[0.08]">
+  1118→                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider">Variation</span>
+  1119→                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-center">Score</span>
+  1120→                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-center">Diff</span>
+  1121→                      <span className="text-xs font-medium text-viralyze-muted uppercase tracking-wider text-right">Action</span>
+  1122→                    </div>
+  1123→                    {/* Rows */}
+  1124→                    {[...variations]
+  1125→                      .sort((a, b) => b.score - a.score)
+  1126→                      .map((v, i) => {
+  1127→                        const isBest = i === 0;
+  1128→                        const bestScore = variations.reduce((max, x) => Math.max(max, x.score), 0);
+  1129→                        const diff = bestScore - v.score;
+  1130→                        const truncated = v.content.length > 80 ? v.content.slice(0, 80) + '...' : v.content;
+  1131→                        return (
+  1132→                          <motion.div
+  1133→                            key={i}
+  1134→                            initial={{ opacity: 0, x: -8 }}
+  1135→                            animate={{ opacity: 1, x: 0 }}
+  1136→                            transition={{ delay: i * 0.08 }}
+  1137→                            className={cn(
+  1138→                              'grid grid-cols-[1fr_80px_80px_80px] sm:grid-cols-[1fr_100px_100px_100px] gap-3 px-4 py-3 border-b border-white/[0.04] items-center',
+  1139→                              isBest && 'border border-wine-accent/30 rounded-lg bg-wine-accent/[0.05] mb-2'
+  1140→                            )}
+  1141→                          >
+  1142→                            <div className="flex items-center gap-2 min-w-0">
+  1143→                              {isBest && (
+  1144→                                <Badge className="bg-wine-accent/20 text-wine-accent text-[10px] font-bold border-0 px-1.5 py-0 shrink-0">
+  1145→                                  <Trophy className="h-3 w-3 mr-0.5" /> Best
+  1146→                                </Badge>
+  1147→                              )}
+  1148→                              <div className="min-w-0">
+  1149→                                <span className="text-xs font-medium text-wine-accent uppercase tracking-wider">{v.label}</span>
+  1150→                                <p className="text-sm text-viralyze-white/70 truncate">{truncated}</p>
+  1151→                              </div>
+  1152→                            </div>
+  1153→                            <div className="flex justify-center">
+  1154→                              <span className={cn(
+  1155→                                'text-sm font-bold tabular-nums',
+  1156→                                v.score >= 80 ? 'text-green-400' : v.score >= 60 ? 'text-amber-400' : 'text-red-400'
+  1157→                              )}>
+  1158→                                {v.score}
+  1159→                              </span>
+  1160→                            </div>
+  1161→                            <div className="flex justify-center">
+  1162→                              <span className={cn(
+  1163→                                'text-xs font-semibold tabular-nums',
+  1164→                                diff === 0 ? 'text-viralyze-muted' : 'text-red-400'
+  1165→                              )}>
+  1166→                                {diff === 0 ? '+0' : `-${diff}`}
+  1167→                              </span>
+  1168→                            </div>
+  1169→                            <div className="flex justify-end gap-1">
+  1170→                              <Button
+  1171→                                size="sm"
+  1172→                                className="h-6 px-2 bg-gradient-wine/60 hover:bg-gradient-wine text-white"
+  1173→                                onClick={() => {
+  1174→                                  setPrefilledIdea(v.content);
+  1175→                                  setPredictMode('idea');
+  1176→                                  setCurrentView('predict');
+  1177→                                  toast.success('Variation loaded for re-analysis');
+  1178→                                }}
+  1179→                              >
+  1180→                                <Sparkles className="h-3 w-3" />
+  1181→                              </Button>
+  1182→                            </div>
+  1183→                          </motion.div>
+  1184→                        );
+  1185→                      })}
+  1186→                  </motion.div>
+  1187→                )}
+  1188→              </AnimatePresence>
+  1189→            </CardContent>
+  1190→          </Card>
+  1191→        </motion.div>
+  1192→      )}
+  1193→    </motion.div>
+  1194→  );
+  1195→}

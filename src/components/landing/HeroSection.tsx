@@ -324,7 +324,7 @@ export default function HeroSection() {
 
             <motion.div variants={item} className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <Button
-                onClick={() => { setAuthModal(true, 'signup'); }}
+                onClick={() => { setAuthModal(true, 'login'); }}
                 size="lg"
                 className="bg-gradient-wine border-0 px-6 text-viralyze-white hover:opacity-90 transition-opacity"
               >
