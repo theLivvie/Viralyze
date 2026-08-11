@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
-// Eager imports — above the fold / always needed
+// Eager imports -- above the fold / always needed
 import LandingNav from '@/components/landing/LandingNav';
 import HeroSection from '@/components/landing/HeroSection';
 import SocialProofSection from '@/components/landing/SocialProofSection';
@@ -58,7 +59,7 @@ const viewComponents: Record<string, React.ComponentType> = {
 };
 
 function AppRouter() {
-  const { currentView } = useAppStore();
+  const { currentView, setCurrentView } = useAppStore();
   const ViewComponent = viewComponents[currentView];
 
   if (!ViewComponent) return null;
@@ -69,34 +70,6 @@ function AppRouter() {
       <KeyboardShortcuts />
       <ViewComponent />
     </AppLayout>
-  );
-}
-
-function LandingPageContent() {
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const howItWorksRef = useRef<HTMLDivElement>(null);
-  const pricingRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <>
-      <LandingNav />
-      <HeroSection />
-      <SocialProofSection />
-      <ProblemSection />
-      <DemoSection />
-      <div ref={featuresRef}>
-        <FeaturesSection />
-      </div>
-      <div ref={howItWorksRef}>
-        <HowItWorksSection />
-      </div>
-      <div ref={pricingRef}>
-        <PricingSection />
-      </div>
-      <CTASection />
-      <LandingFooter />
-      <AuthModal />
-    </>
   );
 }
 
@@ -148,12 +121,34 @@ function LandingPageWithRefs() {
 }
 
 export default function Home() {
-  const { currentView, isLoggedIn } = useAppStore();
+  const { currentView, isLoggedIn, sessionChecked, checkSession } = useAppStore();
+  const searchParams = useSearchParams();
+  const authParam = searchParams.get('auth');
+
+  // Check session on mount and after Google OAuth callback
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
+  // Clean up ?auth=google from URL after session is checked
+  useEffect(() => {
+    if (authParam && sessionChecked) {
+      window.history.replaceState({}, '', '/');
+    }
+  }, [authParam, sessionChecked]);
+
+  // Show a brief loading state while session is being checked
+  if (!sessionChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-viralyze-black">
+        <Loader2 className="h-6 w-6 text-wine-accent animate-spin" />
+      </div>
+    );
+  }
 
   // Show app views when logged in and not on landing
   if (isLoggedIn) {
     if (currentView === 'landing') {
-      // Logged in user can still see landing page
       return (
         <main className="min-h-screen bg-viralyze-black">
           <ErrorBoundary>

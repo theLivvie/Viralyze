@@ -50,7 +50,7 @@ interface AppLayoutProps {
 }
 
 function AppLayoutInner({ children }: AppLayoutProps) {
-  const { currentView, user, isLoggedIn, setSavedAnalyses } = useAppStore();
+  const { currentView, user, isLoggedIn, setSavedAnalyses, setCurrentView } = useAppStore();
   const { isMobile, setOpenMobile } = useSidebar();
 
   // Load library from DB when user changes

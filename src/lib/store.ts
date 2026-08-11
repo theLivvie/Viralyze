@@ -13,6 +13,10 @@ interface AppState {
   login: (user: UserProfile) => void;
   logout: () => void;
   updateUser: (updates: Partial<UserProfile>) => void;
+  /** Fetch the current Supabase session and sync auth state */
+  checkSession: () => Promise<void>;
+  /** Whether the initial session check has completed */
+  sessionChecked: boolean;
 
   // Analysis
   currentAnalysis: AnalysisResult | null;
@@ -54,7 +58,7 @@ interface AppState {
   setOnboardingComplete: (v: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   // Navigation
   currentView: 'landing',
   setCurrentView: (view) => set((state) => ({ currentView: view, previousView: state.currentView })),
@@ -63,9 +67,41 @@ export const useAppStore = create<AppState>((set) => ({
   // Auth
   isLoggedIn: false,
   user: null,
+  sessionChecked: false,
   login: (user) => set({ isLoggedIn: true, user, currentView: 'dashboard', authModalOpen: false }),
   updateUser: (updates) => set((state) => ({ user: state.user ? { ...state.user, ...updates } : null })),
-  logout: () => set({ isLoggedIn: false, user: null, currentView: 'landing', savedAnalyses: [], currentAnalysis: null }),
+  logout: () => {
+    // Clear session via API
+    fetch('/api/auth/signout', { method: 'POST' }).catch(() => {});
+    set({ isLoggedIn: false, user: null, currentView: 'landing', savedAnalyses: [], currentAnalysis: null });
+  },
+  checkSession: async () => {
+    try {
+      const res = await fetch('/api/auth/session');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated && data.id) {
+          set({
+            isLoggedIn: true,
+            user: {
+              id: data.id,
+              email: data.email || '',
+              name: data.name || null,
+              plan: data.plan || 'free',
+              predictionsUsed: data.predictionsUsed || 0,
+              predictionsLimit: data.predictionsLimit || 5,
+            },
+            currentView: 'dashboard',
+            sessionChecked: true,
+          });
+          return;
+        }
+      }
+    } catch {
+      // Session check failed — user is not logged in
+    }
+    set({ isLoggedIn: false, user: null, sessionChecked: true });
+  },
 
   // Analysis
   currentAnalysis: null,

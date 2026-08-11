@@ -1478,3 +1478,26 @@ Stage Summary:
 - Production build: PASS
 - Final QA: 10/10 PASS
 - Zero lint errors, zero console errors
+---
+Task ID: 1
+Agent: Main
+Task: Full Supabase migration audit, key rename, Google OAuth, Prisma removal
+
+Work Log:
+- AUDITED all files: package.json, prisma/schema.prisma, .env.local, .env, src/lib/db.ts, src/lib/supabase/{server,client,middleware}.ts, src/middleware.ts, src/lib/store.ts, all 10 API routes, AuthModal, AppLayout, page.tsx, CalendarView, LibraryView, .env.example
+- RENAMED Supabase keys: NEXT_PUBLIC_SUPABASE_ANON_KEY -> NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY -> SUPABASE_SECRET_KEY in .env.local, client.ts, middleware.ts (server.ts was already correct)
+- ADDED Google OAuth via Supabase Auth: /api/auth/google (initiate), /api/auth/google/callback (exchange code, create profile, redirect)
+- UPDATED AuthModal with Google OAuth button, "or" separator, updated button labels
+- UPDATED Zustand store: added checkSession(), sessionChecked state, logout() now calls /api/auth/signout
+- UPDATED page.tsx: calls checkSession() on mount, handles ?auth=google URL param, shows loading spinner until session checked
+- FIXED AppLayout missing setCurrentView destructure bug
+- REMOVED Prisma/SQLite: deleted prisma/, src/lib/db.ts, db/, removed @prisma/client, prisma, next-auth, pg from package.json, removed db:* scripts
+- CREATED new .env.example with correct key names
+- VERIFIED: lint passes, page compiles HTTP 200 (26KB), /api/auth/session returns {authenticated:false}
+
+Stage Summary:
+- Database: Fully migrated from Prisma/SQLite to Supabase PostgreSQL
+- Auth: Real Supabase Auth with email/password + Google OAuth
+- Key names: Consistently using NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY + SUPABASE_SECRET_KEY
+- Prisma fully removed (no imports remain anywhere in src/)
+- supabase-schema.sql ready for manual execution in Supabase SQL Editor
