@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
@@ -18,34 +18,109 @@ import PricingSection from '@/components/landing/PricingSection';
 import CTASection from '@/components/landing/CTASection';
 import LandingFooter from '@/components/landing/LandingFooter';
 import AuthModal from '@/components/shared/AuthModal';
+
 import AppLayout from '@/components/app/AppLayout';
 import OnboardingOverlay from '@/components/app/OnboardingOverlay';
 import KeyboardShortcuts from '@/components/app/KeyboardShortcuts';
 import ErrorBoundary from '@/components/app/ErrorBoundary';
 
-// Inline PageLoader component
+// ==========================================
+// PAGE LOADER
+// ==========================================
+
 function PageLoader() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[300px] gap-3">
       <Loader2 className="h-8 w-8 text-wine-accent animate-spin" />
-      <p className="text-sm text-viralyze-muted">Loading...</p>
+      <p className="text-sm text-viralyze-muted">
+        Loading...
+      </p>
     </div>
   );
 }
 
-// Dynamic imports for app views (code splitting)
-const DashboardView = dynamic(() => import('@/components/app/DashboardView'), { loading: () => <PageLoader /> });
-const PredictView = dynamic(() => import('@/components/app/PredictView'), { loading: () => <PageLoader /> });
-const AnalysisView = dynamic(() => import('@/components/app/AnalysisView'), { loading: () => <PageLoader /> });
-const LibraryView = dynamic(() => import('@/components/app/LibraryView'), { loading: () => <PageLoader /> });
-const IdeasView = dynamic(() => import('@/components/app/IdeasView'), { loading: () => <PageLoader /> });
-const TrendsView = dynamic(() => import('@/components/app/TrendsView'), { loading: () => <PageLoader /> });
-const SettingsView = dynamic(() => import('@/components/app/SettingsView'), { loading: () => <PageLoader /> });
-const AnalyticsView = dynamic(() => import('@/components/app/AnalyticsView'), { loading: () => <PageLoader /> });
-const CalendarView = dynamic(() => import('@/components/app/CalendarView'), { loading: () => <PageLoader /> });
-const ContentTemplatesView = dynamic(() => import('@/components/app/ContentTemplatesView'), { loading: () => <PageLoader /> });
+// ==========================================
+// DYNAMIC APP VIEWS
+// ==========================================
 
-const viewComponents: Record<string, React.ComponentType> = {
+const DashboardView = dynamic(
+  () => import('@/components/app/DashboardView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const PredictView = dynamic(
+  () => import('@/components/app/PredictView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const AnalysisView = dynamic(
+  () => import('@/components/app/AnalysisView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const LibraryView = dynamic(
+  () => import('@/components/app/LibraryView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const IdeasView = dynamic(
+  () => import('@/components/app/IdeasView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const TrendsView = dynamic(
+  () => import('@/components/app/TrendsView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const SettingsView = dynamic(
+  () => import('@/components/app/SettingsView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const AnalyticsView = dynamic(
+  () => import('@/components/app/AnalyticsView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const CalendarView = dynamic(
+  () => import('@/components/app/CalendarView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const ContentTemplatesView = dynamic(
+  () => import('@/components/app/ContentTemplatesView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+// ==========================================
+// VIEW ROUTER
+// ==========================================
+
+const viewComponents: Record<
+  string,
+  React.ComponentType
+> = {
   dashboard: DashboardView,
   predict: PredictView,
   analysis: AnalysisView,
@@ -58,11 +133,19 @@ const viewComponents: Record<string, React.ComponentType> = {
   settings: SettingsView,
 };
 
-function AppRouter() {
-  const { currentView, setCurrentView } = useAppStore();
-  const ViewComponent = viewComponents[currentView];
+// ==========================================
+// APP ROUTER
+// ==========================================
 
-  if (!ViewComponent) return null;
+function AppRouter() {
+  const { currentView } = useAppStore();
+
+  const ViewComponent =
+    viewComponents[currentView];
+
+  if (!ViewComponent) {
+    return null;
+  }
 
   return (
     <AppLayout>
@@ -73,71 +156,152 @@ function AppRouter() {
   );
 }
 
-function LandingPageWithRefs() {
-  const { scrollToSection, setScrollToSection } = useAppStore();
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const howItWorksRef = useRef<HTMLDivElement>(null);
-  const pricingRef = useRef<HTMLDivElement>(null);
+// ==========================================
+// LANDING PAGE
+// ==========================================
 
-  const sectionMap: Record<string, React.RefObject<HTMLDivElement | null>> = {
+function LandingPageWithRefs() {
+  const {
+    scrollToSection,
+    setScrollToSection,
+  } = useAppStore();
+
+  const featuresRef =
+    useRef<HTMLDivElement>(null);
+
+  const howItWorksRef =
+    useRef<HTMLDivElement>(null);
+
+  const pricingRef =
+    useRef<HTMLDivElement>(null);
+
+  const sectionMap: Record<
+    string,
+    React.RefObject<HTMLDivElement | null>
+  > = {
     features: featuresRef,
     'how-it-works': howItWorksRef,
     pricing: pricingRef,
   };
 
   useEffect(() => {
-    if (scrollToSection) {
-      const el = sectionMap[scrollToSection];
-      if (el?.current) {
-        const offset = 80;
-        const top = el.current.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top, behavior: 'smooth' });
-      }
-      setScrollToSection(null);
+    if (!scrollToSection) {
+      return;
     }
-  }, [scrollToSection, setScrollToSection, sectionMap]);
+
+    const el =
+      sectionMap[scrollToSection];
+
+    if (el?.current) {
+      const offset = 80;
+
+      const top =
+        el.current.getBoundingClientRect()
+          .top +
+        window.scrollY -
+        offset;
+
+      window.scrollTo({
+        top,
+        behavior: 'smooth',
+      });
+    }
+
+    setScrollToSection(null);
+  }, [
+    scrollToSection,
+    setScrollToSection,
+  ]);
 
   return (
     <>
       <LandingNav />
+
       <HeroSection />
+
       <SocialProofSection />
+
       <ProblemSection />
+
       <DemoSection />
+
       <div ref={featuresRef}>
         <FeaturesSection />
       </div>
+
       <div ref={howItWorksRef}>
         <HowItWorksSection />
       </div>
+
       <div ref={pricingRef}>
         <PricingSection />
       </div>
+
       <CTASection />
+
       <LandingFooter />
+
       <AuthModal />
     </>
   );
 }
 
-export default function Home() {
-  const { currentView, isLoggedIn, sessionChecked, checkSession } = useAppStore();
-  const searchParams = useSearchParams();
-  const authParam = searchParams.get('auth');
+// ==========================================
+// HOME CONTENT
+// ==========================================
+//
+// IMPORTANT:
+// useSearchParams() is inside this component.
+// The component itself is wrapped with Suspense
+// at the bottom of this file.
+//
 
-  // Check session on mount and after Google OAuth callback
+function HomeContent() {
+  const {
+    currentView,
+    isLoggedIn,
+    sessionChecked,
+    checkSession,
+  } = useAppStore();
+
+  const searchParams =
+    useSearchParams();
+
+  const authParam =
+    searchParams.get('auth');
+
+  // ==========================================
+  // CHECK SESSION
+  // ==========================================
+
   useEffect(() => {
     checkSession();
   }, [checkSession]);
 
-  // Clean up ?auth=google from URL after session is checked
-  useEffect(() => {
-    if (authParam && sessionChecked) {
-      window.history.replaceState({}, '', '/');
-    }
-  }, [authParam, sessionChecked]);
+  // ==========================================
+  // CLEAN AUTH URL PARAMETER
+  // ==========================================
 
-  // Show a brief loading state while session is being checked
+  useEffect(() => {
+    if (
+      authParam &&
+      sessionChecked
+    ) {
+      window.history.replaceState(
+        {},
+        '',
+        '/'
+      );
+    }
+  }, [
+    authParam,
+    sessionChecked,
+  ]);
+
+  // ==========================================
+  // SESSION LOADING
+  // ==========================================
+
   if (!sessionChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-viralyze-black">
@@ -146,8 +310,16 @@ export default function Home() {
     );
   }
 
-  // Show app views when logged in and not on landing
+  // ==========================================
+  // LOGGED-IN USER
+  // ==========================================
+
   if (isLoggedIn) {
+    // ----------------------------------------
+    // User is logged in but currently viewing
+    // the landing page.
+    // ----------------------------------------
+
     if (currentView === 'landing') {
       return (
         <main className="min-h-screen bg-viralyze-black">
@@ -157,6 +329,11 @@ export default function Home() {
         </main>
       );
     }
+
+    // ----------------------------------------
+    // User is logged in and inside the app.
+    // ----------------------------------------
+
     return (
       <ErrorBoundary>
         <AppRouter />
@@ -164,12 +341,37 @@ export default function Home() {
     );
   }
 
-  // Show landing page for non-logged-in users
+  // ==========================================
+  // NOT LOGGED IN
+  // ==========================================
+
   return (
     <main className="min-h-screen bg-viralyze-black">
       <ErrorBoundary>
         <LandingPageWithRefs />
       </ErrorBoundary>
     </main>
+  );
+}
+
+// ==========================================
+// HOME PAGE
+// ==========================================
+//
+// Suspense fixes the Next.js production build
+// error caused by useSearchParams().
+//
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-viralyze-black">
+          <Loader2 className="h-6 w-6 text-wine-accent animate-spin" />
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

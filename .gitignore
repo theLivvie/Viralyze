@@ -1,5 +1,5 @@
 # dependencies
-node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -29,7 +29,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env
 .env.local
 .env.*.local
 

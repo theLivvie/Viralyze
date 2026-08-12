@@ -61,12 +61,18 @@ export default function PredictView() {
   const [ideaText, setIdeaText] = useState('');
 
   useEffect(() => {
-    if (prefilledIdea) {
-      setIdeaText(prefilledIdea);
-      setPrefilledIdea('');
-      toast.success('Idea pre-filled from Ideas page');
-    }
-  }, [prefilledIdea, setPrefilledIdea]);
+  if (!prefilledIdea) return;
+
+  const timeoutId = window.setTimeout(() => {
+    setIdeaText(prefilledIdea);
+    setPrefilledIdea('');
+    toast.success('Idea pre-filled from Ideas page');
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}, [prefilledIdea, setIdeaText, setPrefilledIdea]);
   const [contentText, setContentText] = useState('');
   const [audience, setAudience] = useState('');
   const [title, setTitle] = useState('');

@@ -74,8 +74,14 @@ export default function SettingsView() {
   }, [userId]);
 
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+  const timeoutId = window.setTimeout(() => {
+    void fetchSettings();
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}, [fetchSettings]);
 
   const handleSaveName = async () => {
     if (!user || !nameValue.trim() || nameValue.trim() === user.name) return;
@@ -293,7 +299,7 @@ export default function SettingsView() {
                     {plans.map((plan) => (
                       <th
                         key={plan.name}
-                        className={`text-center py-2.5 px-3 font-medium text-xs ${plan.highlighted ? 'text-wine-accent' : 'text-viralyze-muted'}`}
+                        className={`text-center py-2.5 px-3 font-medium text-xs ${'highlighted' in plan && plan.highlighted ? 'text-wine-accent' : 'text-viralyze-muted'}`}
                       >
                         <span className="block text-sm font-semibold text-viralyze-white">{plan.name}</span>
                         <span className="text-viralyze-muted">{plan.price}/mo</span>

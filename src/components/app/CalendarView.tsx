@@ -233,8 +233,14 @@ export default function CalendarView() {
   }, [userId]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+  const timeoutId = window.setTimeout(() => {
+    void fetchEvents();
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}, [fetchEvents]);
 
   const addSlot = useCallback(async () => {
     if (!activeDay || !newTitle.trim() || !userId) return;
