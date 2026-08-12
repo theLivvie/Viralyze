@@ -51,7 +51,8 @@ server.log
 
 # Project-specific (not part of source)
 /tool-results/
-/download/
+/download/*
+!/download/*.png
 /upload/
 /examples/
 /agent-ctx/
