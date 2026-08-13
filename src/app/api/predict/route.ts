@@ -1,20 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+import { getZAI } from '@/lib/zai';
 import {
   createClient,
   createAdminClient,
 } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 
+/* =========================================================
+   AI SYSTEM PROMPT
+========================================================= */
+
 const SYSTEM_PROMPT = `You are Viralyze, an expert AI-powered viral content prediction engine.
 
-IMPORTANT: You must respond with ONLY a valid JSON object. No markdown code blocks, no explanations, no text before or after the JSON.
+IMPORTANT:
+You must respond with ONLY a valid JSON object.
+No markdown code blocks.
+No explanations.
+No text before or after the JSON.
 
 Return this EXACT JSON structure:
+
 {
   "overallScore": <number 0-100>,
   "confidence": "low" or "medium" or "high",
   "classification": "low" or "moderate" or "high" or "viral",
+
   "scores": {
     "hook": <0-100>,
     "engagement": <0-100>,
@@ -26,6 +36,7 @@ Return this EXACT JSON structure:
     "contentQuality": <0-100>,
     "trendAlignment": <0-100>
   },
+
   "platformFit": [
     { "platform": "instagram", "score": <0-100> },
     { "platform": "youtube", "score": <0-100> },
@@ -33,12 +44,29 @@ Return this EXACT JSON structure:
     { "platform": "x", "score": <0-100> },
     { "platform": "linkedin", "score": <0-100> }
   ],
-  "strengths": ["<strength1>", "<strength2>", "<strength3>"],
-  "weaknesses": ["<weakness1>", "<weakness2>", "<weakness3>"],
-  "improvements": ["<improvement1>", "<improvement2>", "<improvement3>"],
+
+  "strengths": [
+    "<strength1>",
+    "<strength2>",
+    "<strength3>"
+  ],
+
+  "weaknesses": [
+    "<weakness1>",
+    "<weakness2>",
+    "<weakness3>"
+  ],
+
+  "improvements": [
+    "<improvement1>",
+    "<improvement2>",
+    "<improvement3>"
+  ],
+
   "optimizedHook": "<rewritten hook>",
   "optimizedCaption": "<rewritten caption>",
   "optimizedTitle": "<rewritten title>",
+
   "variations": [
     {
       "label": "Curiosity",
@@ -71,6 +99,7 @@ Return this EXACT JSON structure:
       "content": "<rewritten content>"
     }
   ],
+
   "emotionalBreakdown": {
     "curiosity": <0-100>,
     "surprise": <0-100>,
@@ -81,6 +110,7 @@ Return this EXACT JSON structure:
     "controversy": <0-100>,
     "fear": <0-100>
   },
+
   "predictedEngagement": {
     "likes": "<formatted string like 12.5K or 500>",
     "comments": "<formatted string>",
@@ -90,23 +120,36 @@ Return this EXACT JSON structure:
 }
 
 Scoring guidelines:
+
 - overallScore: Weighted average based on content quality and viral potential.
-- confidence: "low" for score below 50, "medium" for 50-75, "high" for above 75.
-- classification: "low" below 40, "moderate" 40-65, "high" 65-85, "viral" above 85.
+- confidence: low for score below 50, medium for 50-75, high for above 75.
+- classification: low below 40, moderate 40-65, high 65-85, viral above 85.
+- Be specific, actionable, and honest.
+- Do not inflate scores.
+- Provide 3-5 useful items in each array.`;
 
-Be specific, actionable, honest, and do not inflate scores.
-Provide 3-5 useful items in each array.`;
 
-function buildUserPrompt(req: {
+/* =========================================================
+   TYPES
+========================================================= */
+
+type PredictionRequest = {
   mode: string;
   platform: string;
   contentType: string;
-  audience: string;
+  audience?: string;
   ideaText?: string;
   contentText?: string;
   title?: string;
   hashtags?: string;
-}): string {
+};
+
+
+/* =========================================================
+   BUILD USER PROMPT
+========================================================= */
+
+function buildUserPrompt(req: PredictionRequest): string {
   const {
     mode,
     platform,
@@ -123,12 +166,15 @@ function buildUserPrompt(req: {
 
 Platform: ${platform}
 Content Type: ${contentType}
-Target Audience: ${audience}
+Target Audience: ${
+      audience || 'General social media audience'
+    }
 
 Content Idea:
 """${ideaText || contentText || ''}"""
 
 ${title ? `Proposed Title: ${title}` : ''}
+
 ${hashtags ? `Proposed Hashtags: ${hashtags}` : ''}
 
 Provide a complete viral content prediction analysis as JSON.`;
@@ -138,44 +184,84 @@ Provide a complete viral content prediction analysis as JSON.`;
 
 Platform: ${platform}
 Content Type: ${contentType}
-Target Audience: ${audience}
+Target Audience: ${
+    audience || 'General social media audience'
+  }
 
 Content:
 """${contentText || ''}"""
 
 ${title ? `Title: ${title}` : ''}
+
 ${hashtags ? `Hashtags: ${hashtags}` : ''}
+
 ${ideaText ? `Original Idea Context: ${ideaText}` : ''}
 
 Provide a complete viral content prediction analysis as JSON.`;
 }
 
-function extractJSON(text: string) {
+
+/* =========================================================
+   EXTRACT JSON FROM AI RESPONSE
+========================================================= */
+
+function extractJSON(text: string): Record<string, any> | null {
+  // Strategy 1: Direct JSON parse
   try {
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed)
+    ) {
+      return parsed;
+    }
   } catch {
-    // Continue and try extracting JSON from the response
+    // Continue
   }
 
+  // Remove markdown code fences
   const cleaned = text
     .replace(/```json/gi, '')
     .replace(/```/g, '')
     .trim();
 
+  // Strategy 2: Parse cleaned response
   try {
-    return JSON.parse(cleaned);
+    const parsed = JSON.parse(cleaned);
+
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed)
+    ) {
+      return parsed;
+    }
   } catch {
     // Continue
   }
 
+  // Strategy 3: Find first { and last }
   const firstBrace = cleaned.indexOf('{');
   const lastBrace = cleaned.lastIndexOf('}');
 
   if (firstBrace !== -1 && lastBrace > firstBrace) {
-    const possibleJSON = cleaned.slice(firstBrace, lastBrace + 1);
+    const possibleJSON = cleaned.slice(
+      firstBrace,
+      lastBrace + 1
+    );
 
     try {
-      return JSON.parse(possibleJSON);
+      const parsed = JSON.parse(possibleJSON);
+
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed;
+      }
     } catch {
       // Continue
     }
@@ -184,7 +270,16 @@ function extractJSON(text: string) {
   return null;
 }
 
+
+/* =========================================================
+   POST /api/predict
+========================================================= */
+
 export async function POST(request: NextRequest) {
+  /* =======================================================
+     1. BASIC IP RATE LIMIT
+  ======================================================= */
+
   const rl = rateLimit(10, 60_000);
 
   const identifier =
@@ -196,15 +291,20 @@ export async function POST(request: NextRequest) {
 
   if (!allowed) {
     return NextResponse.json(
-      { error: 'Rate limit exceeded. Please try again later.' },
+      {
+        error:
+          'Too many requests. Please wait a minute and try again.',
+      },
       { status: 429 }
     );
   }
 
+
   try {
-    // ==========================================
-    // 1. GET REQUEST DATA
-    // ==========================================
+    /* =====================================================
+       2. GET REQUEST BODY
+    ===================================================== */
+
     const body = await request.json();
 
     const {
@@ -218,9 +318,11 @@ export async function POST(request: NextRequest) {
       hashtags,
     } = body;
 
-    // ==========================================
-    // 2. CHECK AUTHENTICATED USER
-    // ==========================================
+
+    /* =====================================================
+       3. AUTHENTICATE USER
+    ===================================================== */
+
     const supabase = await createClient();
 
     const {
@@ -229,32 +331,45 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError) {
-      console.error('Supabase authentication error:', authError);
+      console.error(
+        'Supabase authentication error:',
+        authError
+      );
     }
 
     const userId = user?.id || null;
 
     if (!userId) {
       return NextResponse.json(
-        { error: 'Please sign in to analyze content' },
+        {
+          error:
+            'Please sign in to analyze content.',
+        },
         { status: 401 }
       );
     }
 
-    // ==========================================
-    // 3. VALIDATE INPUT
-    // ==========================================
-    if (!platform || !contentType || (!ideaText && !contentText)) {
+
+    /* =====================================================
+       4. VALIDATE INPUT
+    ===================================================== */
+
+    if (
+      !platform ||
+      !contentType ||
+      (!ideaText && !contentText)
+    ) {
       return NextResponse.json(
         {
           error:
-            'Missing required fields: platform, contentType, and content',
+            'Missing required fields: platform, contentType, and content.',
         },
         { status: 400 }
       );
     }
 
-    const rawContent = contentText || ideaText || '';
+    const rawContent =
+      contentText || ideaText || '';
 
     if (rawContent.length < 10) {
       return NextResponse.json(
@@ -276,6 +391,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
+    /* =====================================================
+       5. VALIDATE PLATFORM
+    ===================================================== */
+
     const validPlatforms = [
       'instagram',
       'youtube',
@@ -287,13 +407,17 @@ export async function POST(request: NextRequest) {
     if (!validPlatforms.includes(platform)) {
       return NextResponse.json(
         {
-          error: `Invalid platform. Must be one of: ${validPlatforms.join(
-            ', '
-          )}`,
+          error:
+            `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,
         },
         { status: 400 }
       );
     }
+
+
+    /* =====================================================
+       6. VALIDATE CONTENT TYPE
+    ===================================================== */
 
     const validContentTypes = [
       'reel',
@@ -306,25 +430,99 @@ export async function POST(request: NextRequest) {
       'blog',
       'email',
       'newsletter',
+      'article',
     ];
 
     if (!validContentTypes.includes(contentType)) {
       return NextResponse.json(
         {
-          error: `Invalid content type. Must be one of: ${validContentTypes.join(
-            ', '
-          )}`,
+          error:
+            `Invalid content type. Must be one of: ${validContentTypes.join(', ')}`,
         },
         { status: 400 }
       );
     }
 
-    const targetAudience =
-      audience || 'General social media audience';
 
-    // ==========================================
-    // 4. BUILD AI PROMPT
-    // ==========================================
+    /* =====================================================
+       7. CREATE ADMIN CLIENT
+    ===================================================== */
+
+    const admin = await createAdminClient();
+
+
+    /* =====================================================
+       8. GET USER USAGE
+    ===================================================== */
+
+    const {
+      data: currentProfile,
+      error: profileError,
+    } = await admin
+      .from('profiles')
+      .select(
+        'id, predictions_used, predictions_limit'
+      )
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !currentProfile) {
+      console.error(
+        'Error getting user profile:',
+        profileError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            'Unable to load your prediction usage. Please try again.',
+        },
+        { status: 500 }
+      );
+    }
+
+
+    /* =====================================================
+       9. DETERMINE LIMIT
+    ===================================================== */
+
+    const predictionsUsed =
+      Number(currentProfile.predictions_used || 0);
+
+    const predictionsLimit =
+      Number(currentProfile.predictions_limit || 5);
+
+
+    /* =====================================================
+       10. SERVER-SIDE LIMIT CHECK
+    ===================================================== */
+
+    if (predictionsUsed >= predictionsLimit) {
+      return NextResponse.json(
+        {
+          error:
+            `Monthly prediction limit reached. You have used ${predictionsUsed}/${predictionsLimit} predictions. Please upgrade your plan to continue.`,
+
+          code: 'PREDICTION_LIMIT_REACHED',
+
+          userUsage: {
+            predictionsUsed,
+            predictionsLimit,
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+
+    /* =====================================================
+       11. BUILD AI PROMPT
+    ===================================================== */
+
+    const targetAudience =
+      audience ||
+      'General social media audience';
+
     const userPrompt = buildUserPrompt({
       mode,
       platform,
@@ -336,345 +534,591 @@ export async function POST(request: NextRequest) {
       hashtags,
     });
 
-    // ==========================================
-    // 5. CREATE ZAI CLIENT
-    // ==========================================
+
+    /* =====================================================
+       12. CREATE ZAI CLIENT
+    ===================================================== */
+
     console.log('Creating ZAI client...');
 
-    const zai = await ZAI.create();
+    const zai = await getZAI();
 
-    console.log('ZAI client created successfully.');
-
-    // ==========================================
-    // 6. CALL AI
-    // ==========================================
-    console.log('Sending request to ZAI...');
-
-    const aiStartTime = Date.now();
-
-  const completion = await zai.chat.completions.create({
-  model: 'glm-4.7-flash',
-  messages: [
-    {
-      role: 'system',
-      content: SYSTEM_PROMPT,
-    },
-    {
-      role: 'user',
-      content: userPrompt,
-    },
-  ],
-  stream: false,
-  thinking: {
-    type: 'disabled',
-  },
-  response_format: {
-    type: 'json_object',
-  },
-  temperature: 0.7,
-});
-
-    // IMPORTANT:
-    // This prints the full response in your VS Code terminal.
     console.log(
-  'ZAI completion response:',
-  JSON.stringify(completion, null, 2)
-);
+      'ZAI client created successfully.'
+    );
 
-if (
-  completion &&
-  typeof completion === 'object' &&
-  'error' in completion
-) {
-  console.error(
-    'ZAI API ERROR:',
-    JSON.stringify(completion, null, 2)
-  );
-}
 
-    // ==========================================
-    // 7. SAFELY CHECK AI RESPONSE
-    // ==========================================
+    /* =====================================================
+       13. CALL AI
+    ===================================================== */
+
+    console.log(
+      'Sending request to ZAI...'
+    );
+
+    const completion =
+      await zai.chat.completions.create({
+        model:
+          process.env.Z_AI_MODEL ||
+          'glm-4.7-flash',
+
+        messages: [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+
+        stream: false,
+
+        thinking: {
+          type: 'disabled',
+        },
+
+        response_format: {
+          type: 'json_object',
+        },
+
+        temperature: 0.7,
+
+        max_tokens: 5000,
+      });
+
+
+    /* =====================================================
+       14. CHECK ZAI RESPONSE
+    ===================================================== */
+
+    console.log(
+      'ZAI completion received.'
+    );
+
     if (!completion) {
-      console.error('ZAI returned no response.');
+      console.error(
+        'ZAI returned no response.'
+      );
 
       return NextResponse.json(
         {
           error:
-            'AI returned no response. Check your ZAI configuration and API key.',
+            'AI returned no response. Please try again later.',
         },
-        { status: 500 }
+        { status: 502 }
       );
     }
+
+    if (
+      'error' in completion &&
+      completion.error
+    ) {
+      console.error(
+        'ZAI API ERROR:',
+        JSON.stringify(
+          completion.error,
+          null,
+          2
+        )
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            'AI service returned an error. Please try again later.',
+        },
+        { status: 502 }
+      );
+    }
+
+
+    /* =====================================================
+       15. CHECK AI CHOICES
+    ===================================================== */
 
     if (
       !Array.isArray(completion.choices) ||
       completion.choices.length === 0
     ) {
       console.error(
-        'Invalid ZAI response. choices is missing or empty:',
+        'Invalid ZAI response:',
         completion
       );
 
       return NextResponse.json(
         {
           error:
-            'AI returned an invalid response. Check the VS Code terminal for details.',
+            'AI returned an invalid response.',
         },
-        { status: 500 }
+        { status: 502 }
       );
     }
 
-    const firstChoice = completion.choices[0];
+    const firstChoice =
+      completion.choices[0];
 
     if (!firstChoice) {
       return NextResponse.json(
         {
-          error: 'AI response contains no first choice.',
+          error:
+            'AI response contains no first choice.',
         },
-        { status: 500 }
+        { status: 502 }
       );
     }
 
-    let raw = firstChoice.message?.content || '';
+
+    /* =====================================================
+       16. GET RAW AI CONTENT
+    ===================================================== */
+
+    let raw =
+      firstChoice.message?.content || '';
 
     if (!raw) {
       console.error(
         'AI returned empty content:',
-        JSON.stringify(completion, null, 2)
+        JSON.stringify(
+          completion,
+          null,
+          2
+        )
       );
 
       return NextResponse.json(
         {
           error:
-            'AI returned an empty response. Check the VS Code terminal.',
+            'AI returned an empty response.',
         },
-        { status: 500 }
+        { status: 502 }
       );
     }
 
-    // Convert content to string in case the SDK returns another type
     if (typeof raw !== 'string') {
       raw = String(raw);
     }
 
-    // Remove markdown code blocks if AI adds them
-    raw = raw
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .trim();
 
-    console.log('Raw AI content:', raw);
+    /* =====================================================
+       17. PARSE AI JSON
+    ===================================================== */
 
-    // ==========================================
-    // 8. PARSE AI JSON
-    // ==========================================
-    const analysis = extractJSON(raw);
+    const analysis =
+      extractJSON(raw);
 
     if (!analysis) {
-      console.error('Failed to parse AI JSON:', raw);
+      console.error(
+        'Failed to parse AI JSON:',
+        raw
+      );
 
       return NextResponse.json(
         {
           error:
-            'Failed to parse AI response as JSON. Check the terminal for the raw AI response.',
+            'Failed to parse AI response as JSON.',
+        },
+        { status: 502 }
+      );
+    }
+
+    console.log(
+      'AI JSON parsed successfully.'
+    );
+
+
+    /* =====================================================
+       18. NORMALIZE AI DATA
+    ===================================================== */
+
+    const scores = {
+      hook: Number(
+        analysis.scores?.hook || 50
+      ),
+
+      engagement: Number(
+        analysis.scores?.engagement || 50
+      ),
+
+      shareability: Number(
+        analysis.scores?.shareability || 50
+      ),
+
+      retention: Number(
+        analysis.scores?.retention || 50
+      ),
+
+      originality: Number(
+        analysis.scores?.originality || 50
+      ),
+
+      audienceFit: Number(
+        analysis.scores?.audienceFit || 50
+      ),
+
+      emotionalImpact: Number(
+        analysis.scores?.emotionalImpact || 50
+      ),
+
+      contentQuality: Number(
+        analysis.scores?.contentQuality || 50
+      ),
+
+      trendAlignment: Number(
+        analysis.scores?.trendAlignment || 50
+      ),
+    };
+
+
+    const platformFit =
+      Array.isArray(analysis.platformFit)
+        ? analysis.platformFit
+        : [];
+
+
+    const strengths =
+      Array.isArray(analysis.strengths)
+        ? analysis.strengths
+        : [];
+
+
+    const weaknesses =
+      Array.isArray(analysis.weaknesses)
+        ? analysis.weaknesses
+        : [];
+
+
+    const improvements =
+      Array.isArray(analysis.improvements)
+        ? analysis.improvements
+        : [];
+
+
+    const variations =
+      Array.isArray(analysis.variations)
+        ? analysis.variations
+        : [];
+
+
+    const emotionalBreakdown =
+      analysis.emotionalBreakdown &&
+      typeof analysis.emotionalBreakdown ===
+        'object'
+        ? analysis.emotionalBreakdown
+        : {
+            curiosity: 70,
+            surprise: 60,
+            excitement: 65,
+            humor: 40,
+            inspiration: 55,
+            relatability: 70,
+            controversy: 30,
+            fear: 20,
+          };
+
+
+    const predictedEngagement =
+      analysis.predictedEngagement &&
+      typeof analysis.predictedEngagement ===
+        'object'
+        ? analysis.predictedEngagement
+        : {
+            likes: '1.2K',
+            comments: '85',
+            shares: '340',
+            saves: '220',
+          };
+
+
+    /* =====================================================
+       19. SAVE ANALYSIS
+    ===================================================== */
+
+    const {
+      data: savedAnalysis,
+      error: saveError,
+    } = await admin
+      .from('content_analyses')
+      .insert({
+        user_id: userId,
+
+        title:
+          title ||
+          (
+            ideaText ||
+            contentText ||
+            ''
+          ).slice(0, 80),
+
+        platform,
+
+        content_type:
+          contentType,
+
+        content_text:
+          contentText ||
+          ideaText ||
+          '',
+
+        idea_text:
+          ideaText || null,
+
+        audience:
+          targetAudience,
+
+        overall_score:
+          Number(
+            analysis.overallScore || 0
+          ),
+
+        confidence:
+          analysis.confidence ||
+          'medium',
+
+        classification:
+          analysis.classification ||
+          'moderate',
+
+        hook_score:
+          scores.hook,
+
+        engagement_score:
+          scores.engagement,
+
+        shareability_score:
+          scores.shareability,
+
+        retention_score:
+          scores.retention,
+
+        originality_score:
+          scores.originality,
+
+        audience_fit_score:
+          scores.audienceFit,
+
+        emotional_impact_score:
+          scores.emotionalImpact,
+
+        content_quality_score:
+          scores.contentQuality,
+
+        trend_alignment_score:
+          scores.trendAlignment,
+
+        platform_fit_scores:
+          platformFit,
+
+        strengths,
+
+        weaknesses,
+
+        recommendations:
+          improvements,
+
+        optimized_hook:
+          analysis.optimizedHook ||
+          null,
+
+        optimized_caption:
+          analysis.optimizedCaption ||
+          null,
+
+        optimized_title:
+          analysis.optimizedTitle ||
+          null,
+
+        variations:
+          variations,
+      })
+      .select()
+      .single();
+
+
+    if (saveError) {
+      console.error(
+        'Error saving analysis:',
+        saveError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            'Prediction was generated but could not be saved. Your prediction limit was not changed. Please try again.',
         },
         { status: 500 }
       );
     }
 
-    console.log('AI JSON parsed successfully.');
 
-    // ==========================================
-    // 9. SAVE ANALYSIS TO SUPABASE
-    // ==========================================
-    const admin = await createAdminClient();
+    /* =====================================================
+       20. INCREMENT PREDICTION USAGE
+    ===================================================== */
 
-    const { data: savedAnalysis, error: saveError } = await admin
-      .from('content_analyses')
-      .insert({
-        user_id: userId,
-        title:
-          title ||
-          (ideaText || contentText || '').slice(0, 80),
-        platform,
-        content_type: contentType,
-        content_text: contentText || ideaText || '',
-        idea_text: ideaText || null,
-        audience: targetAudience,
-
-        overall_score: analysis.overallScore || 0,
-        confidence: analysis.confidence || 'medium',
-        classification: analysis.classification || 'moderate',
-
-        hook_score: analysis.scores?.hook || 0,
-        engagement_score: analysis.scores?.engagement || 0,
-        shareability_score: analysis.scores?.shareability || 0,
-        retention_score: analysis.scores?.retention || 0,
-        originality_score: analysis.scores?.originality || 0,
-        audience_fit_score: analysis.scores?.audienceFit || 0,
-        emotional_impact_score:
-          analysis.scores?.emotionalImpact || 0,
-        content_quality_score:
-          analysis.scores?.contentQuality || 0,
-        trend_alignment_score:
-          analysis.scores?.trendAlignment || 0,
-
-        platform_fit_scores: analysis.platformFit || [],
-        strengths: analysis.strengths || [],
-        weaknesses: analysis.weaknesses || [],
-        recommendations: analysis.improvements || [],
-
-        optimized_hook: analysis.optimizedHook || null,
-        optimized_caption: analysis.optimizedCaption || null,
-        optimized_title: analysis.optimizedTitle || null,
-
-        variations: analysis.variations || null,
-      })
-      .select()
-      .single();
-
-    if (saveError) {
-      console.error('Error saving analysis:', saveError);
-    } else {
-      console.log('Analysis saved successfully:', savedAnalysis?.id);
-    }
-
-    // ==========================================
-    // 10. UPDATE USER PREDICTION USAGE
-    // ==========================================
-    let updatedProfile: any = null;
+    const newPredictionCount =
+      predictionsUsed + 1;
 
     const {
-      data: currentProfile,
-      error: profileError,
+      error: updateError,
     } = await admin
       .from('profiles')
-      .select('predictions_used, predictions_limit')
-      .eq('id', userId)
-      .single();
+      .update({
+        predictions_used:
+          newPredictionCount,
+      })
+      .eq('id', userId);
 
-    if (profileError) {
+
+    if (updateError) {
       console.error(
-        'Error getting user profile:',
-        profileError
+        'Error updating prediction usage:',
+        updateError
+      );
+
+      /*
+       * Prediction was successfully generated
+       * and saved, but usage update failed.
+       */
+
+      return NextResponse.json(
+        {
+          id:
+            savedAnalysis?.id ||
+            null,
+
+          overallScore:
+            Number(
+              analysis.overallScore || 50
+            ),
+
+          confidence:
+            analysis.confidence ||
+            'medium',
+
+          classification:
+            analysis.classification ||
+            'moderate',
+
+          scores,
+
+          platformFit,
+
+          emotionalBreakdown,
+
+          predictedEngagement,
+
+          strengths,
+
+          weaknesses,
+
+          improvements,
+
+          optimizedHook:
+            analysis.optimizedHook ||
+            '',
+
+          optimizedCaption:
+            analysis.optimizedCaption ||
+            '',
+
+          optimizedTitle:
+            analysis.optimizedTitle ||
+            '',
+
+          variations,
+
+          userUsage: {
+            predictionsUsed,
+            predictionsLimit,
+          },
+
+          usageUpdateError: true,
+        },
+        { status: 200 }
       );
     }
 
-    if (currentProfile) {
-      const newCount =
-        (currentProfile.predictions_used || 0) + 1;
 
-      const { error: updateError } = await admin
-        .from('profiles')
-        .update({
-          predictions_used: newCount,
-        })
-        .eq('id', userId);
+    /* =====================================================
+       21. BUILD FINAL RESPONSE
+    ===================================================== */
 
-      if (updateError) {
-        console.error(
-          'Error updating prediction usage:',
-          updateError
-        );
-      } else {
-        updatedProfile = {
-          ...currentProfile,
-          predictions_used: newCount,
-        };
-      }
-    }
+    const response = {
+      id:
+        savedAnalysis?.id ||
+        null,
 
-    // ==========================================
-    // 11. BUILD FINAL RESPONSE
-    // ==========================================
-    const response: Record<string, unknown> = {
-      id: savedAnalysis?.id || null,
+      overallScore:
+        Number(
+          analysis.overallScore || 50
+        ),
 
-      overallScore: analysis.overallScore || 50,
-      confidence: analysis.confidence || 'medium',
-      classification: analysis.classification || 'moderate',
+      confidence:
+        analysis.confidence ||
+        'medium',
 
-      scores: {
-        hook: analysis.scores?.hook || 50,
-        engagement: analysis.scores?.engagement || 50,
-        shareability: analysis.scores?.shareability || 50,
-        retention: analysis.scores?.retention || 50,
-        originality: analysis.scores?.originality || 50,
-        audienceFit: analysis.scores?.audienceFit || 50,
-        emotionalImpact:
-          analysis.scores?.emotionalImpact || 50,
-        contentQuality:
-          analysis.scores?.contentQuality || 50,
-        trendAlignment:
-          analysis.scores?.trendAlignment || 50,
+      classification:
+        analysis.classification ||
+        'moderate',
+
+      scores,
+
+      platformFit,
+
+      emotionalBreakdown,
+
+      predictedEngagement,
+
+      strengths,
+
+      weaknesses,
+
+      improvements,
+
+      optimizedHook:
+        analysis.optimizedHook ||
+        '',
+
+      optimizedCaption:
+        analysis.optimizedCaption ||
+        '',
+
+      optimizedTitle:
+        analysis.optimizedTitle ||
+        '',
+
+      variations,
+
+      userUsage: {
+        predictionsUsed:
+          newPredictionCount,
+
+        predictionsLimit:
+          predictionsLimit,
       },
-
-      platformFit: Array.isArray(analysis.platformFit)
-        ? analysis.platformFit
-        : [],
-
-      emotionalBreakdown:
-        analysis.emotionalBreakdown &&
-        typeof analysis.emotionalBreakdown === 'object'
-          ? analysis.emotionalBreakdown
-          : {
-              curiosity: 70,
-              surprise: 60,
-              excitement: 65,
-              humor: 40,
-              inspiration: 55,
-              relatability: 70,
-              controversy: 30,
-              fear: 20,
-            },
-
-      predictedEngagement:
-        analysis.predictedEngagement &&
-        typeof analysis.predictedEngagement === 'object'
-          ? analysis.predictedEngagement
-          : {
-              likes: '1.2K',
-              comments: '85',
-              shares: '340',
-              saves: '220',
-            },
-
-      strengths: Array.isArray(analysis.strengths)
-        ? analysis.strengths
-        : [],
-
-      weaknesses: Array.isArray(analysis.weaknesses)
-        ? analysis.weaknesses
-        : [],
-
-      improvements: Array.isArray(analysis.improvements)
-        ? analysis.improvements
-        : [],
-
-      optimizedHook: analysis.optimizedHook || '',
-      optimizedCaption: analysis.optimizedCaption || '',
-      optimizedTitle: analysis.optimizedTitle || '',
-
-      variations: Array.isArray(analysis.variations)
-        ? analysis.variations
-        : [],
     };
 
-    if (updatedProfile) {
-      // updatedProfile may be an unknown type at compile time; use a safe cast
-      const _p: any = updatedProfile;
-      response.userUsage = {
-        predictionsUsed: _p.predictions_used ?? 0,
-        predictionsLimit: _p.predictions_limit ?? 0,
-      };
-    }
 
-    console.log('Prediction completed successfully.');
+    /* =====================================================
+       22. SUCCESS
+    ===================================================== */
 
-    return NextResponse.json(response);
+    console.log(
+      `Prediction completed successfully. Usage: ${newPredictionCount}/${predictionsLimit}`
+    );
+
+    return NextResponse.json(
+      response,
+      { status: 200 }
+    );
+
+
   } catch (error: unknown) {
-    console.error('Prediction error:', error);
+    console.error(
+      'Prediction error:',
+      error
+    );
 
     const message =
       error instanceof Error
