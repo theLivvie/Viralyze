@@ -27,6 +27,38 @@
 
 ---
 
+## 🚀 Live Demo
+
+### **🔗 [Try Viralyze Live →](https://viralyze-iota.vercel.app/)**
+
+Experience the deployed application:
+
+- 🔮 AI Viral Content Prediction
+- 🧠 Content Analysis
+- ⚡ Content Optimization
+- 💡 AI Content Ideas
+- 🔥 Trending Topics
+- 📊 Content Analytics
+- 📅 Content Calendar
+- 📚 Content Library
+- 🔐 Authentication
+
+> **Note:** The live application requires authentication for protected features.
+
+---
+
+## 🔗 Project Links
+
+| Resource | Link |
+|---|---|
+| 🚀 **Live Demo** | [Open Viralyze](https://viralyze-iota.vercel.app/) |
+| 💻 **GitHub Repository** | [View Source Code](https://github.com/theLivvie/Viralyze.git) |
+| ▲ **Deployment** | [Vercel](https://vercel.com) |
+
+---
+
+---
+
 ## 🚀 The Problem
 
 Creating content is easy.
@@ -265,49 +297,50 @@ This creates the foundation for a future where every published piece of content 
 
 # 🏗️ Architecture
 
-```text
-                         ┌─────────────────┐
-                         │      USER       │
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                     ┌────────────────────────┐
-                     │     Next.js Frontend   │
-                     │                        │
-                     │ Landing • Dashboard    │
-                     │ Predict • Analytics    │
-                     │ Ideas • Calendar       │
-                     │ Library • Trends       │
-                     └───────────┬────────────┘
-                                 │
-                                 ▼
-                     ┌────────────────────────┐
-                     │       API Routes       │
-                     │                        │
-                     │ /api/predict           │
-                     │ /api/analytics         │
-                     │ /api/ideas             │
-                     │ /api/trends            │
-                     │ /api/calendar          │
-                     │ /api/library           │
-                     │ /api/settings          │
-                     │ /api/auth              │
-                     └───────────┬────────────┘
-                                 │
-                 ┌───────────────┼────────────────┐
-                 ▼               ▼                ▼
-          ┌────────────┐  ┌────────────┐  ┌────────────┐
-          │ AI Engine  │  │ Data Layer │  │    Auth    │
-          └──────┬─────┘  └──────┬─────┘  └──────┬─────┘
-                 │               │               │
-                 └───────────────┼───────────────┘
-                                 ▼
-                    ┌────────────────────────┐
-                    │   Content Intelligence │
-                    │     & Recommendations  │
-                    └────────────────────────┘
 ```
+                    ┌──────────────┐
+                    │     User     │
+                    └──────┬───────┘
+                           │
+                           ▼
+                ┌────────────────────┐
+                │     Next.js App    │
+                │                    │
+                │ Landing            │
+                │ Dashboard          │
+                │ Prediction         │
+                │ Analytics          │
+                │ Ideas              │
+                │ Calendar           │
+                │ Library            │
+                │ Trends             │
+                └─────────┬──────────┘
+                          │
+                          ▼
+                ┌────────────────────┐
+                │    API Routes      │
+                │                    │
+                │ /api/predict       │
+                │ /api/ideas         │
+                │ /api/trends        │
+                │ /api/calendar      │
+                │ /api/library       │
+                │ /api/settings      │
+                │ /api/auth          │
+                └──────┬───────┬─────┘
+                       │       │
+             ┌─────────┘       └─────────┐
+             ▼                           ▼
+      ┌─────────────┐             ┌─────────────┐
+      │  AI Engine  │             │  Supabase   │
+      │             │             │             │
+      │ Prediction  │             │ Auth        │
+      │ Analysis    │             │ Database    │
+      │ Ideas       │             │ User Data   │
+      │ Trends      │             └─────────────┘
+      └─────────────┘
 
+```
 ---
 
 # 🛠️ Technology Stack
@@ -360,13 +393,11 @@ Viralyze is designed around AI-assisted workflows for:
 Viralyze/
 │
 ├── public/
-│   ├── logo.svg
 │   ├── viralyze_logo.png
 │   ├── favicon.ico
 │   └── robots.txt
 │
 ├── src/
-│   │
 │   ├── app/
 │   │   ├── api/
 │   │   │   ├── analytics/
@@ -390,18 +421,13 @@ Viralyze/
 │   │
 │   ├── hooks/
 │   └── lib/
-│       ├── rate-limit.ts
-│       ├── store.ts
-│       ├── types.ts
-│       └── utils.ts
 │
+├── download/
 ├── tests/
 ├── examples/
-├── download/
 ├── package.json
 ├── package-lock.json
 ├── next.config.ts
-├── tailwind.config.ts
 ├── tsconfig.json
 └── README.md
 ```
