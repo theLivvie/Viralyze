@@ -449,7 +449,7 @@ Make sure you have:
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/Viralyze.git
+git clone https://github.com/theLivvie/Viralyze.git
 cd Viralyze
 ```
 
