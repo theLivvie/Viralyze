@@ -113,6 +113,27 @@ const ContentTemplatesView = dynamic(
   }
 );
 
+const AudienceSimulatorView = dynamic(
+  () => import('@/components/app/AudienceSimulatorView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const AudienceDnaView = dynamic(
+  () => import('@/components/app/AudienceDnaView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
+const ConnectedAccountsView = dynamic(
+  () => import('@/components/app/ConnectedAccountsView'),
+  {
+    loading: () => <PageLoader />,
+  }
+);
+
 // ==========================================
 // VIEW ROUTER
 // ==========================================
@@ -131,6 +152,9 @@ const viewComponents: Record<
   analytics: AnalyticsView,
   calendar: CalendarView,
   settings: SettingsView,
+  'audience-simulator': AudienceSimulatorView,
+  'audience-dna': AudienceDnaView,
+  'connected-accounts': ConnectedAccountsView,
 };
 
 // ==========================================
@@ -262,6 +286,7 @@ function HomeContent() {
     isLoggedIn,
     sessionChecked,
     checkSession,
+    setCurrentView,
   } = useAppStore();
 
   const searchParams =
@@ -269,6 +294,8 @@ function HomeContent() {
 
   const authParam =
     searchParams.get('auth');
+  const audienceOauth =
+    searchParams.get('audience_oauth');
 
   // ==========================================
   // CHECK SESSION
@@ -284,9 +311,12 @@ function HomeContent() {
 
   useEffect(() => {
     if (
-      authParam &&
+      (authParam || audienceOauth) &&
       sessionChecked
     ) {
+      if (audienceOauth === 'success' && isLoggedIn) {
+        setCurrentView('connected-accounts');
+      }
       window.history.replaceState(
         {},
         '',
@@ -295,7 +325,10 @@ function HomeContent() {
     }
   }, [
     authParam,
+    audienceOauth,
     sessionChecked,
+    isLoggedIn,
+    setCurrentView,
   ]);
 
   // ==========================================

@@ -176,3 +176,60 @@ DROP TRIGGER IF EXISTS calendar_events_updated_at ON public.calendar_events;
 CREATE TRIGGER calendar_events_updated_at
   BEFORE UPDATE ON public.calendar_events
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ============================================
+-- 9. CONNECTED ACCOUNTS (OAuth / demo)
+-- Tokens are never sent to the client; API routes select safe columns only.
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.connected_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  platform_user_id TEXT,
+  platform_username TEXT,
+  status TEXT NOT NULL DEFAULT 'disconnected',
+  access_token TEXT,
+  refresh_token TEXT,
+  last_error TEXT,
+  connected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, platform)
+);
+
+CREATE TABLE IF NOT EXISTS public.audience_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'demo',
+  profile_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, platform)
+);
+
+CREATE TABLE IF NOT EXISTS public.audience_simulations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  analysis_id UUID REFERENCES public.content_analyses(id) ON DELETE SET NULL,
+  platform TEXT NOT NULL,
+  result JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_connected_accounts_user_id ON public.connected_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_audience_profiles_user_id ON public.audience_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_audience_simulations_user_id ON public.audience_simulations(user_id);
+
+ALTER TABLE public.connected_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audience_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audience_simulations ENABLE ROW LEVEL SECURITY;
+
+-- connected_accounts holds OAuth tokens. No client policies — service role only.
+
+DROP POLICY IF EXISTS "Users can view own audience profiles" ON public.audience_profiles;
+CREATE POLICY "Users can view own audience profiles" ON public.audience_profiles
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own audience simulations" ON public.audience_simulations;
+CREATE POLICY "Users can view own audience simulations" ON public.audience_simulations
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Client-side inserts/updates are denied; server uses the service role.

@@ -33,11 +33,11 @@ const steps = [
     description: 'Get specific suggestions — from hook rewrites to structural changes — to boost your score before posting.',
     icon: Wand2,
   },
-  {
+    {
     num: '05',
-    title: 'Publish with confidence',
-    brief: 'Optimized for maximum viral potential',
-    description: 'Hit publish knowing your content is optimized for maximum reach, engagement, and viral potential.',
+    title: 'Simulate & improve',
+    brief: 'Audience reactions, then remix and re-test',
+    description: 'Run the audience simulator, see consensus and the primary issue, improve the content, and simulate again before publishing.',
     icon: Rocket,
   },
 ];

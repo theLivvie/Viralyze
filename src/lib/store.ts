@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AppView, AnalysisResult, SavedAnalysis, UserProfile, Platform, ContentType } from './types';
+import type { AudienceSimulationResult, AudienceSource, SimulatorContentKind } from './audience-simulator/types';
 
 interface AppState {
   // Navigation
@@ -40,6 +41,17 @@ interface AppState {
   prefilledIdea: string;
   setPrefilledIdea: (idea: string) => void;
 
+  audienceSource: AudienceSource;
+  setAudienceSource: (s: AudienceSource) => void;
+  simulatorContentKind: SimulatorContentKind;
+  setSimulatorContentKind: (k: SimulatorContentKind) => void;
+  simulatorDraft: string;
+  setSimulatorDraft: (v: string) => void;
+  lastSimulation: AudienceSimulationResult | null;
+  setLastSimulation: (s: AudienceSimulationResult | null) => void;
+  runSimulationAfterPredict: boolean;
+  setRunSimulationAfterPredict: (v: boolean) => void;
+
   // Mobile sidebar
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -73,7 +85,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   logout: () => {
     // Clear session via API
     fetch('/api/auth/signout', { method: 'POST' }).catch(() => {});
-    set({ isLoggedIn: false, user: null, currentView: 'landing', savedAnalyses: [], currentAnalysis: null });
+    set({ isLoggedIn: false, user: null, currentView: 'landing', savedAnalyses: [], currentAnalysis: null, lastSimulation: null });
   },
   checkSession: async () => {
     try {
@@ -146,4 +158,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Pre-filled idea from Ideas page
   prefilledIdea: '',
   setPrefilledIdea: (idea) => set({ prefilledIdea: idea }),
+
+  audienceSource: 'demo',
+  setAudienceSource: (s) => set({ audienceSource: s }),
+  simulatorContentKind: 'text',
+  setSimulatorContentKind: (k) => set({ simulatorContentKind: k }),
+  simulatorDraft: '',
+  setSimulatorDraft: (v) => set({ simulatorDraft: v }),
+  lastSimulation: null,
+  setLastSimulation: (s) => set({ lastSimulation: s }),
+  runSimulationAfterPredict: false,
+  setRunSimulationAfterPredict: (v) => set({ runSimulationAfterPredict: v }),
 }));

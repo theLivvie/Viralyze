@@ -56,6 +56,9 @@ export default function PredictView() {
     setPrefilledIdea,
     addSavedAnalysis,
     savedAnalyses,
+    runSimulationAfterPredict,
+    setRunSimulationAfterPredict,
+    setSimulatorDraft,
   } = useAppStore();
 
   const [ideaText, setIdeaText] = useState('');
@@ -194,8 +197,9 @@ export default function PredictView() {
       });
 
       setCurrentAnalysis(data);
+      setSimulatorDraft(ideaText || contentText || '');
       setTimeout(() => {
-        setCurrentView('analysis');
+        setCurrentView(runSimulationAfterPredict ? 'audience-simulator' : 'analysis');
       }, 600);
     } catch {
       clearInterval(stepInterval);
@@ -394,6 +398,21 @@ export default function PredictView() {
                 className="bg-white/[0.05] border-white/[0.08] text-viralyze-white placeholder:text-viralyze-muted/40 focus-visible:ring-wine-accent h-11"
               />
             </div>
+
+            <label className="flex items-start gap-2.5 text-sm text-viralyze-muted cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 accent-[#B8325A]"
+                checked={runSimulationAfterPredict}
+                onChange={(e) => setRunSimulationAfterPredict(e.target.checked)}
+              />
+              <span>
+                Run AI Audience Simulation after this analysis
+                <span className="block text-[11px] text-viralyze-muted/70">
+                  Extends prediction with personas, consensus, and an improve loop.
+                </span>
+              </span>
+            </label>
 
             {/* Submit */}
             <Button

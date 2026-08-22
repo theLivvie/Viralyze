@@ -63,7 +63,7 @@ const item = {
 };
 
 export default function AnalysisView() {
-  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses } = useAppStore();
+  const { currentAnalysis, setCurrentView, setPrefilledIdea, setPredictMode, savedAnalyses, setSimulatorDraft } = useAppStore();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareTo, setCompareTo] = useState<string | null>(null);
@@ -238,6 +238,28 @@ export default function AnalysisView() {
       >
         <Plus className="h-6 w-6" />
       </motion.button>
+
+      {originalContent && (
+        <motion.div variants={item}>
+          <Card
+            className="glass border-wine-accent/30 cursor-pointer hover:border-wine-accent/60 transition-colors"
+            onClick={() => {
+              setSimulatorDraft(originalContent);
+              setCurrentView('audience-simulator');
+            }}
+          >
+            <CardContent className="p-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-viralyze-white">Continue to AI Audience Intelligence</p>
+                <p className="text-xs text-viralyze-muted">
+                  Simulate how platform-specific audiences may react, then improve and re-test.
+                </p>
+              </div>
+              <Sparkles className="h-5 w-5 text-wine-accent shrink-0" />
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Top bar: Back + Actions */}
       <motion.div variants={item} className="flex items-center justify-between">

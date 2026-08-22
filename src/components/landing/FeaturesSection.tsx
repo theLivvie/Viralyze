@@ -3,7 +3,6 @@
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import {
-  Brain,
   Crosshair,
   Sparkles,
   BarChart3,
@@ -13,6 +12,7 @@ import {
   Eye,
   Target,
   Rocket,
+  Users,
 } from 'lucide-react';
 
 const mainFeatures = [
@@ -25,16 +25,16 @@ const mainFeatures = [
   },
   {
     emoji: '🧠',
-    title: 'Understand',
-    subtitle: 'Why will it work or fail?',
-    description: 'Deep AI analysis breaks down hook strength, emotional triggers, audience fit, and trend alignment.',
-    icon: Brain,
+    title: 'Simulate',
+    subtitle: 'How will audiences react?',
+    description: 'Platform-aware personas react independently, then Viralyze aggregates consensus and names the primary issue.',
+    icon: Users,
   },
   {
     emoji: '🚀',
-    title: 'Optimize',
-    subtitle: 'What should I change?',
-    description: 'Get specific, actionable suggestions to improve your content score by 20-40% before posting.',
+    title: 'Improve',
+    subtitle: 'Fix it, then test again',
+    description: 'Get an evidence-based recommendation, generate an AI remix, and re-simulate before you hit publish.',
     icon: Rocket,
   },
 ];
