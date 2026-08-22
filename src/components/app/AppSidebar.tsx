@@ -11,6 +11,9 @@ import {
   CalendarDays,
   Settings,
   LogOut,
+  Users,
+  Dna,
+  Link2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -40,6 +43,9 @@ type NavItem = {
 const navItems: NavItem[] = [
   { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { view: 'predict', label: 'Predict Content', icon: Sparkles, highlight: true },
+  { view: 'audience-simulator', label: 'Audience Simulator', icon: Users, highlight: true },
+  { view: 'audience-dna', label: 'Audience DNA', icon: Dna },
+  { view: 'connected-accounts', label: 'Connected Accounts', icon: Link2 },
   { view: 'library', label: 'Content Library', icon: Library },
   { view: 'ideas', label: 'Idea Generator', icon: Lightbulb },
   { view: 'templates', label: 'Templates', icon: LayoutTemplate },

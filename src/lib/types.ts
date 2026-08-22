@@ -22,7 +22,10 @@ export type AppView =
   | 'settings'
   | 'pricing'
   | 'features'
-  | 'how-it-works';
+  | 'how-it-works'
+  | 'audience-simulator'
+  | 'audience-dna'
+  | 'connected-accounts';
 
 export interface PlatformFitScore {
   platform: Platform;

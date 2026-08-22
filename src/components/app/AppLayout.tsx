@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Sparkles, Lightbulb, TrendingUp, BarChart3 } from 'lucide-react';
+import { ChevronRight, Sparkles, Lightbulb, TrendingUp, BarChart3, Users } from 'lucide-react';
 import { SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,9 @@ const viewTitles: Record<AppView, string> = {
   pricing: 'Pricing',
   features: 'Features',
   'how-it-works': 'How It Works',
+  'audience-simulator': 'Audience Simulator',
+  'audience-dna': 'Audience DNA',
+  'connected-accounts': 'Connected Accounts',
 };
 
 const viewBreadcrumbs: Record<AppView, string[]> = {
@@ -43,6 +46,9 @@ const viewBreadcrumbs: Record<AppView, string[]> = {
   pricing: ['Pricing'],
   features: ['Features'],
   'how-it-works': ['How It Works'],
+  'audience-simulator': ['Dashboard', 'Audience Simulator'],
+  'audience-dna': ['Dashboard', 'Audience DNA'],
+  'connected-accounts': ['Dashboard', 'Connected Accounts'],
 };
 
 interface AppLayoutProps {
@@ -166,6 +172,14 @@ function AppLayoutInner({ children }: AppLayoutProps) {
               >
                 <Sparkles className="h-4 w-4" />
                 <span className="text-[10px] leading-tight">New</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('audience-simulator')}
+                aria-label="Audience Simulator"
+                className="flex flex-col items-center justify-center gap-0.5 text-viralyze-muted hover:text-wine-accent transition-colors min-h-[44px] min-w-[44px] px-3"
+              >
+                <Users className="h-4 w-4" />
+                <span className="text-[10px] leading-tight">Simulate</span>
               </button>
               <button
                 onClick={() => setCurrentView('ideas')}

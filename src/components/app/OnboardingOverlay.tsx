@@ -22,9 +22,9 @@ const steps = [
     icon: Zap,
   },
   {
-    title: 'Explore & Analyze',
+    title:       'Explore & Analyze',
     description:
-      'Browse your saved library, discover trending topics, and track performance analytics. Everything you need to create viral content.',
+      'After a prediction, open Audience Simulator to see how different viewers may react, then improve the content and simulate again.',
     icon: BarChart3,
   },
 ];

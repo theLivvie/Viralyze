@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Activity,
+  Users,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -285,7 +286,7 @@ export default function DashboardView() {
           </span>
         </div>
         <p className="text-viralyze-muted mt-1">
-          Ready to predict your next viral hit?
+          Predict performance, then simulate how your audience may react before you publish.
         </p>
         <div className="mt-2">
           <Badge
@@ -305,7 +306,7 @@ export default function DashboardView() {
           <div className="absolute bottom-0 right-1/4 h-32 w-32 rounded-full bg-wine/[0.05] blur-[60px]" />
         </div>
 
-        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <motion.div
             whileHover={{ y: -2, transition: { duration: 0.2 } }}
           >
@@ -347,6 +348,30 @@ export default function DashboardView() {
                   </h3>
                   <p className="text-sm text-viralyze-muted mt-0.5">
                     Score your drafted posts & captions
+                  </p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <Card
+              className="glass border-wine-accent/20 cursor-pointer group hover:border-wine-accent/50 transition-all duration-300 h-full"
+              onClick={() => setCurrentView('audience-simulator')}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-wine-accent/20 flex items-center justify-center shrink-0">
+                  <Users className="h-6 w-6 text-wine-accent" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-viralyze-white group-hover:text-wine-accent transition-colors">
+                    Audience Simulator
+                  </h3>
+                  <p className="text-sm text-viralyze-muted mt-0.5">
+                    Create → simulate → improve → re-test
                   </p>
                 </div>
                 <ArrowRight className="h-5 w-5 text-viralyze-muted group-hover:text-wine-accent group-hover:translate-x-1 transition-all" />

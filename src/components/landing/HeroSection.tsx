@@ -225,7 +225,7 @@ function DashboardMockup() {
   );
 }
 
-const heroWords = ['Know', 'What', 'Will', 'Go', 'Viral', 'Before', 'You', 'Post.'];
+const heroWords = ['Know', 'How', 'Your', 'Audience', 'Will', 'React', 'Before', 'You', 'Publish.'];
 
 export default function HeroSection() {
   const { setCurrentView, setScrollToSection, setAuthModal } = useAppStore();
@@ -296,7 +296,7 @@ export default function HeroSection() {
             <motion.div variants={item}>
               <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-wine-accent/30 bg-wine-accent/10 px-3 py-1 text-xs font-medium text-wine-accent">
                 <span className="h-1.5 w-1.5 rounded-full bg-wine-accent animate-pulse" />
-                AI-Powered Viral Prediction
+                AI-Powered Audience Simulation
               </span>
             </motion.div>
 
@@ -315,7 +315,7 @@ export default function HeroSection() {
                     delay: 0.6 + i * 0.08,
                     ease: 'easeOut',
                   }}
-                  className={word === 'Viral' ? 'text-gradient-wine mr-1.5 inline-block' : 'mr-1.5 inline-block'}
+                  className={word === 'Audience' || word === 'React' ? 'text-gradient-wine mr-1.5 inline-block' : 'mr-1.5 inline-block'}
                 >
                   {word}
                 </motion.span>
@@ -334,8 +334,9 @@ export default function HeroSection() {
               variants={item}
               className="mt-6 max-w-lg text-base leading-relaxed text-viralyze-muted sm:text-lg lg:max-w-xl"
             >
-              Stop guessing. Our AI analyzes your content before you hit publish,
-              predicting engagement, virality, and giving you actionable optimizations.
+              Stop guessing. Viralyze simulates how different audience types may react to your
+              content, identifies what is likely to work or fail, and lets you test an AI-improved
+              version before you publish.
             </motion.p>
 
             <motion.div variants={item} className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
